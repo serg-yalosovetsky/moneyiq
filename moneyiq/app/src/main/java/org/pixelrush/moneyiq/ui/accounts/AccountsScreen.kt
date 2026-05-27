@@ -1,11 +1,9 @@
 package org.pixelrush.moneyiq.ui.accounts
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,55 +35,60 @@ import org.pixelrush.moneyiq.ui.main.formatMoney
 
 @Composable
 fun AccountsScreen(
-    padding: PaddingValues = PaddingValues(),
-    onNavigateBack: () -> Unit = {},
-    embeddedMode: Boolean = false,
-    viewModel: AccountsViewModel = hiltViewModel()
+    padding:        PaddingValues = PaddingValues(),
+    onNavigateBack: () -> Unit    = {},
+    embeddedMode:   Boolean       = false,
+    onRequestAdd:   () -> Unit    = {},          // called by "Додати рахунок" & top "+"
+    viewModel:      AccountsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state          by viewModel.state.collectAsState()
     var selectedSubTab by remember { mutableIntStateOf(0) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var editAccount by remember { mutableStateOf<AccountEntity?>(null) }
+    var editAccount    by remember { mutableStateOf<AccountEntity?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
-        // ── Шапка (аналог оригинала) ────────────────────────────────────────
         if (!embeddedMode) {
             AccountsTopBar(
                 totalBalance = state.totalBalance,
-                onAddClick   = { showAddDialog = true }
+                onAddClick   = onRequestAdd
             )
         }
 
-        // ── Две вкладки: Счета | Мои финансы ────────────────────────────────
         TabRow(
             selectedTabIndex = selectedSubTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            divider = { HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant) }
+            containerColor   = MaterialTheme.colorScheme.surface,
+            contentColor     = MaterialTheme.colorScheme.primary,
+            divider          = {
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color     = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
         ) {
             Tab(
                 selected = selectedSubTab == 0,
-                onClick = { selectedSubTab = 0 },
-                text = {
+                onClick  = { selectedSubTab = 0 },
+                icon     = { Icon(Icons.Outlined.AccountBalanceWallet, null, modifier = Modifier.size(20.dp)) },
+                text     = {
                     Text(
-                        "Счета",
+                        "Рахунки",
                         fontWeight = if (selectedSubTab == 0) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
+                        style      = MaterialTheme.typography.bodyMedium
                     )
                 }
             )
             Tab(
                 selected = selectedSubTab == 1,
-                onClick = { selectedSubTab = 1 },
-                text = {
+                onClick  = { selectedSubTab = 1 },
+                icon     = { Icon(Icons.Outlined.BarChart, null, modifier = Modifier.size(20.dp)) },
+                text     = {
                     Text(
-                        "Мои финансы",
+                        "Мої фінанси",
                         fontWeight = if (selectedSubTab == 1) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
+                        style      = MaterialTheme.typography.bodyMedium
                     )
                 }
             )
@@ -93,169 +96,151 @@ fun AccountsScreen(
 
         when (selectedSubTab) {
             0 -> AccountsListTab(
-                state = state,
-                bottomPadding = padding.calculateBottomPadding(),
-                onAdd = { showAddDialog = true },
-                onEdit = { editAccount = it },
-                onDelete = { viewModel.delete(it) },
-                onSetDefault = { viewModel.setDefault(it) }
-            )
+                    state         = state,
+                    bottomPadding = padding.calculateBottomPadding(),
+                    onAdd         = onRequestAdd,
+                    onEdit        = { editAccount = it },
+                    onDelete      = { viewModel.delete(it) },
+                    onSetDefault  = { viewModel.setDefault(it) }
+                 )
             1 -> MyFinancesTab(
-                state = state,
-                bottomPadding = padding.calculateBottomPadding()
-            )
+                    state         = state,
+                    bottomPadding = padding.calculateBottomPadding()
+                 )
         }
     }
 
-    // ── Диалоги ──────────────────────────────────────────────────────────────
-    if (showAddDialog || editAccount != null) {
-        AccountEditSheet(
-            existing = editAccount,
-            onSave = { name, type, balance, color, currency ->
-                if (editAccount != null) {
-                    viewModel.update(
-                        editAccount!!.copy(
-                            name = name, type = type,
-                            balance = balance, colorHex = color, currency = currency
-                        )
+    // Edit dialog
+    editAccount?.let { acc ->
+        AccountFormSheet(
+            initialType = acc.type,
+            existing    = acc,
+            onSave      = { name, type, balance, color, currency, description, includeInTotal ->
+                viewModel.update(
+                    acc.copy(
+                        name           = name,
+                        type           = type,
+                        balance        = balance,
+                        colorHex       = color,
+                        currency       = currency,
+                        description    = description,
+                        includeInTotal = includeInTotal
                     )
-                } else {
-                    viewModel.add(name, type, balance, color, currency)
-                }
-                showAddDialog = false
+                )
                 editAccount = null
             },
-            onDismiss = { showAddDialog = false; editAccount = null }
+            onDismiss = { editAccount = null }
         )
     }
 }
 
-// ── Top bar (шапка как в оригинале) ──────────────────────────────────────────
+// ── Top bar (non-embedded) ────────────────────────────────────────────────────
 
 @Composable
 private fun AccountsTopBar(
     totalBalance: Double,
-    onAddClick: () -> Unit
+    onAddClick:   () -> Unit
 ) {
-    val balanceColor = if (totalBalance < 0)
-        MaterialTheme.colorScheme.error
-    else
-        MaterialTheme.colorScheme.onSurface
-
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Аватар / профиль
         Box(
-            modifier = Modifier
+            modifier         = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Outlined.Person,
-                contentDescription = "Профиль",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icons.Outlined.Person, null,
+                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp)
             )
         }
-
         Spacer(Modifier.width(12.dp))
-
-        // Заголовок + сумма
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier            = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                "Все счета",
+                "Всі рахунки",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
             Text(
                 formatMoney(totalBalance),
-                style = MaterialTheme.typography.headlineSmall,
+                style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = balanceColor
+                color      = MaterialTheme.colorScheme.onSurface
             )
         }
-
         Spacer(Modifier.width(12.dp))
-
-        // Кнопка добавить
-        IconButton(
-            onClick = onAddClick,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-        ) {
+        IconButton(onClick = onAddClick, modifier = Modifier.size(44.dp)) {
             Icon(
-                Icons.Default.Add,
-                contentDescription = "Добавить счёт",
-                tint = MaterialTheme.colorScheme.primary,
+                Icons.Default.Add, "Додати рахунок",
+                tint     = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
-// ── Вкладка "Счета" ───────────────────────────────────────────────────────────
+// ── Вкладка "Рахунки" ─────────────────────────────────────────────────────────
 
 @Composable
 private fun AccountsListTab(
-    state: AccountsUiState,
+    state:         AccountsUiState,
     bottomPadding: Dp,
-    onAdd: () -> Unit,
-    onEdit: (AccountEntity) -> Unit,
-    onDelete: (AccountEntity) -> Unit,
-    onSetDefault: (AccountEntity) -> Unit
+    onAdd:         () -> Unit,
+    onEdit:        (AccountEntity) -> Unit,
+    onDelete:      (AccountEntity) -> Unit,
+    onSetDefault:  (AccountEntity) -> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
-            top = 8.dp, bottom = bottomPadding + 16.dp
+        contentPadding      = PaddingValues(
+            start  = 16.dp, end = 16.dp,
+            top    = 8.dp,  bottom = bottomPadding + 16.dp
         ),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Заголовок секции
         item {
             Row(
-                modifier = Modifier
+                modifier              = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 Text(
-                    "Счета",
-                    style = MaterialTheme.typography.titleMedium,
+                    "Рахунки",
+                    style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color      = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     formatMoney(state.totalBalance),
-                    style = MaterialTheme.typography.titleMedium,
+                    style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (state.totalBalance < 0) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.primary
+                    color      = if (state.totalBalance < 0) MaterialTheme.colorScheme.error
+                                 else MaterialTheme.colorScheme.primary
                 )
             }
         }
 
-        // Список счетов
         items(state.accounts) { account ->
             AccountListItem(
-                account = account,
-                onEdit = { onEdit(account) },
-                onDelete = { onDelete(account) },
+                account      = account,
+                onEdit       = { onEdit(account) },
+                onDelete     = { onDelete(account) },
                 onSetDefault = { onSetDefault(account) }
             )
             Spacer(Modifier.height(4.dp))
         }
 
-        // Кнопка добавить счёт
         item {
             Spacer(Modifier.height(4.dp))
             AddAccountItem(onClick = onAdd)
@@ -263,13 +248,13 @@ private fun AccountsListTab(
     }
 }
 
-// ── Элемент счёта ─────────────────────────────────────────────────────────────
+// ── Елемент рахунку ───────────────────────────────────────────────────────────
 
 @Composable
 private fun AccountListItem(
-    account: AccountEntity,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    account:     AccountEntity,
+    onEdit:      () -> Unit,
+    onDelete:    () -> Unit,
     onSetDefault: () -> Unit
 ) {
     val accentColor = remember(account.colorHex) {
@@ -279,66 +264,62 @@ private fun AccountListItem(
     var showMenu by remember { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable { onEdit() }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Иконка счёта (квадратная)
         AccountIconBox(account = account, accentColor = accentColor)
 
         Spacer(Modifier.width(16.dp))
 
-        // Название + баланс
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 account.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style     = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
+                maxLines  = 1,
+                overflow  = TextOverflow.Ellipsis,
+                color     = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(2.dp))
-            val balanceColor = when {
-                account.balance < 0  -> MaterialTheme.colorScheme.error
+            val balColor = when {
+                account.balance < 0    -> MaterialTheme.colorScheme.error
                 account.balance == 0.0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                else                 -> MaterialTheme.colorScheme.onSurface
+                else                   -> MaterialTheme.colorScheme.onSurface
             }
             Text(
                 "${formatMoney(account.balance)} ${account.currency}",
-                style = MaterialTheme.typography.bodyMedium,
+                style      = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = balanceColor
+                color      = balColor
             )
         }
 
-        // Контекстное меню
         Box {
             IconButton(onClick = { showMenu = true }) {
                 Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = null,
+                    Icons.Default.MoreVert, null,
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
             }
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
-                    text = { Text("Редактировать") },
+                    text        = { Text("Редагувати") },
                     leadingIcon = { Icon(Icons.Default.Edit, null) },
-                    onClick = { onEdit(); showMenu = false }
+                    onClick     = { onEdit(); showMenu = false }
                 )
                 if (!account.isDefault) {
                     DropdownMenuItem(
-                        text = { Text("Сделать основным") },
+                        text        = { Text("Зробити основним") },
                         leadingIcon = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
-                        onClick = { onSetDefault(); showMenu = false }
+                        onClick     = { onSetDefault(); showMenu = false }
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                    text        = { Text("Видалити", color = MaterialTheme.colorScheme.error) },
                     leadingIcon = {
                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                     },
@@ -349,14 +330,13 @@ private fun AccountListItem(
     }
 }
 
-// ── Квадратная иконка счёта со звёздочкой ────────────────────────────────────
+// ── Квадратна іконка рахунку з зірочкою ──────────────────────────────────────
 
 @Composable
 private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
     Box(modifier = Modifier.size(64.dp)) {
-        // Основной квадрат с иконкой типа счёта
         Box(
-            modifier = Modifier
+            modifier         = Modifier
                 .size(60.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(accentColor),
@@ -365,15 +345,13 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
             Icon(
                 imageVector = accountTypeIcon(account.type),
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                tint        = Color.White,
+                modifier    = Modifier.size(28.dp)
             )
         }
-
-        // Звёздочка "основной счёт" — внизу слева
         if (account.isDefault) {
             Box(
-                modifier = Modifier
+                modifier         = Modifier
                     .size(20.dp)
                     .align(Alignment.BottomStart)
                     .offset(x = (-2).dp, y = 2.dp)
@@ -382,9 +360,8 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.Star,
-                    contentDescription = "Основной",
-                    tint = Color(0xFFFFD700),
+                    Icons.Filled.Star, "Основний",
+                    tint     = Color(0xFFFFD700),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -392,292 +369,189 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
     }
 }
 
-// ── Элемент "Добавить счёт" ───────────────────────────────────────────────────
+// ── Кнопка "Додати рахунок" ───────────────────────────────────────────────────
 
 @Composable
 private fun AddAccountItem(onClick: () -> Unit) {
     val dashColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Пунктирный квадрат с "+"
         Box(modifier = Modifier.size(64.dp)) {
             Box(
-                modifier = Modifier
+                modifier         = Modifier
                     .size(60.dp)
                     .dashedBorder(
-                        color = dashColor,
+                        color        = dashColor,
                         cornerRadius = 14.dp,
-                        dashWidth = 8.dp,
-                        dashGap = 5.dp
+                        dashWidth    = 8.dp,
+                        dashGap      = 5.dp
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Add,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
+                    Icons.Default.Add, null,
+                    tint     = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(28.dp)
                 )
             }
         }
-
         Spacer(Modifier.width(16.dp))
-
         Text(
-            "Добавить счёт",
-            style = MaterialTheme.typography.bodyLarge,
+            "Додати рахунок",
+            style      = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     }
 }
 
-// ── Вкладка "Мои финансы" (упрощённая) ───────────────────────────────────────
+// ── Вкладка "Мої фінанси" ─────────────────────────────────────────────────────
 
 @Composable
 private fun MyFinancesTab(
-    state: AccountsUiState,
-    bottomPadding: androidx.compose.ui.unit.Dp
+    state:         AccountsUiState,
+    bottomPadding: Dp
 ) {
+    val totalAssets = state.accounts
+        .filter { it.type != AccountType.DEBT && it.includeInTotal }
+        .sumOf { it.balance }
+    val totalDebts  = state.accounts
+        .filter { it.type == AccountType.DEBT && it.includeInTotal }
+        .sumOf { it.balance }
+    val net = totalAssets - totalDebts
+
     LazyColumn(
         contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
-            top = 8.dp, bottom = bottomPadding + 16.dp
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            start  = 16.dp, end = 16.dp,
+            top    = 16.dp, bottom = bottomPadding + 16.dp
+        )
     ) {
-        items(state.accounts) { account ->
-            val accentColor = remember(account.colorHex) {
-                try { Color(android.graphics.Color.parseColor(account.colorHex)) }
-                catch (_: Exception) { Color(0xFF4361EE) }
-            }
-            val balanceColor = when {
-                account.balance < 0    -> MaterialTheme.colorScheme.error
-                account.balance == 0.0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                else                   -> accentColor
-            }
+        item {
+            Text(
+                "Мої фінанси",
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color      = MaterialTheme.colorScheme.primary,
+                modifier   = Modifier.padding(bottom = 12.dp)
+            )
+
+            // ── Таблиця активи / борги ──────────────────────────────────────
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape  = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = accentColor.copy(alpha = 0.08f)
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
-                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
+                Column {
+                    // Header row
+                    Row(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(accentColor),
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    ) {
+                        Box(Modifier.weight(0.18f).padding(vertical = 10.dp))
+                        FinanceHeaderCell("АКТИВИ", Modifier.weight(1f))
+                        VerticalDividerLine()
+                        FinanceHeaderCell("БОРГИ", Modifier.weight(1f))
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Data row
+                    Row(
+                        modifier          = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier         = Modifier
+                                .weight(0.18f)
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "=",
+                                style      = MaterialTheme.typography.titleMedium,
+                                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        FinanceValueCell(totalAssets, Modifier.weight(1f))
+                        VerticalDividerLine()
+                        FinanceValueCell(totalDebts, Modifier.weight(1f))
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Net row
+                    Box(
+                        modifier         = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            accountTypeIcon(account.type), null,
-                            tint = Color.White, modifier = Modifier.size(22.dp)
+                        Text(
+                            formatMoney(net),
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color      = if (net < 0) MaterialTheme.colorScheme.error
+                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            account.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            accountTypeName(account.type),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                        )
-                    }
-                    Text(
-                        "${formatMoney(account.balance)} ${account.currency}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = balanceColor
-                    )
-                }
-            }
-        }
-
-        if (state.accounts.isEmpty()) {
-            item {
-                Box(
-                    Modifier.fillMaxWidth().padding(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Нет счетов",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
                 }
             }
         }
     }
 }
 
-// ── Диалог создания/редактирования счёта ─────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountEditSheet(
-    existing: AccountEntity?,
-    onSave: (name: String, type: AccountType, balance: Double, color: String, currency: String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var name     by remember { mutableStateOf(existing?.name     ?: "") }
-    var balance  by remember { mutableStateOf(existing?.balance?.let {
-        if (it == 0.0) "" else it.toString()
-    } ?: "") }
-    var type     by remember { mutableStateOf(existing?.type     ?: AccountType.CASH) }
-    var colorHex by remember { mutableStateOf(existing?.colorHex ?: "#4361EE") }
-    var currency by remember { mutableStateOf(existing?.currency ?: "RUB") }
+private fun FinanceHeaderCell(text: String, modifier: Modifier) {
+    Box(
+        modifier         = modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            style      = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
 
-    val colorPalette = listOf(
-        "#4361EE", "#3A86FF", "#8338EC", "#FF006E",
-        "#FB5607", "#FFBE0B", "#06D6A0", "#118AB2",
-        "#4CAF50", "#009688", "#607D8B", "#F44336"
-    )
+@Composable
+private fun FinanceValueCell(amount: Double, modifier: Modifier) {
+    Box(
+        modifier         = modifier.padding(vertical = 16.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            formatMoney(amount),
+            style      = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color      = if (amount == 0.0) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                         else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(if (existing != null) "Редактировать счёт" else "Новый счёт")
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Название
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Название") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(Icons.Outlined.AccountBalanceWallet, null)
-                    }
-                )
-
-                // Начальный баланс
-                OutlinedTextField(
-                    value = balance,
-                    onValueChange = { balance = it },
-                    label = { Text("Начальный баланс") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.AttachMoney, null) }
-                )
-
-                // Тип счёта
-                var typeExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = typeExpanded,
-                    onExpandedChange = { typeExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = accountTypeName(type),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Тип счёта") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(typeExpanded) },
-                        leadingIcon = {
-                            Icon(accountTypeIcon(type), null,
-                                tint = try { Color(android.graphics.Color.parseColor(colorHex)) }
-                                catch (_: Exception) { MaterialTheme.colorScheme.primary }
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = typeExpanded,
-                        onDismissRequest = { typeExpanded = false }
-                    ) {
-                        AccountType.entries.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text(accountTypeName(t)) },
-                                leadingIcon = { Icon(accountTypeIcon(t), null) },
-                                onClick = { type = t; typeExpanded = false }
-                            )
-                        }
-                    }
-                }
-
-                // Валюта
-                var currencyExpanded by remember { mutableStateOf(false) }
-                val currencies = listOf("RUB", "USD", "EUR", "UAH", "GBP", "CNY", "JPY", "CHF")
-                ExposedDropdownMenuBox(
-                    expanded = currencyExpanded,
-                    onExpandedChange = { currencyExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = currency,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Валюта") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(currencyExpanded) },
-                        leadingIcon = { Icon(Icons.Outlined.Language, null) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = currencyExpanded,
-                        onDismissRequest = { currencyExpanded = false }
-                    ) {
-                        currencies.forEach { c ->
-                            DropdownMenuItem(
-                                text = { Text(c) },
-                                onClick = { currency = c; currencyExpanded = false }
-                            )
-                        }
-                    }
-                }
-
-                // Выбор цвета
-                Text("Цвет", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(colorPalette) { hex ->
-                        val c = try { Color(android.graphics.Color.parseColor(hex)) }
-                                catch (_: Exception) { Color.Gray }
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(c)
-                                .clickable { colorHex = hex },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (colorHex == hex) {
-                                Icon(Icons.Default.Check, null,
-                                    modifier = Modifier.size(18.dp), tint = Color.White)
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val b = balance.replace(",", ".").toDoubleOrNull() ?: 0.0
-                if (name.isNotBlank()) onSave(name, type, b, colorHex, currency)
-            }) { Text("Сохранить") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
-        }
+@Composable
+private fun VerticalDividerLine() {
+    Box(
+        Modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.outlineVariant)
     )
 }
 
-// ── Вспомогательные функции ───────────────────────────────────────────────────
+// ── Helper functions ──────────────────────────────────────────────────────────
 
 internal fun accountTypeIcon(type: AccountType): ImageVector = when (type) {
     AccountType.CASH       -> Icons.Outlined.Wallet
@@ -689,34 +563,30 @@ internal fun accountTypeIcon(type: AccountType): ImageVector = when (type) {
 }
 
 internal fun accountTypeName(type: AccountType) = when (type) {
-    AccountType.CASH       -> "Наличные"
+    AccountType.CASH       -> "Готівка"
     AccountType.CARD       -> "Карта"
-    AccountType.SAVING     -> "Сбережения"
-    AccountType.INVESTMENT -> "Инвестиции"
-    AccountType.DEBT       -> "Долг"
-    AccountType.OTHER      -> "Другое"
+    AccountType.SAVING     -> "Заощадження"
+    AccountType.INVESTMENT -> "Інвестиції"
+    AccountType.DEBT       -> "Борговий"
+    AccountType.OTHER      -> "Інше"
 }
 
-// Modifier — пунктирная рамка (Compose Canvas)
+// Modifier — пунктирна рамка
 private fun Modifier.dashedBorder(
-    color: Color,
-    cornerRadius: androidx.compose.ui.unit.Dp,
-    dashWidth: androidx.compose.ui.unit.Dp,
-    dashGap: androidx.compose.ui.unit.Dp,
-    strokeWidth: androidx.compose.ui.unit.Dp = 1.5.dp
+    color:        Color,
+    cornerRadius: Dp,
+    dashWidth:    Dp,
+    dashGap:      Dp,
+    strokeWidth:  Dp = 1.5.dp
 ): Modifier = this.drawBehind {
-    val cr   = cornerRadius.toPx()
-    val sw   = strokeWidth.toPx()
-    val dw   = dashWidth.toPx()
-    val dg   = dashGap.toPx()
-
+    val cr = cornerRadius.toPx()
+    val sw = strokeWidth.toPx()
+    val dw = dashWidth.toPx()
+    val dg = dashGap.toPx()
     drawRoundRect(
-        color = color,
-        size = Size(size.width, size.height),
+        color        = color,
+        size         = Size(size.width, size.height),
         cornerRadius = CornerRadius(cr, cr),
-        style = Stroke(
-            width = sw,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dw, dg), 0f)
-        )
+        style        = Stroke(width = sw, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dw, dg), 0f))
     )
 }

@@ -27,14 +27,24 @@ class AccountsViewModel @Inject constructor(
         AccountsUiState(accounts = accounts, totalBalance = total)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AccountsUiState())
 
-    fun add(name: String, type: AccountType, balance: Double, color: String, currency: String = "RUB") {
+    fun add(
+        name: String,
+        type: AccountType,
+        balance: Double,
+        color: String,
+        currency: String = "UAH",
+        description: String = "",
+        includeInTotal: Boolean = true
+    ) {
         viewModelScope.launch {
             val isFirst = repo.getAllAccounts().first().isEmpty()
             repo.save(
                 AccountEntity(
                     name = name, type = type, balance = balance,
                     colorHex = color, currency = currency,
-                    isDefault = isFirst   // первый счёт = по умолчанию
+                    isDefault = isFirst,
+                    description = description,
+                    includeInTotal = includeInTotal
                 )
             )
         }

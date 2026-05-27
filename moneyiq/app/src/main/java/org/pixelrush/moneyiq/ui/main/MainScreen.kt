@@ -27,8 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
+import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.accounts.AccountFormSheet
 import org.pixelrush.moneyiq.ui.accounts.AccountsScreen
+import org.pixelrush.moneyiq.ui.accounts.AccountsViewModel
+import org.pixelrush.moneyiq.ui.accounts.NewAccountTypeSheet
 import org.pixelrush.moneyiq.ui.budget.BudgetScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
@@ -64,7 +68,8 @@ private val TABS = listOf(
 fun MainScreen(
     onAddTransaction:  () -> Unit,
     onEditTransaction: (Long) -> Unit = {},
-    mainViewModel:     MainViewModel  = hiltViewModel()
+    mainViewModel:     MainViewModel  = hiltViewModel(),
+    accountsViewModel: AccountsViewModel = hiltViewModel()
 ) {
     val pagerState   = rememberPagerState(pageCount = { TABS.size })
     val scope        = rememberCoroutineScope()
@@ -72,9 +77,14 @@ fun MainScreen(
     val mainState   by mainViewModel.state.collectAsState()
     val totalBalance  = mainState.totalBalance
 
+    // ── New account flow ─────────────────────────────────────────────────────
+    var showAccTypeSheet  by remember { mutableStateOf(false) }
+    var pendingAccType    by remember { mutableStateOf<AccountType?>(null) }
+
+    val triggerNewAccount: () -> Unit = { showAccTypeSheet = true }
+
     Scaffold(
         floatingActionButton = {
-            // FAB только на вкладке "Операції" (tab 2)
             if (currentPage == 2) {
                 FloatingActionButton(
                     onClick        = onAddTransaction,
@@ -121,39 +131,38 @@ fun MainScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // чтобы шапка не залезала на статус-бар Android
+                .statusBarsPadding()
         ) {
-            // Общая шапка для всех вкладок
-            SharedTopBar(totalBalance = totalBalance)
+            SharedTopBar(
+                totalBalance = totalBalance,
+                currentPage  = currentPage,
+                onPlusClick  = triggerNewAccount
+            )
 
             HorizontalPager(
                 state    = pagerState,
                 modifier = Modifier.weight(1f)
             ) { page ->
                 when (page) {
-                    // 0 → Рахунки
                     0 -> AccountsScreen(
                             padding      = bottomPadding,
-                            embeddedMode = true
+                            embeddedMode = true,
+                            onRequestAdd = triggerNewAccount
                          )
-                    // 1 → Категорії
                     1 -> CategoriesScreen(
                             onNavigateBack = {},
                             embeddedMode   = true,
                             padding        = bottomPadding
                          )
-                    // 2 → Операції (транзакції)
                     2 -> TransactionsListScreen(
                             padding           = bottomPadding,
                             onEditTransaction = onEditTransaction,
                             embeddedMode      = true
                          )
-                    // 3 → Бюджет
                     3 -> BudgetScreen(
                             padding      = bottomPadding,
                             embeddedMode = true
                          )
-                    // 4 → Огляд
                     4 -> OverviewScreen(
                             padding          = bottomPadding,
                             onAddTransaction = onAddTransaction,
@@ -164,22 +173,50 @@ fun MainScreen(
             }
         }
     }
+
+    // ── Account type selection sheet ─────────────────────────────────────────
+    if (showAccTypeSheet) {
+        NewAccountTypeSheet(
+            onSelect  = { type ->
+                showAccTypeSheet = false
+                pendingAccType   = type
+            },
+            onDismiss = { showAccTypeSheet = false }
+        )
+    }
+
+    // ── Account creation form ────────────────────────────────────────────────
+    pendingAccType?.let { type ->
+        AccountFormSheet(
+            initialType = type,
+            existing    = null,
+            onSave      = { name, accType, balance, color, currency, description, includeInTotal ->
+                accountsViewModel.add(name, accType, balance, color, currency, description, includeInTotal)
+                pendingAccType = null
+            },
+            onDismiss   = { pendingAccType = null }
+        )
+    }
 }
 
-// ── Shared top bar (аватар + «Всі рахунки» + баланс) ─────────────────────────
+// ── Shared top bar (аватар + «Всі рахунки» + баланс + контекстна кнопка) ─────
 
 @Composable
-private fun SharedTopBar(totalBalance: Double) {
+private fun SharedTopBar(
+    totalBalance: Double,
+    currentPage:  Int,
+    onPlusClick:  () -> Unit
+) {
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Аватар слева
+        // Аватар
         Box(
-            modifier = Modifier
+            modifier         = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -216,13 +253,14 @@ private fun SharedTopBar(totalBalance: Double) {
 
         Spacer(Modifier.width(12.dp))
 
-        // Иконка бюджета/настроек справа
+        // Права кнопка — «+» тільки на вкладці «Рахунки»
         IconButton(
-            onClick  = { /* TODO: налаштування */ },
+            onClick  = if (currentPage == 0) onPlusClick else { {} },
             modifier = Modifier.size(44.dp).clip(CircleShape)
         ) {
             Icon(
-                Icons.Outlined.Speed, "Бюджет",
+                if (currentPage == 0) Icons.Default.Add else Icons.Outlined.Speed,
+                contentDescription = if (currentPage == 0) "Новий рахунок" else "Огляд",
                 tint     = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp)
             )
