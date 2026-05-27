@@ -116,6 +116,7 @@ class TransactionsListViewModel @Inject constructor(
 fun TransactionsListScreen(
     padding:           PaddingValues = PaddingValues(),
     onEditTransaction: (Long) -> Unit = {},
+    embeddedMode:      Boolean        = false,
     viewModel:         TransactionsListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -123,10 +124,12 @@ fun TransactionsListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = padding.calculateTopPadding())
+            .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
         // ── Шапка ──────────────────────────────────────────────────────────
-        TxTopBar(totalBalance = state.closingBalance)
+        if (!embeddedMode) {
+            TxTopBar(totalBalance = state.closingBalance)
+        }
 
         // ── Пилюля-навигатор месяца ─────────────────────────────────────
         MonthNavPill(

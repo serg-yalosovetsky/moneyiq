@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
@@ -61,12 +62,15 @@ private val TABS = listOf(
 
 @Composable
 fun MainScreen(
-    onAddTransaction: () -> Unit,
-    onEditTransaction: (Long) -> Unit = {}
+    onAddTransaction:  () -> Unit,
+    onEditTransaction: (Long) -> Unit = {},
+    mainViewModel:     MainViewModel  = hiltViewModel()
 ) {
-    val pagerState  = rememberPagerState(pageCount = { TABS.size })
-    val scope       = rememberCoroutineScope()
-    val currentPage = pagerState.currentPage
+    val pagerState   = rememberPagerState(pageCount = { TABS.size })
+    val scope        = rememberCoroutineScope()
+    val currentPage  = pagerState.currentPage
+    val mainState   by mainViewModel.state.collectAsState()
+    val totalBalance  = mainState.totalBalance
 
     Scaffold(
         floatingActionButton = {
@@ -112,30 +116,112 @@ fun MainScreen(
             }
         }
     ) { padding ->
-        HorizontalPager(
-            state    = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            when (page) {
-                // 0 → Рахунки
-                0 -> AccountsScreen(padding = padding, embeddedMode = true)
-                // 1 → Категорії
-                1 -> CategoriesScreen(
-                        onNavigateBack = {},
-                        embeddedMode   = true,
-                        padding        = padding
-                     )
-                // 2 → Операції (транзакції)
-                2 -> TransactionsListScreen(padding = padding, onEditTransaction = onEditTransaction)
-                // 3 → Бюджет
-                3 -> BudgetScreen(padding = padding)
-                // 4 → Огляд
-                4 -> OverviewScreen(
-                        padding          = padding,
-                        onAddTransaction = onAddTransaction
-                     )
-                else -> Unit
+        val bottomPadding = PaddingValues(bottom = padding.calculateBottomPadding())
+
+        Column(Modifier.fillMaxSize()) {
+            // Общая шапка для всех вкладок
+            SharedTopBar(totalBalance = totalBalance)
+
+            HorizontalPager(
+                state    = pagerState,
+                modifier = Modifier.weight(1f)
+            ) { page ->
+                when (page) {
+                    // 0 → Рахунки
+                    0 -> AccountsScreen(
+                            padding      = bottomPadding,
+                            embeddedMode = true
+                         )
+                    // 1 → Категорії
+                    1 -> CategoriesScreen(
+                            onNavigateBack = {},
+                            embeddedMode   = true,
+                            padding        = bottomPadding
+                         )
+                    // 2 → Операції (транзакції)
+                    2 -> TransactionsListScreen(
+                            padding           = bottomPadding,
+                            onEditTransaction = onEditTransaction,
+                            embeddedMode      = true
+                         )
+                    // 3 → Бюджет
+                    3 -> BudgetScreen(
+                            padding      = bottomPadding,
+                            embeddedMode = true
+                         )
+                    // 4 → Огляд
+                    4 -> OverviewScreen(
+                            padding          = bottomPadding,
+                            onAddTransaction = onAddTransaction,
+                            embeddedMode     = true
+                         )
+                    else -> Unit
+                }
             }
+        }
+    }
+}
+
+// ── Shared top bar (аватар + «Всі рахунки» + баланс) ─────────────────────────
+
+@Composable
+private fun SharedTopBar(totalBalance: Double) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Аватар слева
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Outlined.Person, null,
+                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        // Центр: «Всі рахунки» + баланс
+        Column(
+            modifier            = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Всі рахунки",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+            Text(
+                formatMoney(totalBalance),
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color      = MaterialTheme.colorScheme.onSurface,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        // Иконка настроек справа
+        IconButton(
+            onClick  = { /* TODO: настройки */ },
+            modifier = Modifier.size(44.dp).clip(CircleShape)
+        ) {
+            Icon(
+                Icons.Default.Settings, "Налаштування",
+                tint     = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }

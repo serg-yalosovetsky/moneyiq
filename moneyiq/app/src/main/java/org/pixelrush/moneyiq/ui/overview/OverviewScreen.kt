@@ -103,22 +103,34 @@ data class OverviewCatRow(
     val budgetAmount: Double
 )
 
+/** Сырые данные из Room — все потоки за один flatMapLatest */
+private data class OvrRaw(
+    val txList:   List<TransactionWithDetails>,
+    val expSpend: List<CategorySpending>,
+    val incSpend: List<CategorySpending>,
+    val expCats:  List<CategoryEntity>,
+    val incCats:  List<CategoryEntity>
+)
+
 data class OverviewUiState(
     val selectedMonth: OverviewSelMonth = run {
         val c = Calendar.getInstance()
         OverviewSelMonth(c.get(Calendar.YEAR), c.get(Calendar.MONTH))
     },
-    val daysInMonth:   Int                  = 31,
-    val mode:          OverviewMode         = OverviewMode.EXPENSE,
-    val totalBalance:  Double               = 0.0,
-    val monthExpense:  Double               = 0.0,
-    val monthIncome:   Double               = 0.0,
-    val txCount:       Int                  = 0,
-    val dailyAvg:      Double               = 0.0,
-    val todayAmount:   Double               = 0.0,
-    val weekAmount:    Double               = 0.0,
-    val weekBars:      List<WeekBar>        = emptyList(),
-    val categories:    List<OverviewCatRow> = emptyList()
+    val daysInMonth:        Int                  = 31,
+    val mode:               OverviewMode         = OverviewMode.EXPENSE,
+    val totalBalance:       Double               = 0.0,
+    val monthExpense:       Double               = 0.0,
+    val monthIncome:        Double               = 0.0,
+    val txCount:            Int                  = 0,
+    val dailyAvg:           Double               = 0.0,
+    val todayAmount:        Double               = 0.0,
+    val weekAmount:         Double               = 0.0,
+    val weekBars:           List<WeekBar>        = emptyList(),
+    val categories:         List<OverviewCatRow> = emptyList(),
+    /** Суммы для секции «Бюджет» внизу экрана */
+    val totalExpenseBudget: Double               = 0.0,
+    val totalIncomeBudget:  Double               = 0.0
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -140,17 +152,19 @@ class OverviewViewModel @Inject constructor(
         }
         .flatMapLatest { (sel, mode) ->
             val (from, to) = monthRange(sel)
-            val txType = if (mode == OverviewMode.EXPENSE) TransactionType.EXPENSE
-                         else TransactionType.INCOME
 
             val innerFlow = combine(
                 txRepo.getTransactionsByPeriod(from, to),
-                txRepo.getCategorySpending(txType, from, to),
-                categoryRepo.getByType(txType)
-            ) { txList, catSpend, cats -> Triple(txList, catSpend, cats) }
+                txRepo.getCategorySpending(TransactionType.EXPENSE, from, to),
+                txRepo.getCategorySpending(TransactionType.INCOME,  from, to),
+                categoryRepo.getByType(TransactionType.EXPENSE),
+                categoryRepo.getByType(TransactionType.INCOME)
+            ) { txList, expSpend, incSpend, expCats, incCats ->
+                OvrRaw(txList, expSpend, incSpend, expCats, incCats)
+            }
 
-            combine(innerFlow, accountRepo.getTotalBalance()) { (txList, catSpend, cats), bal ->
-                buildState(sel, mode, txList, catSpend, bal ?: 0.0, cats)
+            combine(innerFlow, accountRepo.getTotalBalance()) { data, bal ->
+                buildState(sel, mode, data, bal ?: 0.0)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OverviewUiState())
@@ -172,14 +186,15 @@ class OverviewViewModel @Inject constructor(
     }
 
     private fun buildState(
-        sel:      OverviewSelMonth,
-        mode:     OverviewMode,
-        txList:   List<TransactionWithDetails>,
-        catSpend: List<CategorySpending>,
-        balance:  Double,
-        cats:     List<CategoryEntity>
+        sel:     OverviewSelMonth,
+        mode:    OverviewMode,
+        data:    OvrRaw,
+        balance: Double
     ): OverviewUiState {
-        val montCal = Calendar.getInstance().also { it.set(sel.year, sel.month, 1) }
+        val catSpend = if (mode == OverviewMode.EXPENSE) data.expSpend else data.incSpend
+        val cats     = if (mode == OverviewMode.EXPENSE) data.expCats  else data.incCats
+        val txList   = data.txList
+        val montCal  = Calendar.getInstance().also { it.set(sel.year, sel.month, 1) }
         val dim = montCal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         val txType = if (mode == OverviewMode.EXPENSE) TransactionType.EXPENSE else TransactionType.INCOME
@@ -254,19 +269,24 @@ class OverviewViewModel @Inject constructor(
             )
         }
 
+        val totalExpenseBudget = data.expCats.sumOf { it.budgetAmount }
+        val totalIncomeBudget  = data.incCats.sumOf { it.budgetAmount }
+
         return OverviewUiState(
-            selectedMonth = sel,
-            daysInMonth   = dim,
-            mode          = mode,
-            totalBalance  = balance,
-            monthExpense  = monthExpense,
-            monthIncome   = monthIncome,
-            txCount       = monoTx.size,
-            dailyAvg      = dailyAvg,
-            todayAmount   = todayAmount,
-            weekAmount    = weekAmount,
-            weekBars      = weekBars,
-            categories    = catRows
+            selectedMonth      = sel,
+            daysInMonth        = dim,
+            mode               = mode,
+            totalBalance       = balance,
+            monthExpense       = monthExpense,
+            monthIncome        = monthIncome,
+            txCount            = monoTx.size,
+            dailyAvg           = dailyAvg,
+            todayAmount        = todayAmount,
+            weekAmount         = weekAmount,
+            weekBars           = weekBars,
+            categories         = catRows,
+            totalExpenseBudget = totalExpenseBudget,
+            totalIncomeBudget  = totalIncomeBudget
         )
     }
 }
@@ -278,6 +298,7 @@ class OverviewViewModel @Inject constructor(
 fun OverviewScreen(
     padding:          PaddingValues = PaddingValues(),
     onAddTransaction: () -> Unit    = {},
+    embeddedMode:     Boolean       = false,
     viewModel:        OverviewViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -324,9 +345,11 @@ fun OverviewScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = padding.calculateTopPadding())
+            .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
-        OverviewTopBar(totalBalance = state.totalBalance)
+        if (!embeddedMode) {
+            OverviewTopBar(totalBalance = state.totalBalance)
+        }
 
         OverviewMonthNavPill(
             sel         = state.selectedMonth,
@@ -390,6 +413,16 @@ fun OverviewScreen(
                     )
                 }
             }
+
+            // ── Секція «Бюджет» внизу ────────────────────────────────────────
+            item {
+                BudgetSummarySection(
+                    monthExpense       = state.monthExpense,
+                    monthIncome        = state.monthIncome,
+                    totalExpenseBudget = state.totalExpenseBudget,
+                    totalIncomeBudget  = state.totalIncomeBudget
+                )
+            }
         }
     }
 }
@@ -451,54 +484,60 @@ private fun OverviewMonthNavPill(
     onNext:      () -> Unit
 ) {
     Row(
-        modifier          = Modifier
+        modifier              = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        // « двойная стрелка влево
         IconButton(onClick = onPrev) {
-            Icon(Icons.Default.KeyboardDoubleArrowLeft, contentDescription = "Предыдущий месяц")
-        }
-
-        Surface(
-            modifier        = Modifier.weight(1f),
-            shape           = RoundedCornerShape(50),
-            color           = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation  = 1.dp
-        ) {
-            Row(
-                modifier                = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment       = Alignment.CenterVertically,
-                horizontalArrangement   = Arrangement.Center
-            ) {
-                // Day-count badge
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        daysInMonth.toString(),
-                        style      = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "${OVR_MONTH_NAMES[sel.month]} ${sel.year}",
-                    style         = MaterialTheme.typography.titleSmall,
-                    fontWeight    = FontWeight.SemiBold,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
             }
         }
 
+        // Пилюля [дни] МІСЯЦЬ РІК ▾
+        val pillAccent = Color(0xFFD81B60)
+        Surface(
+            shape = RoundedCornerShape(50.dp),
+            color = pillAccent.copy(alpha = 0.12f)
+        ) {
+            Row(
+                modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(shape = CircleShape, color = pillAccent) {
+                    Text(
+                        "$daysInMonth",
+                        modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        style      = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
+                    )
+                }
+                Text(
+                    "${OVR_MONTH_NAMES[sel.month]} ${sel.year}",
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = pillAccent
+                )
+                Icon(
+                    Icons.Default.ArrowDropDown, null,
+                    tint     = pillAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        // » двойная стрелка вправо
         IconButton(onClick = onNext) {
-            Icon(Icons.Default.KeyboardDoubleArrowRight, contentDescription = "Следующий месяц")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
@@ -1066,6 +1105,162 @@ private fun EmptyCategories() {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 style = MaterialTheme.typography.bodyLarge
             )
+        }
+    }
+}
+
+// ── Секція «Бюджет» внизу Огляду ─────────────────────────────────────────────
+
+@Composable
+private fun BudgetSummarySection(
+    monthExpense:       Double,
+    monthIncome:        Double,
+    totalExpenseBudget: Double,
+    totalIncomeBudget:  Double
+) {
+    val expenseColor = Color(0xFFD81B60)
+    val savingsColor = Color(0xFF26A69A)
+    val incomeColor  = Color(0xFF66BB6A)
+
+    Spacer(Modifier.height(8.dp))
+    Card(
+        modifier  = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        shape     = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column {
+            // Заголовок
+            Row(
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Бюджет",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    Icons.Default.Speed, null,
+                    modifier = Modifier.size(20.dp),
+                    tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+            HorizontalDivider()
+
+            // Витрати
+            BudgetSummaryRow(
+                label       = "Витрати",
+                amount      = monthExpense,
+                budget      = totalExpenseBudget,
+                amountLabel = "витрачено",
+                budgetLabel = "в бюджеті",
+                borderColor = expenseColor
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 18.dp))
+
+            // Заощадження
+            val savings = (totalIncomeBudget - monthExpense).coerceAtLeast(0.0)
+            BudgetSummaryRow(
+                label       = "Заощадження",
+                amount      = savings,
+                budget      = totalIncomeBudget,
+                amountLabel = "збережено",
+                budgetLabel = "в бюджеті",
+                borderColor = savingsColor
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 18.dp))
+
+            // Доходи
+            BudgetSummaryRow(
+                label       = "Доходи",
+                amount      = monthIncome,
+                budget      = totalIncomeBudget,
+                amountLabel = "отримано",
+                budgetLabel = "в бюджеті",
+                borderColor = incomeColor
+            )
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun BudgetSummaryRow(
+    label:       String,
+    amount:      Double,
+    budget:      Double,
+    amountLabel: String,
+    budgetLabel: String,
+    borderColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+    ) {
+        Box(
+            Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(borderColor)
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    label,
+                    style      = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = borderColor
+                )
+                Text(
+                    formatMoney(amount),
+                    style      = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "$amountLabel ${formatMoney(amount)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                )
+                Text(
+                    "$budgetLabel ${formatMoney(budget)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                )
+            }
+            if (budget > 0) {
+                Spacer(Modifier.height(4.dp))
+                val progress = (amount / budget).toFloat().coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress   = { progress },
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(CircleShape),
+                    color      = borderColor,
+                    trackColor = borderColor.copy(alpha = 0.15f)
+                )
+            }
         }
     }
 }

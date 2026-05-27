@@ -35,9 +35,9 @@ import org.pixelrush.moneyiq.ui.main.formatMoney
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-private val MONTH_NAMES_RU = arrayOf(
-    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+private val MONTH_NAMES_UA_CAT = arrayOf(
+    "СІЧЕНЬ", "ЛЮТИЙ", "БЕРЕЗЕНЬ", "КВІТЕНЬ", "ТРАВЕНЬ", "ЧЕРВЕНЬ",
+    "ЛИПЕНЬ", "СЕРПЕНЬ", "ВЕРЕСЕНЬ", "ЖОВТЕНЬ", "ЛИСТОПАД", "ГРУДЕНЬ"
 )
 
 private val CHIP_WIDTH          = 76.dp
@@ -64,14 +64,16 @@ fun CategoriesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = padding.calculateTopPadding())
+            .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
         // ── Шапка ──────────────────────────────────────────────────────────
-        CategoriesTopBar(
-            totalExpense = state.totalExpense,
-            totalIncome  = state.totalIncome,
-            onAddClick   = { showDialog = true }
-        )
+        if (!embeddedMode) {
+            CategoriesTopBar(
+                totalExpense = state.totalExpense,
+                totalIncome  = state.totalIncome,
+                onAddClick   = { showDialog = true }
+            )
+        }
 
         // ── Навигация месяцев ───────────────────────────────────────────
         MonthNavRow(
@@ -247,7 +249,7 @@ private fun MonthNavRow(
             )
         }
         Text(
-            "${MONTH_NAMES_RU[sel.month]} ${sel.year}",
+            "${MONTH_NAMES_UA_CAT[sel.month]} ${sel.year}",
             style      = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Medium,
             color      = MaterialTheme.colorScheme.onSurface

@@ -130,8 +130,9 @@ class BudgetViewModel @Inject constructor(
 
 @Composable
 fun BudgetScreen(
-    padding:   PaddingValues = PaddingValues(),
-    viewModel: BudgetViewModel = hiltViewModel()
+    padding:      PaddingValues = PaddingValues(),
+    embeddedMode: Boolean       = false,
+    viewModel:    BudgetViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -141,10 +142,12 @@ fun BudgetScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = padding.calculateTopPadding())
+            .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
         // ── Шапка ──────────────────────────────────────────────────────────
-        BudgetTopBar(totalBalance = state.totalBalance)
+        if (!embeddedMode) {
+            BudgetTopBar(totalBalance = state.totalBalance)
+        }
 
         // ── Навигатор месяца ─────────────────────────────────────────────
         BudgetMonthNavPill(

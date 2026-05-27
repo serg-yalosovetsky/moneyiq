@@ -50,13 +50,15 @@ fun AccountsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = padding.calculateTopPadding())
+            .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
     ) {
         // ── Шапка (аналог оригинала) ────────────────────────────────────────
-        AccountsTopBar(
-            totalBalance = state.totalBalance,
-            onAddClick = { showAddDialog = true }
-        )
+        if (!embeddedMode) {
+            AccountsTopBar(
+                totalBalance = state.totalBalance,
+                onAddClick   = { showAddDialog = true }
+            )
+        }
 
         // ── Две вкладки: Счета | Мои финансы ────────────────────────────────
         TabRow(
