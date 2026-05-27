@@ -118,7 +118,11 @@ fun MainScreen(
     ) { padding ->
         val bottomPadding = PaddingValues(bottom = padding.calculateBottomPadding())
 
-        Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()   // чтобы шапка не залезала на статус-бар Android
+        ) {
             // Общая шапка для всех вкладок
             SharedTopBar(totalBalance = totalBalance)
 
@@ -212,13 +216,13 @@ private fun SharedTopBar(totalBalance: Double) {
 
         Spacer(Modifier.width(12.dp))
 
-        // Иконка настроек справа
+        // Иконка бюджета/настроек справа
         IconButton(
-            onClick  = { /* TODO: настройки */ },
+            onClick  = { /* TODO: налаштування */ },
             modifier = Modifier.size(44.dp).clip(CircleShape)
         ) {
             Icon(
-                Icons.Default.Settings, "Налаштування",
+                Icons.Outlined.Speed, "Бюджет",
                 tint     = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp)
             )
