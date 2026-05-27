@@ -1,8 +1,10 @@
 package org.pixelrush.moneyiq.ui.budget
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,8 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,34 +30,46 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import org.pixelrush.moneyiq.data.db.dao.CategorySpending
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.data.repository.AccountRepository
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.util.*
 import javax.inject.Inject
-import kotlin.math.min
 
-// ── Период ────────────────────────────────────────────────────────────────────
+// ── Названия месяцев ─────────────────────────────────────────────────────────
 
-enum class BudgetPeriod(val label: String) {
-    WEEK("Неделя"), MONTH("Месяц"), YEAR("Год")
-}
+private val BDG_MONTH_NAMES = arrayOf(
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+)
 
-// ── UiState ───────────────────────────────────────────────────────────────────
+// ── Data classes ──────────────────────────────────────────────────────────────
 
-data class BudgetCategoryRow(
+data class BudgetSelMonth(val year: Int, val month: Int)
+
+data class BudgetCatRow(
     val category: CategoryEntity,
-    val spent: Double
+    val amount:   Double        // потрачено (EXPENSE) или получено (INCOME)
+)
+
+data class BudgetSectionData(
+    val totalBudget: Double,
+    val totalAmount: Double,
+    val rows:        List<BudgetCatRow>
 )
 
 data class BudgetUiState(
-    val period: BudgetPeriod = BudgetPeriod.MONTH,
-    val rows: List<BudgetCategoryRow> = emptyList(),
-    val totalBudget: Double = 0.0,
-    val totalSpent: Double = 0.0
+    val selectedMonth: BudgetSelMonth = run {
+        val cal = Calendar.getInstance()
+        BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    },
+    val daysInMonth:    Int              = 31,
+    val totalBalance:   Double           = 0.0,
+    val expenseSection: BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList()),
+    val incomeSection:  BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList())
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -60,81 +78,67 @@ data class BudgetUiState(
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
     private val categoryRepo: CategoryRepository,
-    private val txRepo: TransactionRepository
+    private val txRepo:       TransactionRepository,
+    private val accountRepo:  AccountRepository
 ) : ViewModel() {
 
-    private val _period = MutableStateFlow(BudgetPeriod.MONTH)
+    private val _sel = MutableStateFlow(run {
+        val cal = Calendar.getInstance()
+        BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    })
 
-    val state: StateFlow<BudgetUiState> = _period.flatMapLatest { period ->
-        val (from, to) = periodRange(period)
-
+    val state: StateFlow<BudgetUiState> = _sel.flatMapLatest { sel ->
+        val (from, to) = monthRange(sel)
         combine(
-            categoryRepo.getAll(),
-            txRepo.getCategorySpending(TransactionType.EXPENSE, from, to)
-        ) { allCategories, spending ->
-            val spendMap = spending.associate { it.categoryId to it.total }
-            val budgetCats = allCategories.filter {
-                it.type == TransactionType.EXPENSE && it.budgetAmount > 0
-            }
-            val rows = budgetCats.map { cat ->
-                BudgetCategoryRow(category = cat, spent = spendMap[cat.id] ?: 0.0)
-            }
-            val adjustedBudget = adjustBudget(budgetCats, period)
+            categoryRepo.getByType(TransactionType.EXPENSE),
+            categoryRepo.getByType(TransactionType.INCOME),
+            txRepo.getCategorySpending(TransactionType.EXPENSE, from, to),
+            txRepo.getCategorySpending(TransactionType.INCOME, from, to),
+            accountRepo.getTotalBalance()
+        ) { expCats, incCats, expSpend, incSpend, rawBalance ->
+            val expMap  = expSpend.associate { it.categoryId to it.total }
+            val incMap  = incSpend.associate { it.categoryId to it.total }
+            val expRows = expCats.map { BudgetCatRow(it, expMap[it.id] ?: 0.0) }
+            val incRows = incCats.map { BudgetCatRow(it, incMap[it.id] ?: 0.0) }
+            val cal     = Calendar.getInstance().also { it.set(sel.year, sel.month, 1) }
             BudgetUiState(
-                period       = period,
-                rows         = rows,
-                totalBudget  = adjustedBudget,
-                totalSpent   = rows.sumOf { it.spent }
+                selectedMonth = sel,
+                daysInMonth   = cal.getActualMaximum(Calendar.DAY_OF_MONTH),
+                totalBalance  = rawBalance ?: 0.0,
+                expenseSection = BudgetSectionData(
+                    totalBudget = expCats.sumOf { it.budgetAmount },
+                    totalAmount = expRows.sumOf { it.amount },
+                    rows        = expRows
+                ),
+                incomeSection = BudgetSectionData(
+                    totalBudget = incCats.sumOf { it.budgetAmount },
+                    totalAmount = incRows.sumOf { it.amount },
+                    rows        = incRows
+                )
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
 
-    fun setPeriod(p: BudgetPeriod) { _period.value = p }
-
-    /** Для недели/года пересчитываем месячный лимит пропорционально */
-    private fun adjustBudget(cats: List<CategoryEntity>, period: BudgetPeriod): Double {
-        val monthly = cats.sumOf { it.budgetAmount }
-        return when (period) {
-            BudgetPeriod.WEEK  -> monthly / 4.33
-            BudgetPeriod.MONTH -> monthly
-            BudgetPeriod.YEAR  -> monthly * 12
+    fun prevMonth() {
+        _sel.value = _sel.value.run {
+            if (month == 0) BudgetSelMonth(year - 1, 11) else BudgetSelMonth(year, month - 1)
         }
     }
 
-    private fun periodRange(p: BudgetPeriod): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        return when (p) {
-            BudgetPeriod.WEEK -> {
-                cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-                val from = cal.timeInMillis
-                cal.add(Calendar.DAY_OF_WEEK, 6)
-                cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-                cal.set(Calendar.SECOND, 59)
-                from to cal.timeInMillis
-            }
-            BudgetPeriod.MONTH -> {
-                cal.set(Calendar.DAY_OF_MONTH, 1)
-                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-                val from = cal.timeInMillis
-                cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-                cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-                cal.set(Calendar.SECOND, 59)
-                from to cal.timeInMillis
-            }
-            BudgetPeriod.YEAR -> {
-                cal.set(Calendar.DAY_OF_YEAR, 1)
-                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-                val from = cal.timeInMillis
-                cal.set(Calendar.DAY_OF_YEAR, cal.getActualMaximum(Calendar.DAY_OF_YEAR))
-                cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-                cal.set(Calendar.SECOND, 59)
-                from to cal.timeInMillis
-            }
+    fun nextMonth() {
+        _sel.value = _sel.value.run {
+            if (month == 11) BudgetSelMonth(year + 1, 0) else BudgetSelMonth(year, month + 1)
         }
+    }
+
+    private fun monthRange(sel: BudgetSelMonth): Pair<Long, Long> {
+        val cal = Calendar.getInstance()
+        cal.set(sel.year, sel.month, 1, 0, 0, 0); cal.set(Calendar.MILLISECOND, 0)
+        val from = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59);      cal.set(Calendar.MILLISECOND, 999)
+        return from to cal.timeInMillis
     }
 }
 
@@ -142,90 +146,57 @@ class BudgetViewModel @Inject constructor(
 
 @Composable
 fun BudgetScreen(
-    padding: PaddingValues = PaddingValues(),
+    padding:   PaddingValues = PaddingValues(),
     viewModel: BudgetViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+
+    val expenseColor = MaterialTheme.colorScheme.error
+    val incomeColor  = Color(0xFF26A69A)      // teal
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = padding.calculateTopPadding())
     ) {
-        // ── Шапка ────────────────────────────────────────────────────────
-        BudgetTopBar(
-            totalSpent  = state.totalSpent,
-            totalBudget = state.totalBudget
+        // ── Шапка ──────────────────────────────────────────────────────────
+        BudgetTopBar(totalBalance = state.totalBalance)
+
+        // ── Навигатор месяца ─────────────────────────────────────────────
+        BudgetMonthNavPill(
+            sel         = state.selectedMonth,
+            daysInMonth = state.daysInMonth,
+            onPrev      = viewModel::prevMonth,
+            onNext      = viewModel::nextMonth
         )
 
-        // ── Период-селектор ──────────────────────────────────────────────
-        ScrollableTabRow(
-            selectedTabIndex = BudgetPeriod.entries.indexOf(state.period),
-            edgePadding      = 16.dp,
-            divider          = {},
-            containerColor   = MaterialTheme.colorScheme.surface
+        // ── Секции ──────────────────────────────────────────────────────
+        LazyColumn(
+            modifier       = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp)
         ) {
-            BudgetPeriod.entries.forEachIndexed { idx, p ->
-                Tab(
-                    selected = state.period == p,
-                    onClick  = { viewModel.setPeriod(p) },
-                    text = {
-                        Text(
-                            p.label,
-                            fontWeight = if (state.period == p) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
+            // Расходы
+            item {
+                BudgetSectionCard(
+                    data          = state.expenseSection,
+                    title         = "Расходы",
+                    amountLabel   = "потрачено",
+                    accentColor   = expenseColor
                 )
             }
-        }
-
-        // ── Суммарный прогресс ───────────────────────────────────────────
-        if (state.totalBudget > 0) {
-            BudgetSummaryCard(
-                spent  = state.totalSpent,
-                budget = state.totalBudget
-            )
-        }
-
-        // ── Список категорий с бюджетом ──────────────────────────────────
-        if (state.rows.isEmpty()) {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Outlined.PieChart, null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Нет категорий с бюджетом",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Установите лимиты в разделе «Категории»",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                    )
-                }
+            item { Spacer(Modifier.height(4.dp)) }
+            // Доходы
+            item {
+                BudgetSectionCard(
+                    data          = state.incomeSection,
+                    title         = "Доходы",
+                    amountLabel   = "получено",
+                    accentColor   = incomeColor
+                )
             }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp,
-                    top = 4.dp,
-                    bottom = padding.calculateBottomPadding() + 16.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.rows) { row ->
-                    BudgetCategoryCard(row = row, period = state.period)
-                }
-            }
+            item { Spacer(Modifier.height(8.dp)) }
+            // Строка ожидаемого дохода
+            item { ExpectedIncomeBar() }
         }
     }
 }
@@ -233,14 +204,7 @@ fun BudgetScreen(
 // ── Шапка ────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BudgetTopBar(totalSpent: Double, totalBudget: Double) {
-    val overBudget = totalBudget > 0 && totalSpent > totalBudget
-    val balanceColor = when {
-        totalBudget == 0.0 -> MaterialTheme.colorScheme.onSurface
-        overBudget         -> MaterialTheme.colorScheme.error
-        else               -> MaterialTheme.colorScheme.onSurface
-    }
-
+private fun BudgetTopBar(totalBalance: Double) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -256,205 +220,341 @@ private fun BudgetTopBar(totalSpent: Double, totalBudget: Double) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Outlined.PieChart, null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icons.Outlined.Person, null,
+                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp)
             )
         }
 
         Spacer(Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier            = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                "Бюджет",
+                "Все счета",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
-            if (totalBudget > 0) {
+            Text(
+                formatMoney(totalBalance),
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color      = MaterialTheme.colorScheme.onSurface,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        IconButton(
+            onClick  = { /* TODO: настройки бюджета */ },
+            modifier = Modifier.size(44.dp).clip(CircleShape)
+        ) {
+            Icon(
+                Icons.Outlined.Speed, "Настройки бюджета",
+                tint     = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
+
+// ── Пилюля-навигатор месяца (идентична TransactionsListScreen) ────────────────
+
+@Composable
+private fun BudgetMonthNavPill(
+    sel:         BudgetSelMonth,
+    daysInMonth: Int,
+    onPrev:      () -> Unit,
+    onNext:      () -> Unit
+) {
+    Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onPrev) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(50.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Row(
+                modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary) {
+                    Text(
+                        "$daysInMonth",
+                        modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        style      = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = MaterialTheme.colorScheme.onSecondary
+                    )
+                }
                 Text(
-                    "${formatMoney(totalSpent)} / ${formatMoney(totalBudget)}",
-                    style = MaterialTheme.typography.headlineSmall,
+                    "${BDG_MONTH_NAMES[sel.month].uppercase()} ${sel.year}",
+                    style      = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = balanceColor
+                    color      = MaterialTheme.colorScheme.onSecondaryContainer
                 )
-            } else {
-                Text(
-                    "Нет лимитов",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                Icon(
+                    Icons.Default.ArrowDropDown, null,
+                    tint     = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
 
-        Spacer(Modifier.width(44.dp)) // симметрия
+        IconButton(onClick = onNext) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }
 
-// ── Суммарная карточка ────────────────────────────────────────────────────────
+// ── Секция бюджета (Расходы / Доходы) ────────────────────────────────────────
 
 @Composable
-private fun BudgetSummaryCard(spent: Double, budget: Double) {
-    val progress   = min(1f, (spent / budget).toFloat())
-    val overBudget = spent > budget
-    val remaining  = budget - spent
+private fun BudgetSectionCard(
+    data:        BudgetSectionData,
+    title:       String,
+    amountLabel: String,
+    accentColor: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val visibleRows = if (expanded) data.rows else data.rows.take(3)
+    val hasMore     = data.rows.size > 3
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape  = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (overBudget)
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-            else
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        )
+            .background(accentColor.copy(alpha = 0.06f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        "Потрачено",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        formatMoney(spent),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (overBudget) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.primary
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        if (overBudget) "Превышено" else "Остаток",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        formatMoney(if (overBudget) -remaining else remaining),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (overBudget) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color    = if (overBudget) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            Text(
-                "Бюджет: ${formatMoney(budget)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
-        }
-    }
-}
-
-// ── Карточка категории ────────────────────────────────────────────────────────
-
-@Composable
-private fun BudgetCategoryCard(row: BudgetCategoryRow, period: BudgetPeriod) {
-    val cat        = row.category
-    val accentColor = remember(cat.colorHex) {
-        try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
-        catch (_: Exception) { Color(0xFFFF5722) }
-    }
-
-    // Пересчитываем бюджет лимит для периода
-    val periodBudget = when (period) {
-        BudgetPeriod.WEEK  -> cat.budgetAmount / 4.33
-        BudgetPeriod.MONTH -> cat.budgetAmount
-        BudgetPeriod.YEAR  -> cat.budgetAmount * 12
-    }
-    val progress   = min(1f, (row.spent / periodBudget).toFloat())
-    val overBudget = row.spent > periodBudget
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape  = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = accentColor.copy(alpha = 0.06f)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Иконка категории
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            // Цветная левая полоса
             Box(
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accentColor)
+            )
+
+            Column(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(accentColor),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
-                Icon(
-                    Icons.Outlined.Category, null,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+                // Строка 1: заголовок + сумма
                 Row(
-                    Modifier.fillMaxWidth(),
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Text(
+                        title,
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        formatMoney(data.totalAmount),
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color      = accentColor
+                    )
+                }
+
+                // Строка 2: потрачено X / в бюджете X
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        cat.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        "$amountLabel ${formatMoney(data.totalAmount)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                     )
-                    Spacer(Modifier.width(8.dp))
                     Text(
-                        "${formatMoney(row.spent)} / ${formatMoney(periodBudget)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (overBudget) MaterialTheme.colorScheme.error
-                                else accentColor
+                        "в бюджете ${formatMoney(data.totalBudget)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                     )
                 }
 
-                Spacer(Modifier.height(6.dp))
+                // Чипы категорий
+                if (data.rows.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
 
-                LinearProgressIndicator(
-                    progress   = { progress },
-                    modifier   = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
-                    color      = if (overBudget) MaterialTheme.colorScheme.error else accentColor,
-                    trackColor = accentColor.copy(alpha = 0.14f)
-                )
-
-                if (overBudget) {
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        "Превышено на ${formatMoney(row.spent - periodBudget)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                    )
+                    LazyRow(
+                        contentPadding        = PaddingValues(end = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
+                        items(visibleRows) { row ->
+                            BudgetCatChip(row = row, accentColor = accentColor)
+                        }
+                        // Кнопка «Больше / Свернуть»
+                        if (hasMore) {
+                            item {
+                                MoreLessChip(
+                                    expanded  = expanded,
+                                    remaining = data.rows.size - 3,
+                                    onClick   = { expanded = !expanded }
+                                )
+                            }
+                        }
+                    }
                 }
             }
+        }
+
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color     = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// ── Чип отдельной категории ───────────────────────────────────────────────────
+
+@Composable
+private fun BudgetCatChip(row: BudgetCatRow, accentColor: Color) {
+    val color = remember(row.category.colorHex) {
+        try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
+        catch (_: Exception) { accentColor }
+    }
+
+    Column(
+        modifier = Modifier
+            .width(76.dp)
+            .padding(vertical = 4.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            row.category.name,
+            style     = MaterialTheme.typography.labelSmall,
+            maxLines  = 1,
+            overflow  = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            color     = MaterialTheme.colorScheme.onSurface,
+            modifier  = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.15f))
+                .drawBehind {
+                    drawCircle(
+                        color  = color,
+                        radius = size.minDimension / 2f,
+                        style  = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Outlined.Category, null,
+                tint     = color,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            formatMoney(row.amount),
+            style      = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color      = color,
+            maxLines   = 1,
+            textAlign  = TextAlign.Center,
+            modifier   = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// ── Чип «Больше...» / «Свернуть» ─────────────────────────────────────────────
+
+@Composable
+private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit) {
+    val surfaceVar = MaterialTheme.colorScheme.surfaceVariant
+    val onSurfVar  = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = Modifier
+            .width(76.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            if (expanded) "Свернуть" else "Больше...",
+            style     = MaterialTheme.typography.labelSmall,
+            color     = onSurfVar,
+            maxLines  = 1,
+            textAlign = TextAlign.Center,
+            modifier  = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(surfaceVar),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                null,
+                tint     = onSurfVar,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (!expanded) "+$remaining" else " ",
+            style     = MaterialTheme.typography.labelSmall,
+            color     = onSurfVar,
+            textAlign = TextAlign.Center,
+            modifier  = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// ── Строка ожидаемого дохода (нижняя панель) ──────────────────────────────────
+
+@Composable
+private fun ExpectedIncomeBar() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color    = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    ) {
+        Box(
+            modifier         = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Введите сумму ожидаемого дохода...",
+                style     = MaterialTheme.typography.bodyMedium,
+                fontStyle = FontStyle.Italic,
+                textAlign = TextAlign.Center,
+                color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
+            )
         }
     }
 }
