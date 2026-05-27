@@ -44,6 +44,10 @@ class SelectedMonthRepository @Inject constructor() {
         }
     }
 
+    fun goToMonth(year: Int, month: Int) {
+        _month.value = AppMonth(year, month)
+    }
+
     fun daysInMonth(year: Int, month: Int): Int =
         Calendar.getInstance().also { it.set(year, month, 1) }
             .getActualMaximum(Calendar.DAY_OF_MONTH)

@@ -37,6 +37,7 @@ import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
+import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.util.*
 import javax.inject.Inject
@@ -112,8 +113,9 @@ class BudgetViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
 
     /** Делегируем навигацию в общий репозиторий */
-    fun prevMonth() = monthRepo.prevMonth()
-    fun nextMonth() = monthRepo.nextMonth()
+    fun prevMonth()                      = monthRepo.prevMonth()
+    fun nextMonth()                      = monthRepo.nextMonth()
+    fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
 
     private fun monthRange(sel: BudgetSelMonth): Pair<Long, Long> {
         val cal = Calendar.getInstance()
@@ -150,11 +152,13 @@ fun BudgetScreen(
         }
 
         // ── Навигатор месяца ─────────────────────────────────────────────
-        BudgetMonthNavPill(
-            sel         = state.selectedMonth,
-            daysInMonth = state.daysInMonth,
-            onPrev      = viewModel::prevMonth,
-            onNext      = viewModel::nextMonth
+        SharedMonthNavPill(
+            year          = state.selectedMonth.year,
+            month         = state.selectedMonth.month,
+            daysInMonth   = state.daysInMonth,
+            onPrev        = viewModel::prevMonth,
+            onNext        = viewModel::nextMonth,
+            onSelectMonth = viewModel::goToMonth
         )
 
         // ── Секции ──────────────────────────────────────────────────────

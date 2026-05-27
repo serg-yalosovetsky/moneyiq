@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -76,10 +77,13 @@ fun CategoriesScreen(
         }
 
         // ── Навигация месяцев ───────────────────────────────────────────
-        MonthNavRow(
-            sel    = state.selectedMonth,
-            onPrev = viewModel::prevMonth,
-            onNext = viewModel::nextMonth
+        SharedMonthNavPill(
+            year          = state.selectedMonth.year,
+            month         = state.selectedMonth.month,
+            daysInMonth   = state.daysInMonth,
+            onPrev        = viewModel::prevMonth,
+            onNext        = viewModel::nextMonth,
+            onSelectMonth = viewModel::goToMonth
         )
 
         // ── Вкладки ─────────────────────────────────────────────────────

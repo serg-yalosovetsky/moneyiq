@@ -35,6 +35,7 @@ import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SectionHeader
+import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.TransactionListItem
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.text.SimpleDateFormat
@@ -96,8 +97,9 @@ class TransactionsListViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TxListUiState())
 
     /** Делегируем навигацию в общий репозиторий */
-    fun prevMonth() = monthRepo.prevMonth()
-    fun nextMonth() = monthRepo.nextMonth()
+    fun prevMonth()                    = monthRepo.prevMonth()
+    fun nextMonth()                    = monthRepo.nextMonth()
+    fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
 
     private fun monthRange(sel: TxSelectedMonth): Pair<Long, Long> {
         val cal = Calendar.getInstance()
@@ -132,11 +134,13 @@ fun TransactionsListScreen(
         }
 
         // ── Пилюля-навигатор месяца ─────────────────────────────────────
-        MonthNavPill(
-            sel         = state.selectedMonth,
+        SharedMonthNavPill(
+            year        = state.selectedMonth.year,
+            month       = state.selectedMonth.month,
             daysInMonth = state.daysInMonth,
             onPrev      = viewModel::prevMonth,
-            onNext      = viewModel::nextMonth
+            onNext      = viewModel::nextMonth,
+            onSelectMonth = viewModel::goToMonth
         )
 
         // ── Карточки начального / конечного баланса ──────────────────────

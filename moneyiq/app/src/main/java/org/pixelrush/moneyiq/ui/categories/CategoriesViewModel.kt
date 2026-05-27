@@ -61,8 +61,9 @@ class CategoriesViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
 
     /** Делегируем навигацию в общий репозиторий */
-    fun prevMonth() = monthRepo.prevMonth()
-    fun nextMonth() = monthRepo.nextMonth()
+    fun prevMonth()                      = monthRepo.prevMonth()
+    fun nextMonth()                      = monthRepo.nextMonth()
+    fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
 
     fun add(name: String, type: TransactionType, color: String, budget: Double) {
         viewModelScope.launch {
