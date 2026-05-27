@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +30,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.repository.AccountRepository
+import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
+import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
+import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SectionHeader
 import org.pixelrush.moneyiq.ui.main.TransactionListItem
@@ -36,13 +40,6 @@ import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-
-// ── Локальные названия месяцев ────────────────────────────────────────────────
-
-private val TX_MONTH_NAMES = arrayOf(
-    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-)
 
 // ── UiState ───────────────────────────────────────────────────────────────────
 
@@ -69,15 +66,12 @@ data class TxListUiState(
 @HiltViewModel
 class TransactionsListViewModel @Inject constructor(
     private val txRepo:      TransactionRepository,
-    private val accountRepo: AccountRepository
+    private val accountRepo: AccountRepository,
+    private val monthRepo:   SelectedMonthRepository          // ← общий репозиторий
 ) : ViewModel() {
 
-    private val _sel = MutableStateFlow(run {
-        val cal = Calendar.getInstance()
-        TxSelectedMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    })
-
-    val state: StateFlow<TxListUiState> = _sel.flatMapLatest { sel ->
+    val state: StateFlow<TxListUiState> = monthRepo.month.flatMapLatest { appMonth ->
+        val sel = TxSelectedMonth(appMonth.year, appMonth.month)
         val (from, to) = monthRange(sel)
         combine(
             txRepo.getTransactionsByPeriod(from, to),
@@ -101,17 +95,9 @@ class TransactionsListViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TxListUiState())
 
-    fun prevMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 0) TxSelectedMonth(year - 1, 11) else TxSelectedMonth(year, month - 1)
-        }
-    }
-
-    fun nextMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 11) TxSelectedMonth(year + 1, 0) else TxSelectedMonth(year, month + 1)
-        }
-    }
+    /** Делегируем навигацию в общий репозиторий */
+    fun prevMonth() = monthRepo.prevMonth()
+    fun nextMonth() = monthRepo.nextMonth()
 
     private fun monthRange(sel: TxSelectedMonth): Pair<Long, Long> {
         val cal = Calendar.getInstance()
@@ -262,9 +248,10 @@ private fun MonthNavPill(
         }
 
         // Пилюля с [дни] МЕСЯЦ ГОД ▾
+        val pillAccent = Color(0xFFD81B60)
         Surface(
             shape = RoundedCornerShape(50.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer
+            color = pillAccent.copy(alpha = 0.12f)
         ) {
             Row(
                 modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
@@ -274,25 +261,25 @@ private fun MonthNavPill(
                 // Бейдж с кол-вом дней
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = pillAccent
                 ) {
                     Text(
                         "$daysInMonth",
                         modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = MaterialTheme.colorScheme.onSecondary
+                        color      = Color.White
                     )
                 }
                 Text(
-                    "${TX_MONTH_NAMES[sel.month].uppercase()} ${sel.year}",
+                    "${MONTH_NAMES_UA[sel.month]} ${sel.year}",
                     style      = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSecondaryContainer
+                    color      = pillAccent
                 )
                 Icon(
                     Icons.Default.ArrowDropDown, null,
-                    tint     = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint     = pillAccent,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -429,7 +416,7 @@ private fun EmptyMonthState(sel: TxSelectedMonth) {
             )
             Spacer(Modifier.height(20.dp))
             Text(
-                text      = "Здесь вы можете посмотреть транзакции за\n${TX_MONTH_NAMES[sel.month]} ${sel.year}",
+                text      = "Тут ви можете переглянути транзакції за\n${MONTH_NAMES_UA_FULL[sel.month]} ${sel.year}",
                 style     = MaterialTheme.typography.bodyLarge,
                 fontStyle = FontStyle.Italic,
                 textAlign = TextAlign.Center,

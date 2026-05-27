@@ -39,6 +39,7 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
+import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.util.*
@@ -127,45 +128,36 @@ data class OverviewUiState(
 class OverviewViewModel @Inject constructor(
     private val txRepo:       TransactionRepository,
     private val accountRepo:  AccountRepository,
-    private val categoryRepo: CategoryRepository
+    private val categoryRepo: CategoryRepository,
+    private val monthRepo:    SelectedMonthRepository        // ← общий репозиторий
 ) : ViewModel() {
 
-    private val _sel = MutableStateFlow(run {
-        val c = Calendar.getInstance()
-        OverviewSelMonth(c.get(Calendar.YEAR), c.get(Calendar.MONTH))
-    })
     private val _mode = MutableStateFlow(OverviewMode.EXPENSE)
 
     val state: StateFlow<OverviewUiState> =
-        combine(_sel, _mode) { s, m -> s to m }
-            .flatMapLatest { (sel, mode) ->
-                val (from, to) = monthRange(sel)
-                val txType = if (mode == OverviewMode.EXPENSE) TransactionType.EXPENSE
-                             else TransactionType.INCOME
+        combine(monthRepo.month, _mode) { appMonth, mode ->
+            OverviewSelMonth(appMonth.year, appMonth.month) to mode
+        }
+        .flatMapLatest { (sel, mode) ->
+            val (from, to) = monthRange(sel)
+            val txType = if (mode == OverviewMode.EXPENSE) TransactionType.EXPENSE
+                         else TransactionType.INCOME
 
-                val innerFlow = combine(
-                    txRepo.getTransactionsByPeriod(from, to),
-                    txRepo.getCategorySpending(txType, from, to),
-                    categoryRepo.getByType(txType)
-                ) { txList, catSpend, cats -> Triple(txList, catSpend, cats) }
+            val innerFlow = combine(
+                txRepo.getTransactionsByPeriod(from, to),
+                txRepo.getCategorySpending(txType, from, to),
+                categoryRepo.getByType(txType)
+            ) { txList, catSpend, cats -> Triple(txList, catSpend, cats) }
 
-                combine(innerFlow, accountRepo.getTotalBalance()) { (txList, catSpend, cats), bal ->
-                    buildState(sel, mode, txList, catSpend, bal ?: 0.0, cats)
-                }
+            combine(innerFlow, accountRepo.getTotalBalance()) { (txList, catSpend, cats), bal ->
+                buildState(sel, mode, txList, catSpend, bal ?: 0.0, cats)
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OverviewUiState())
-
-    fun prevMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 0) OverviewSelMonth(year - 1, 11) else OverviewSelMonth(year, month - 1)
         }
-    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OverviewUiState())
 
-    fun nextMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 11) OverviewSelMonth(year + 1, 0) else OverviewSelMonth(year, month + 1)
-        }
-    }
+    /** Делегируем навигацию в общий репозиторий */
+    fun prevMonth() = monthRepo.prevMonth()
+    fun nextMonth() = monthRepo.nextMonth()
 
     fun setMode(m: OverviewMode) { _mode.value = m }
 

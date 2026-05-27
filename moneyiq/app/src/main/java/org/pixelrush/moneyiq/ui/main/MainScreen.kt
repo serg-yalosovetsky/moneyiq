@@ -1,17 +1,16 @@
 package org.pixelrush.moneyiq.ui.main
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -25,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.accounts.AccountsScreen
@@ -50,11 +50,11 @@ private data class BottomTab(
 
 // Порядок вкладок — как в оригинале 1Money
 private val TABS = listOf(
-    BottomTab("Счета",     Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet),
-    BottomTab("Категории", Icons.Filled.Category,             Icons.Outlined.Category),
-    BottomTab("Операции",  Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong),
-    BottomTab("Бюджет",    Icons.Filled.PieChart,             Icons.Outlined.PieChart),
-    BottomTab("Обзор",     Icons.Filled.Home,                 Icons.Outlined.Home),
+    BottomTab("Рахунки",   Icons.Filled.AccountBalanceWallet,      Icons.Outlined.AccountBalanceWallet),
+    BottomTab("Категорії", Icons.Filled.DonutLarge,                Icons.Outlined.DonutLarge),
+    BottomTab("Операції",  Icons.AutoMirrored.Filled.ReceiptLong,  Icons.AutoMirrored.Outlined.ReceiptLong),
+    BottomTab("Бюджет",    Icons.Filled.Speed,                     Icons.Outlined.Speed),
+    BottomTab("Огляд",     Icons.AutoMirrored.Filled.TrendingUp,   Icons.AutoMirrored.Filled.TrendingUp),
 )
 
 // ── Main container ────────────────────────────────────────────────────────────
@@ -64,19 +64,21 @@ fun MainScreen(
     onAddTransaction: () -> Unit,
     onEditTransaction: (Long) -> Unit = {}
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val pagerState  = rememberPagerState(pageCount = { TABS.size })
+    val scope       = rememberCoroutineScope()
+    val currentPage = pagerState.currentPage
 
     Scaffold(
         floatingActionButton = {
-            // FAB только на вкладке "Операции" (tab 2)
-            if (selectedTab == 2) {
+            // FAB только на вкладке "Операції" (tab 2)
+            if (currentPage == 2) {
                 FloatingActionButton(
-                    onClick = onAddTransaction,
+                    onClick        = onAddTransaction,
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Добавить транзакцию",
+                        contentDescription = "Додати транзакцію",
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -89,19 +91,19 @@ fun MainScreen(
             ) {
                 TABS.forEachIndexed { index, tab ->
                     NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        selected = currentPage == index,
+                        onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
                         icon = {
                             Icon(
-                                if (selectedTab == index) tab.selectedIcon else tab.unselectedIcon,
+                                if (currentPage == index) tab.selectedIcon else tab.unselectedIcon,
                                 contentDescription = tab.label
                             )
                         },
-                        label = { Text(tab.label, maxLines = 1) },
+                        label  = { Text(tab.label, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor   = MaterialTheme.colorScheme.primary,
+                            selectedTextColor   = MaterialTheme.colorScheme.primary,
+                            indicatorColor      = MaterialTheme.colorScheme.primaryContainer,
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -110,29 +112,29 @@ fun MainScreen(
             }
         }
     ) { padding ->
-        AnimatedContent(
-            targetState = selectedTab,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "tab_content"
-        ) { tab ->
-            when (tab) {
-                // 0 → Счета (как в оригинале — первая вкладка)
+        HorizontalPager(
+            state    = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            when (page) {
+                // 0 → Рахунки
                 0 -> AccountsScreen(padding = padding, embeddedMode = true)
-                // 1 → Категории
+                // 1 → Категорії
                 1 -> CategoriesScreen(
                         onNavigateBack = {},
-                        embeddedMode = true,
-                        padding = padding
+                        embeddedMode   = true,
+                        padding        = padding
                      )
-                // 2 → Операции (транзакции)
+                // 2 → Операції (транзакції)
                 2 -> TransactionsListScreen(padding = padding, onEditTransaction = onEditTransaction)
-                // 3 → Бюджет (прогресс по категориям)
+                // 3 → Бюджет
                 3 -> BudgetScreen(padding = padding)
-                // 4 → Обзор (дашборд по категориям)
+                // 4 → Огляд
                 4 -> OverviewScreen(
                         padding          = padding,
                         onAddTransaction = onAddTransaction
                      )
+                else -> Unit
             }
         }
     }

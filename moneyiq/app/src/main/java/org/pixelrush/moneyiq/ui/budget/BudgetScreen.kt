@@ -34,17 +34,12 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
+import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
+import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.util.*
 import javax.inject.Inject
-
-// ── Названия месяцев ─────────────────────────────────────────────────────────
-
-private val BDG_MONTH_NAMES = arrayOf(
-    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-)
 
 // ── Data classes ──────────────────────────────────────────────────────────────
 
@@ -79,15 +74,12 @@ data class BudgetUiState(
 class BudgetViewModel @Inject constructor(
     private val categoryRepo: CategoryRepository,
     private val txRepo:       TransactionRepository,
-    private val accountRepo:  AccountRepository
+    private val accountRepo:  AccountRepository,
+    private val monthRepo:    SelectedMonthRepository         // ← общий репозиторий
 ) : ViewModel() {
 
-    private val _sel = MutableStateFlow(run {
-        val cal = Calendar.getInstance()
-        BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    })
-
-    val state: StateFlow<BudgetUiState> = _sel.flatMapLatest { sel ->
+    val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { appMonth ->
+        val sel = BudgetSelMonth(appMonth.year, appMonth.month)
         val (from, to) = monthRange(sel)
         combine(
             categoryRepo.getByType(TransactionType.EXPENSE),
@@ -119,17 +111,9 @@ class BudgetViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
 
-    fun prevMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 0) BudgetSelMonth(year - 1, 11) else BudgetSelMonth(year, month - 1)
-        }
-    }
-
-    fun nextMonth() {
-        _sel.value = _sel.value.run {
-            if (month == 11) BudgetSelMonth(year + 1, 0) else BudgetSelMonth(year, month + 1)
-        }
-    }
+    /** Делегируем навигацию в общий репозиторий */
+    fun prevMonth() = monthRepo.prevMonth()
+    fun nextMonth() = monthRepo.nextMonth()
 
     private fun monthRange(sel: BudgetSelMonth): Pair<Long, Long> {
         val cal = Calendar.getInstance()
@@ -175,22 +159,25 @@ fun BudgetScreen(
             modifier       = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp)
         ) {
-            // Расходы
+            // Витрати
             item {
                 BudgetSectionCard(
                     data          = state.expenseSection,
-                    title         = "Расходы",
-                    amountLabel   = "потрачено",
+                    title         = "Витрати",
+                    amountLabel   = "витрачено",
                     accentColor   = expenseColor
                 )
             }
+            item { Spacer(Modifier.height(4.dp)) }
+            // Заощадження (статическая секция — Savings)
+            item { SavingsSectionCard() }
             item { Spacer(Modifier.height(4.dp)) }
             // Доходы
             item {
                 BudgetSectionCard(
                     data          = state.incomeSection,
-                    title         = "Доходы",
-                    amountLabel   = "получено",
+                    title         = "Доходи",
+                    amountLabel   = "отримано",
                     accentColor   = incomeColor
                 )
             }
@@ -285,33 +272,34 @@ private fun BudgetMonthNavPill(
             }
         }
 
+        val pillAccent = Color(0xFFD81B60)
         Surface(
             shape = RoundedCornerShape(50.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer
+            color = pillAccent.copy(alpha = 0.12f)
         ) {
             Row(
                 modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary) {
+                Surface(shape = CircleShape, color = pillAccent) {
                     Text(
                         "$daysInMonth",
                         modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = MaterialTheme.colorScheme.onSecondary
+                        color      = Color.White
                     )
                 }
                 Text(
-                    "${BDG_MONTH_NAMES[sel.month].uppercase()} ${sel.year}",
+                    "${MONTH_NAMES_UA[sel.month]} ${sel.year}",
                     style      = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSecondaryContainer
+                    color      = pillAccent
                 )
                 Icon(
                     Icons.Default.ArrowDropDown, null,
-                    tint     = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint     = pillAccent,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -529,6 +517,71 @@ private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit)
             color     = onSurfVar,
             textAlign = TextAlign.Center,
             modifier  = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// ── Секция заощаджень (статическая) ──────────────────────────────────────────
+
+@Composable
+private fun SavingsSectionCard() {
+    val savingsColor = Color(0xFF26A69A)  // teal, как у доходов
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(savingsColor.copy(alpha = 0.06f))
+    ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            // Цветная левая полоса
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(savingsColor)
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Заощадження",
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        formatMoney(0.0),
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color      = savingsColor
+                    )
+                }
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "збережено ${formatMoney(0.0)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                    Text(
+                        "в бюджеті ${formatMoney(0.0)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                }
+            }
+        }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color     = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
     }
 }
