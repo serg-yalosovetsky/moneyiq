@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colors -->
+    <color name="income_green">#4CAF50</color>
+    <color name="expense_red">#F44336</color>
+    <color name="transfer_blue">#2196F3</color>
+
+    <!-- Material seeds -->
+    <color name="seed">#1976D2</color>
+
+    <!-- Category palette -->
+    <color name="cat_orange">#FF5722</color>
+    <color name="cat_green">#4CAF50</color>
+    <color name="cat_blue">#2196F3</color>
+    <color name="cat_purple">#9C27B0</color>
+    <color name="cat_amber">#FF9800</color>
+    <color name="cat_pink">#E91E63</color>
+    <color name="cat_teal">#009688</color>
+    <color name="cat_blue_grey">#607D8B</color>
+    <color name="cat_yellow">#FFC107</color>
+    <color name="cat_brown">#795548</color>
+</resources>

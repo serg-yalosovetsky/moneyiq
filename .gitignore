@@ -1,0 +1,9 @@
+1money_apktool/res/*
+1money_apktool/smali/*
+1money_jadx/*
+apktool_out/*
+1money_apktool/*
+jadx_out/*
+moneyiq/app/build/*
+moneyiq/import/__pycache__/*
+moneyiq/.gradle/configuration-cache/*

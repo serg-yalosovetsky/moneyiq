@@ -1,0 +1,181 @@
+{
+  "version": "1.0",
+  "exported_at": "2026-05-27T10:00:00",
+  "accounts": [
+    {
+      "ref": "wallet",
+      "name": "Кошелёк",
+      "type": "CASH",
+      "balance": 5000.0,
+      "currency": "RUB",
+      "color_hex": "#4CAF50",
+      "icon": "account_balance_wallet",
+      "include_in_total": true,
+      "sort_order": 0
+    },
+    {
+      "ref": "sberbank",
+      "name": "Сбербанк",
+      "type": "CARD",
+      "balance": 25000.0,
+      "currency": "RUB",
+      "color_hex": "#21A038",
+      "icon": "credit_card",
+      "include_in_total": true,
+      "sort_order": 1
+    },
+    {
+      "ref": "savings",
+      "name": "Подушка безопасности",
+      "type": "SAVING",
+      "balance": 150000.0,
+      "currency": "RUB",
+      "color_hex": "#2196F3",
+      "icon": "savings",
+      "include_in_total": true,
+      "sort_order": 2
+    }
+  ],
+  "categories": [
+    {
+      "ref": "food",
+      "name": "Еда и рестораны",
+      "type": "EXPENSE",
+      "color_hex": "#FF5722",
+      "icon": "restaurant",
+      "budget_amount": 15000.0,
+      "budget_period": "MONTHLY",
+      "sort_order": 1
+    },
+    {
+      "ref": "transport",
+      "name": "Транспорт",
+      "type": "EXPENSE",
+      "color_hex": "#2196F3",
+      "icon": "directions_car",
+      "budget_amount": 5000.0,
+      "budget_period": "MONTHLY",
+      "sort_order": 2
+    },
+    {
+      "ref": "groceries",
+      "name": "Продукты",
+      "type": "EXPENSE",
+      "color_hex": "#4CAF50",
+      "icon": "shopping_cart",
+      "budget_amount": 20000.0,
+      "budget_period": "MONTHLY",
+      "sort_order": 3
+    },
+    {
+      "ref": "housing",
+      "name": "Жильё и ЖКХ",
+      "type": "EXPENSE",
+      "color_hex": "#9C27B0",
+      "icon": "home",
+      "budget_amount": 30000.0,
+      "budget_period": "MONTHLY",
+      "sort_order": 4
+    },
+    {
+      "ref": "entertainment",
+      "name": "Развлечения",
+      "type": "EXPENSE",
+      "color_hex": "#FF9800",
+      "icon": "movie",
+      "budget_amount": 5000.0,
+      "budget_period": "MONTHLY",
+      "sort_order": 5
+    },
+    {
+      "ref": "salary",
+      "name": "Зарплата",
+      "type": "INCOME",
+      "color_hex": "#4CAF50",
+      "icon": "work",
+      "sort_order": 1
+    },
+    {
+      "ref": "freelance",
+      "name": "Фриланс",
+      "type": "INCOME",
+      "color_hex": "#8BC34A",
+      "icon": "laptop",
+      "sort_order": 2
+    }
+  ],
+  "transactions": [
+    {
+      "type": "INCOME",
+      "amount": 120000.0,
+      "account_ref": "sberbank",
+      "category_ref": "salary",
+      "note": "Зарплата май 2026",
+      "date": "2026-05-10T09:00:00"
+    },
+    {
+      "type": "INCOME",
+      "amount": 35000.0,
+      "account_ref": "sberbank",
+      "category_ref": "freelance",
+      "note": "Проект MoneyIQ",
+      "date": "2026-05-15T14:00:00"
+    },
+    {
+      "type": "TRANSFER",
+      "amount": 20000.0,
+      "account_ref": "sberbank",
+      "to_account_ref": "savings",
+      "note": "Пополнение подушки",
+      "date": "2026-05-11T10:00:00"
+    },
+    {
+      "type": "TRANSFER",
+      "amount": 5000.0,
+      "account_ref": "sberbank",
+      "to_account_ref": "wallet",
+      "note": "Наличные на неделю",
+      "date": "2026-05-12T18:30:00"
+    },
+    {
+      "type": "EXPENSE",
+      "amount": 450.0,
+      "account_ref": "wallet",
+      "category_ref": "food",
+      "note": "Обед в кафе",
+      "date": "2026-05-15T13:15:00"
+    },
+    {
+      "type": "EXPENSE",
+      "amount": 3200.0,
+      "account_ref": "sberbank",
+      "category_ref": "groceries",
+      "note": "Пятёрочка",
+      "date": "2026-05-16T19:00:00"
+    },
+    {
+      "type": "EXPENSE",
+      "amount": 1800.0,
+      "account_ref": "sberbank",
+      "category_ref": "transport",
+      "note": "Метро, апрель-май",
+      "date": "2026-05-01T08:00:00"
+    },
+    {
+      "type": "EXPENSE",
+      "amount": 28500.0,
+      "account_ref": "sberbank",
+      "category_ref": "housing",
+      "note": "Аренда + ЖКХ",
+      "date": "2026-05-05T12:00:00"
+    },
+    {
+      "type": "EXPENSE",
+      "amount": 990.0,
+      "account_ref": "sberbank",
+      "category_ref": "entertainment",
+      "note": "Кино",
+      "date": "2026-05-20T20:00:00"
+    }
+  ]
+}
