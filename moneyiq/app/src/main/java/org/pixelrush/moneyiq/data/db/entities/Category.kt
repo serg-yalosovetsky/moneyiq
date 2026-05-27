@@ -22,5 +22,6 @@ data class CategoryEntity(
     val budgetAmount: Double = 0.0,     // 0 = без лимита
     val budgetPeriod: String = "MONTHLY", // MONTHLY / WEEKLY
     val isDefault: Boolean = false,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    val archived: Boolean = false
 )

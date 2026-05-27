@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import org.pixelrush.moneyiq.data.db.AppDatabase
 import org.pixelrush.moneyiq.data.db.MIGRATION_1_2
 import org.pixelrush.moneyiq.data.db.MIGRATION_2_3
+import org.pixelrush.moneyiq.data.db.MIGRATION_3_4
 import org.pixelrush.moneyiq.data.db.dao.AccountDao
 import org.pixelrush.moneyiq.data.db.dao.CategoryDao
 import org.pixelrush.moneyiq.data.db.dao.TransactionDao
@@ -23,7 +24,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "moneyiq.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build()
 

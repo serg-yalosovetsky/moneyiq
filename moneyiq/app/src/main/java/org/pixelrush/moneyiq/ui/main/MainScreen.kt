@@ -35,6 +35,8 @@ import org.pixelrush.moneyiq.ui.accounts.AccountsViewModel
 import org.pixelrush.moneyiq.ui.accounts.NewAccountTypeSheet
 import org.pixelrush.moneyiq.ui.budget.BudgetScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesScreen
+import org.pixelrush.moneyiq.ui.categories.CategoriesViewModel
+import org.pixelrush.moneyiq.ui.categories.EditCategoriesScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
 import org.pixelrush.moneyiq.ui.theme.DebtOrange
 import org.pixelrush.moneyiq.ui.theme.ExpenseRed
@@ -53,7 +55,7 @@ private data class BottomTab(
     val unselectedIcon: ImageVector
 )
 
-// Порядок вкладок — как в оригинале 1Money
+// Порядок вкладок — як в оригіналі 1Money
 private val TABS = listOf(
     BottomTab("Рахунки",   Icons.Filled.AccountBalanceWallet,      Icons.Outlined.AccountBalanceWallet),
     BottomTab("Категорії", Icons.Filled.DonutLarge,                Icons.Outlined.DonutLarge),
@@ -66,22 +68,27 @@ private val TABS = listOf(
 
 @Composable
 fun MainScreen(
-    onAddTransaction:  () -> Unit,
-    onEditTransaction: (Long) -> Unit = {},
-    mainViewModel:     MainViewModel  = hiltViewModel(),
-    accountsViewModel: AccountsViewModel = hiltViewModel()
+    onAddTransaction:   () -> Unit,
+    onEditTransaction:  (Long) -> Unit   = {},
+    mainViewModel:      MainViewModel    = hiltViewModel(),
+    accountsViewModel:  AccountsViewModel    = hiltViewModel(),
+    categoriesViewModel: CategoriesViewModel = hiltViewModel()
 ) {
-    val pagerState   = rememberPagerState(pageCount = { TABS.size })
-    val scope        = rememberCoroutineScope()
-    val currentPage  = pagerState.currentPage
-    val mainState   by mainViewModel.state.collectAsState()
-    val totalBalance  = mainState.totalBalance
+    val pagerState  = rememberPagerState(pageCount = { TABS.size })
+    val scope       = rememberCoroutineScope()
+    val currentPage = pagerState.currentPage
+    val mainState  by mainViewModel.state.collectAsState()
+    val totalBalance = mainState.totalBalance
 
-    // ── New account flow ─────────────────────────────────────────────────────
-    var showAccTypeSheet  by remember { mutableStateOf(false) }
-    var pendingAccType    by remember { mutableStateOf<AccountType?>(null) }
-
+    // ── Новий рахунок ────────────────────────────────────────────────────────
+    var showAccTypeSheet by remember { mutableStateOf(false) }
+    var pendingAccType   by remember { mutableStateOf<AccountType?>(null) }
     val triggerNewAccount: () -> Unit = { showAccTypeSheet = true }
+
+    // ── Редагування категорій ────────────────────────────────────────────────
+    var showEditCategories by remember { mutableStateOf(false) }
+    val triggerEditCategories: () -> Unit = { showEditCategories = true }
+    val categoriesState by categoriesViewModel.state.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -90,11 +97,8 @@ fun MainScreen(
                     onClick        = onAddTransaction,
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Додати транзакцію",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Icon(Icons.Default.Add, contentDescription = "Додати транзакцію",
+                        tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         },
@@ -134,9 +138,10 @@ fun MainScreen(
                 .statusBarsPadding()
         ) {
             SharedTopBar(
-                totalBalance = totalBalance,
-                currentPage  = currentPage,
-                onPlusClick  = triggerNewAccount
+                totalBalance      = totalBalance,
+                currentPage       = currentPage,
+                onPlusClick       = triggerNewAccount,
+                onEditCategories  = triggerEditCategories
             )
 
             HorizontalPager(
@@ -145,28 +150,27 @@ fun MainScreen(
             ) { page ->
                 when (page) {
                     0 -> AccountsScreen(
-                            padding      = bottomPadding,
-                            embeddedMode = true,
-                            onRequestAdd = triggerNewAccount
+                             padding      = bottomPadding,
+                             embeddedMode = true,
+                             onRequestAdd = triggerNewAccount
                          )
                     1 -> CategoriesScreen(
-                            onNavigateBack = {},
-                            embeddedMode   = true,
-                            padding        = bottomPadding
+                             padding      = bottomPadding,
+                             embeddedMode = true
                          )
                     2 -> TransactionsListScreen(
-                            padding           = bottomPadding,
-                            onEditTransaction = onEditTransaction,
-                            embeddedMode      = true
+                             padding           = bottomPadding,
+                             onEditTransaction = onEditTransaction,
+                             embeddedMode      = true
                          )
                     3 -> BudgetScreen(
-                            padding      = bottomPadding,
-                            embeddedMode = true
+                             padding      = bottomPadding,
+                             embeddedMode = true
                          )
                     4 -> OverviewScreen(
-                            padding          = bottomPadding,
-                            onAddTransaction = onAddTransaction,
-                            embeddedMode     = true
+                             padding          = bottomPadding,
+                             onAddTransaction = onAddTransaction,
+                             embeddedMode     = true
                          )
                     else -> Unit
                 }
@@ -174,7 +178,7 @@ fun MainScreen(
         }
     }
 
-    // ── Account type selection sheet ─────────────────────────────────────────
+    // ── Вибір типу рахунку ───────────────────────────────────────────────────
     if (showAccTypeSheet) {
         NewAccountTypeSheet(
             onSelect  = { type ->
@@ -185,7 +189,7 @@ fun MainScreen(
         )
     }
 
-    // ── Account creation form ────────────────────────────────────────────────
+    // ── Форма створення рахунку ──────────────────────────────────────────────
     pendingAccType?.let { type ->
         AccountFormSheet(
             initialType = type,
@@ -197,15 +201,43 @@ fun MainScreen(
             onDismiss   = { pendingAccType = null }
         )
     }
+
+    // ── Редагування категорій (з SharedTopBar — олівець на вкладці 1) ────────
+    if (showEditCategories) {
+        EditCategoriesScreen(
+            expenseCategories = categoriesState.expenseCategories,
+            incomeCategories  = categoriesState.incomeCategories,
+            onSave = { name, type, color, icon, budget, period, archived, existing ->
+                if (existing != null) {
+                    categoriesViewModel.update(
+                        existing.copy(
+                            name         = name,
+                            type         = type,
+                            colorHex     = color,
+                            icon         = icon,
+                            budgetAmount = budget,
+                            budgetPeriod = period,
+                            archived     = archived
+                        )
+                    )
+                } else {
+                    categoriesViewModel.add(name, type, color, icon, budget, period)
+                }
+            },
+            onDelete  = { categoriesViewModel.delete(it) },
+            onDismiss = { showEditCategories = false }
+        )
+    }
 }
 
-// ── Shared top bar (аватар + «Всі рахунки» + баланс + контекстна кнопка) ─────
+// ── Shared top bar ────────────────────────────────────────────────────────────
 
 @Composable
-private fun SharedTopBar(
-    totalBalance: Double,
-    currentPage:  Int,
-    onPlusClick:  () -> Unit
+fun SharedTopBar(
+    totalBalance:     Double,
+    currentPage:      Int,
+    onPlusClick:      () -> Unit,
+    onEditCategories: () -> Unit = {}
 ) {
     Row(
         modifier          = Modifier
@@ -253,16 +285,22 @@ private fun SharedTopBar(
 
         Spacer(Modifier.width(12.dp))
 
-        // Права кнопка — «+» тільки на вкладці «Рахунки»
+        // Права кнопка: «+» (рахунки), олівець (категорії), порожньо (інші)
+        val (icon, description, action) = when (currentPage) {
+            0    -> Triple(Icons.Default.Add,  "Новий рахунок",          onPlusClick)
+            1    -> Triple(Icons.Default.Edit, "Редагувати категорії",   onEditCategories)
+            else -> Triple(Icons.Outlined.Settings, "Налаштування",      {})
+        }
+
         IconButton(
-            onClick  = if (currentPage == 0) onPlusClick else { {} },
+            onClick  = action,
             modifier = Modifier.size(44.dp).clip(CircleShape)
         ) {
             Icon(
-                if (currentPage == 0) Icons.Default.Add else Icons.Outlined.Speed,
-                contentDescription = if (currentPage == 0) "Новий рахунок" else "Огляд",
-                tint     = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(22.dp)
+                icon,
+                contentDescription = description,
+                tint               = MaterialTheme.colorScheme.onSurface,
+                modifier           = Modifier.size(22.dp)
             )
         }
     }
@@ -329,28 +367,28 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
         }
     )
     HorizontalDivider(
-        modifier = Modifier.padding(start = 72.dp),
+        modifier  = Modifier.padding(start = 72.dp),
         thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant
+        color     = MaterialTheme.colorScheme.outlineVariant
     )
 }
 
 private fun TransactionType.defaultLabel() = when (this) {
-    TransactionType.TRANSFER -> "Перевод"
-    TransactionType.BORROW   -> "Взять в долг"
-    TransactionType.LEND     -> "Дать в долг"
-    TransactionType.REPAY    -> "Вернуть долг"
-    TransactionType.INCOME   -> "Доход"
-    TransactionType.EXPENSE  -> "Расход"
+    TransactionType.TRANSFER -> "Перевід"
+    TransactionType.BORROW   -> "Взяти в борг"
+    TransactionType.LEND     -> "Дати в борг"
+    TransactionType.REPAY    -> "Повернути борг"
+    TransactionType.INCOME   -> "Дохід"
+    TransactionType.EXPENSE  -> "Витрата"
 }
 
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(
         title, modifier = modifier,
-        style = MaterialTheme.typography.titleMedium,
+        style      = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface
+        color      = MaterialTheme.colorScheme.onSurface
     )
 }
 
@@ -362,4 +400,3 @@ fun formatMoney(amount: Double, currency: String = ""): String {
     nf.maximumFractionDigits = 2
     return if (currency.isNotBlank()) "${nf.format(amount)} $currency" else nf.format(amount)
 }
-
