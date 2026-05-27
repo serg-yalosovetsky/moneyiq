@@ -33,8 +33,8 @@ import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.accounts.AccountsScreen
+import org.pixelrush.moneyiq.ui.budget.BudgetScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesScreen
-import org.pixelrush.moneyiq.ui.more.MoreScreen
 import org.pixelrush.moneyiq.ui.reports.ReportsScreen
 import org.pixelrush.moneyiq.ui.theme.DebtOrange
 import org.pixelrush.moneyiq.ui.theme.ExpenseRed
@@ -133,8 +133,8 @@ fun MainScreen(
                      )
                 // 2 → Операции (транзакции)
                 2 -> TransactionsListScreen(padding = padding, onEditTransaction = onEditTransaction)
-                // 3 → Бюджет (аналитика/отчёты)
-                3 -> ReportsScreen(padding = padding)
+                // 3 → Бюджет (прогресс по категориям)
+                3 -> BudgetScreen(padding = padding)
                 // 4 → Обзор (дашборд + последние операции)
                 4 -> OverviewTab(state = state, padding = padding, onEditTransaction = onEditTransaction)
             }
