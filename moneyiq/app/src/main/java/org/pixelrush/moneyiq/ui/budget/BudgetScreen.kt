@@ -2,10 +2,10 @@ package org.pixelrush.moneyiq.ui.budget
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -399,22 +399,21 @@ private fun BudgetSectionCard(
                 if (data.rows.isNotEmpty()) {
                     Spacer(Modifier.height(10.dp))
 
-                    LazyRow(
-                        contentPadding        = PaddingValues(end = 4.dp),
+                    // Обычный Row с horizontalScroll — LazyRow нельзя использовать внутри
+                    // Row(Modifier.height(IntrinsicSize.Min)), т.к. не поддерживает intrinsic измерения
+                    Row(
+                        modifier              = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        items(visibleRows) { row ->
+                        visibleRows.forEach { row ->
                             BudgetCatChip(row = row, accentColor = accentColor)
                         }
-                        // Кнопка «Больше / Свернуть»
                         if (hasMore) {
-                            item {
-                                MoreLessChip(
-                                    expanded  = expanded,
-                                    remaining = data.rows.size - 3,
-                                    onClick   = { expanded = !expanded }
-                                )
-                            }
+                            MoreLessChip(
+                                expanded  = expanded,
+                                remaining = data.rows.size - 3,
+                                onClick   = { expanded = !expanded }
+                            )
                         }
                     }
                 }
