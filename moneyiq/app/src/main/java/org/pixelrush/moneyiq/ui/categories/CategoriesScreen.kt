@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.categories
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -17,12 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,7 +32,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.main.formatMoney
-import kotlin.math.min
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+private val MONTH_NAMES_RU = arrayOf(
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+)
+
+private val CHIP_WIDTH          = 76.dp
+private val CHIP_CIRCLE_SIZE    = 52.dp
+private val DONUT_SECTION_HEIGHT = 210.dp
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -38,14 +50,14 @@ import kotlin.math.min
 @Composable
 fun CategoriesScreen(
     onNavigateBack: () -> Unit = {},
-    embeddedMode: Boolean = false,
-    padding: PaddingValues = PaddingValues(),
-    viewModel: CategoriesViewModel = hiltViewModel()
+    embeddedMode:   Boolean   = false,
+    padding:        PaddingValues = PaddingValues(),
+    viewModel:      CategoriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    var selectedTab   by remember { mutableIntStateOf(0) }
-    var showDialog    by remember { mutableStateOf(false) }
-    var editCategory  by remember { mutableStateOf<CategoryEntity?>(null) }
+    var selectedTab  by remember { mutableIntStateOf(0) }
+    var showDialog   by remember { mutableStateOf(false) }
+    var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
 
     val typeDefault = if (selectedTab == 0) TransactionType.EXPENSE else TransactionType.INCOME
 
@@ -56,12 +68,19 @@ fun CategoriesScreen(
     ) {
         // ── Шапка ──────────────────────────────────────────────────────────
         CategoriesTopBar(
-            expenseCount  = state.expenseCategories.size,
-            incomeCount   = state.incomeCategories.size,
-            onAddClick    = { showDialog = true }
+            totalExpense = state.totalExpense,
+            totalIncome  = state.totalIncome,
+            onAddClick   = { showDialog = true }
         )
 
-        // ── Вкладки: Расходы | Доходы ────────────────────────────────────
+        // ── Навигация месяцев ───────────────────────────────────────────
+        MonthNavRow(
+            sel    = state.selectedMonth,
+            onPrev = viewModel::prevMonth,
+            onNext = viewModel::nextMonth
+        )
+
+        // ── Вкладки ─────────────────────────────────────────────────────
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor   = MaterialTheme.colorScheme.surface,
@@ -69,47 +88,42 @@ fun CategoriesScreen(
             divider = {
                 HorizontalDivider(
                     thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
+                    color     = MaterialTheme.colorScheme.outlineVariant
                 )
             }
         ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick  = { selectedTab = 0 },
-                text = {
-                    Text(
-                        "Расходы",
-                        fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick  = { selectedTab = 1 },
-                text = {
-                    Text(
-                        "Доходы",
-                        fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            )
+            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                Text(
+                    "Расходы",
+                    modifier   = Modifier.padding(vertical = 12.dp),
+                    fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                Text(
+                    "Доходы",
+                    modifier   = Modifier.padding(vertical = 12.dp),
+                    fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
         }
 
-        // ── Список категорий ─────────────────────────────────────────────
+        // ── Сетка с категориями ─────────────────────────────────────────
         val categories = if (selectedTab == 0) state.expenseCategories else state.incomeCategories
-        CategoriesListTab(
+        val spending   = if (selectedTab == 0) state.monthSpending     else state.monthIncome
+
+        CategoriesGridContent(
             categories    = categories,
-            monthSpending = state.monthSpending,
+            spending      = spending,
+            totalExpense  = state.totalExpense,
+            totalIncome   = state.totalIncome,
             bottomPadding = padding.calculateBottomPadding(),
             onAdd         = { showDialog = true },
-            onEdit        = { editCategory = it },
-            onDelete      = { viewModel.delete(it) }
+            onEdit        = { editCategory = it }
         )
     }
 
-    // ── Диалог ───────────────────────────────────────────────────────────────
+    // ── Диалог создания / редактирования ─────────────────────────────────────
     if (showDialog || editCategory != null) {
         CategoryEditDialog(
             existing    = editCategory,
@@ -128,6 +142,10 @@ fun CategoriesScreen(
                 showDialog   = false
                 editCategory = null
             },
+            onDelete = {
+                editCategory?.let { viewModel.delete(it) }
+                editCategory = null
+            },
             onDismiss = { showDialog = false; editCategory = null }
         )
     }
@@ -137,9 +155,9 @@ fun CategoriesScreen(
 
 @Composable
 private fun CategoriesTopBar(
-    expenseCount: Int,
-    incomeCount: Int,
-    onAddClick: () -> Unit
+    totalExpense: Double,
+    totalIncome:  Double,
+    onAddClick:   () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -148,7 +166,7 @@ private fun CategoriesTopBar(
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Иконка-заглушка слева (симметрия со шапкой счетов)
+        // Левый аватар-иконка
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -157,27 +175,36 @@ private fun CategoriesTopBar(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Outlined.Category,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icons.Outlined.Category, null,
+                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp)
             )
         }
 
         Spacer(Modifier.width(12.dp))
 
-        // Центр
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Центр: «Категории» + суммы
+        Column(
+            modifier              = Modifier.weight(1f),
+            horizontalAlignment   = Alignment.CenterHorizontally
+        ) {
             Text(
                 "Категории",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
+            val subtitle = when {
+                totalExpense > 0.0 || totalIncome > 0.0 ->
+                    "${formatMoney(totalExpense)} / +${formatMoney(totalIncome)}"
+                else -> "Нет операций за период"
+            }
             Text(
-                "$expenseCount расх · $incomeCount дох",
-                style = MaterialTheme.typography.titleSmall,
+                subtitle,
+                style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color      = MaterialTheme.colorScheme.onSurface,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
             )
         }
 
@@ -185,235 +212,426 @@ private fun CategoriesTopBar(
 
         // Кнопка «+»
         IconButton(
-            onClick = onAddClick,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
+            onClick  = onAddClick,
+            modifier = Modifier.size(44.dp).clip(CircleShape)
         ) {
             Icon(
-                Icons.Default.Add,
-                contentDescription = "Добавить категорию",
-                tint = MaterialTheme.colorScheme.primary,
+                Icons.Default.Add, "Добавить категорию",
+                tint     = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
-// ── Список категорий ──────────────────────────────────────────────────────────
+// ── Навигатор месяцев ─────────────────────────────────────────────────────────
 
 @Composable
-private fun CategoriesListTab(
-    categories:    List<CategoryEntity>,
-    monthSpending: Map<Long, Double>,
-    bottomPadding: Dp,
-    onAdd:   () -> Unit,
-    onEdit:  (CategoryEntity) -> Unit,
-    onDelete:(CategoryEntity) -> Unit
+private fun MonthNavRow(
+    sel:    SelectedMonth,
+    onPrev: () -> Unit,
+    onNext: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
-            top = 8.dp, bottom = bottomPadding + 16.dp
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f))
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        items(categories) { cat ->
-            CategoryListItem(
-                category = cat,
-                spending = monthSpending[cat.id] ?: 0.0,
-                onEdit   = { onEdit(cat) },
-                onDelete = { onDelete(cat) }
+        IconButton(onClick = onPrev) {
+            Icon(
+                Icons.Default.ChevronLeft, "Пред. месяц",
+                tint = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(4.dp))
         }
-
-        item {
-            Spacer(Modifier.height(4.dp))
-            AddCategoryItem(onClick = onAdd)
+        Text(
+            "${MONTH_NAMES_RU[sel.month]} ${sel.year}",
+            style      = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+            color      = MaterialTheme.colorScheme.onSurface
+        )
+        IconButton(onClick = onNext) {
+            Icon(
+                Icons.Default.ChevronRight, "След. месяц",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
+    }
+}
 
+// ── Сетка категорий + донат-чарт ─────────────────────────────────────────────
+
+@Composable
+private fun CategoriesGridContent(
+    categories:    List<CategoryEntity>,
+    spending:      Map<Long, Double>,
+    totalExpense:  Double,
+    totalIncome:   Double,
+    bottomPadding: Dp,
+    onAdd:  () -> Unit,
+    onEdit: (CategoryEntity) -> Unit
+) {
+    // Разбиваем по позициям:
+    // Строка 1 (top):  кат 0..3
+    // Строка 2 (mid):  кат 4..5 слева | донат | кат 6..7 справа
+    // Строка 3 (bot):  кнопка «+» + кат 8..10
+    // Строки  4+ (ext): кат 11+, по 4 в строке
+
+    val topRow   = categories.take(4)
+    val midLeft  = categories.drop(4).take(2)
+    val midRight = categories.drop(6).take(2)
+    val botFirst = categories.drop(8).take(3)
+    val extCats  = categories.drop(11)
+
+    LazyColumn(
+        modifier       = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 8.dp, bottom = bottomPadding + 16.dp)
+    ) {
+
+        // ── Пустое состояние ────────────────────────────────────────────
         if (categories.isEmpty()) {
             item {
                 Box(
-                    Modifier.fillMaxWidth().padding(top = 40.dp),
+                    Modifier.fillMaxWidth().padding(top = 60.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "Нет категорий",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Outlined.Category, null,
+                            modifier = Modifier.size(56.dp),
+                            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Нет категорий",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Нажмите + чтобы добавить",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Верхняя строка: 4 чипа ──────────────────────────────────────
+        item {
+            Row(
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                for (i in 0 until 4) {
+                    val cat = topRow.getOrNull(i)
+                    if (cat != null) {
+                        CategoryChip(
+                            category = cat,
+                            spending = spending[cat.id] ?: 0.0,
+                            onClick  = { onEdit(cat) }
+                        )
+                    } else {
+                        Spacer(Modifier.width(CHIP_WIDTH))
+                    }
+                }
+            }
+        }
+
+        // ── Средняя строка: [левые кат] | [донат] | [правые кат] ───────
+        item {
+            Row(
+                modifier           = Modifier
+                    .fillMaxWidth()
+                    .height(DONUT_SECTION_HEIGHT)
+                    .padding(vertical = 8.dp),
+                verticalAlignment  = Alignment.CenterVertically
+            ) {
+                // Левая колонка
+                Column(
+                    modifier              = Modifier.width(CHIP_WIDTH + 4.dp).fillMaxHeight(),
+                    verticalArrangement   = Arrangement.SpaceEvenly,
+                    horizontalAlignment   = Alignment.CenterHorizontally
+                ) {
+                    midLeft.forEach { cat ->
+                        CategoryChip(
+                            category = cat,
+                            spending = spending[cat.id] ?: 0.0,
+                            onClick  = { onEdit(cat) }
+                        )
+                    }
+                }
+
+                // Донат-чарт
+                DonutChart(
+                    totalExpense = totalExpense,
+                    totalIncome  = totalIncome,
+                    modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
+                )
+
+                // Правая колонка
+                Column(
+                    modifier              = Modifier.width(CHIP_WIDTH + 4.dp).fillMaxHeight(),
+                    verticalArrangement   = Arrangement.SpaceEvenly,
+                    horizontalAlignment   = Alignment.CenterHorizontally
+                ) {
+                    midRight.forEach { cat ->
+                        CategoryChip(
+                            category = cat,
+                            spending = spending[cat.id] ?: 0.0,
+                            onClick  = { onEdit(cat) }
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Нижняя строка: «+» + след. 3 категории ─────────────────────
+        item {
+            Row(
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                AddCategoryChip(onClick = onAdd)
+                for (i in 0 until 3) {
+                    val cat = botFirst.getOrNull(i)
+                    if (cat != null) {
+                        CategoryChip(
+                            category = cat,
+                            spending = spending[cat.id] ?: 0.0,
+                            onClick  = { onEdit(cat) }
+                        )
+                    } else {
+                        Spacer(Modifier.width(CHIP_WIDTH))
+                    }
+                }
+            }
+        }
+
+        // ── Дополнительные строки по 4 чипа ────────────────────────────
+        if (extCats.isNotEmpty()) {
+            items(extCats.chunked(4)) { rowCats ->
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    rowCats.forEach { cat ->
+                        CategoryChip(
+                            category = cat,
+                            spending = spending[cat.id] ?: 0.0,
+                            onClick  = { onEdit(cat) }
+                        )
+                    }
+                    repeat(4 - rowCats.size) { Spacer(Modifier.width(CHIP_WIDTH)) }
                 }
             }
         }
     }
 }
 
-// ── Элемент категории ─────────────────────────────────────────────────────────
+// ── Чип категории (круглая иконка + название + сумма) ────────────────────────
 
 @Composable
-private fun CategoryListItem(
+private fun CategoryChip(
     category: CategoryEntity,
     spending: Double,
-    onEdit:   () -> Unit,
-    onDelete: () -> Unit
+    onClick:  () -> Unit
 ) {
-    val accentColor = remember(category.colorHex) {
+    val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
-    val hasBudget  = category.budgetAmount > 0
-    val progress   = if (hasBudget) min(1f, (spending / category.budgetAmount).toFloat()) else 0f
-    val overBudget = hasBudget && spending > category.budgetAmount
-    var showMenu by remember { mutableStateOf(false) }
 
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onEdit() }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .width(CHIP_WIDTH)
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Квадратная иконка
         Box(
             modifier = Modifier
-                .size(60.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(accentColor),
+                .size(CHIP_CIRCLE_SIZE)
+                .clip(CircleShape)
+                .background(color),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.Category,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                Icons.Outlined.Category, null,
+                tint     = Color.White,
+                modifier = Modifier.size(26.dp)
             )
         }
-
-        Spacer(Modifier.width(16.dp))
-
-        // Название + прогресс бюджета
-        Column(modifier = Modifier.weight(1f)) {
+        Spacer(Modifier.height(4.dp))
+        Text(
+            category.name,
+            style     = MaterialTheme.typography.labelSmall,
+            maxLines  = 1,
+            overflow  = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            color     = MaterialTheme.colorScheme.onSurface,
+            modifier  = Modifier.fillMaxWidth()
+        )
+        if (spending > 0.0) {
             Text(
-                category.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
+                formatMoney(spending),
+                style      = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color      = color,
+                maxLines   = 1,
+                textAlign  = TextAlign.Center,
+                modifier   = Modifier.fillMaxWidth()
             )
-            if (hasBudget) {
-                Spacer(Modifier.height(3.dp))
-                val budgetColor = if (overBudget) MaterialTheme.colorScheme.error else accentColor
-                Text(
-                    "${formatMoney(spending)} / ${formatMoney(category.budgetAmount)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = budgetColor.copy(alpha = 0.85f)
-                )
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape),
-                    color = if (overBudget) MaterialTheme.colorScheme.error else accentColor,
-                    trackColor = accentColor.copy(alpha = 0.14f)
-                )
-            } else if (spending > 0) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    formatMoney(spending),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor.copy(alpha = 0.8f)
-                )
-            }
-        }
-
-        // Меню «⋮»
-        Box {
-            IconButton(onClick = { showMenu = true }) {
-                Icon(
-                    Icons.Default.MoreVert, null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Редактировать") },
-                    leadingIcon = { Icon(Icons.Default.Edit, null) },
-                    onClick = { onEdit(); showMenu = false }
-                )
-                if (!category.isDefault) {
-                    DropdownMenuItem(
-                        text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Delete, null,
-                                tint = MaterialTheme.colorScheme.error)
-                        },
-                        onClick = { onDelete(); showMenu = false }
-                    )
-                }
-            }
         }
     }
 }
 
-// ── Кнопка «Добавить категорию» ───────────────────────────────────────────────
+// ── Чип «Добавить» ───────────────────────────────────────────────────────────
 
 @Composable
-private fun AddCategoryItem(onClick: () -> Unit) {
+private fun AddCategoryChip(onClick: () -> Unit) {
     val dashColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
 
-    Row(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .width(CHIP_WIDTH)
             .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 6.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(60.dp)
-                .categoryDashedBorder(color = dashColor, cornerRadius = 14.dp),
+                .size(CHIP_CIRCLE_SIZE)
+                .clip(CircleShape)
+                .dashedCircleBorder(color = dashColor),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Add, null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(28.dp)
+                tint     = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(26.dp)
             )
         }
-
-        Spacer(Modifier.width(16.dp))
-
+        Spacer(Modifier.height(4.dp))
         Text(
-            "Добавить категорию",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            "Добавить",
+            style     = MaterialTheme.typography.labelSmall,
+            color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            maxLines  = 1,
+            textAlign = TextAlign.Center,
+            modifier  = Modifier.fillMaxWidth()
         )
     }
 }
 
-// ── Диалог создания/редактирования ───────────────────────────────────────────
+// ── Донат-чарт ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun DonutChart(
+    totalExpense: Double,
+    totalIncome:  Double,
+    modifier:     Modifier = Modifier
+) {
+    val expenseColor = MaterialTheme.colorScheme.error
+    val incomeColor  = Color(0xFF26A69A)          // teal
+    val emptyColor   = MaterialTheme.colorScheme.surfaceVariant
+
+    val total    = totalExpense + totalIncome
+    val expAngle = if (total > 0.0) (totalExpense / total * 360.0).toFloat() else 0f
+    val incAngle = if (total > 0.0) (totalIncome  / total * 360.0).toFloat() else 0f
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val sw  = size.minDimension * 0.15f
+            val inset = sw / 2f
+            val arcSz = Size(size.width - sw, size.height - sw)
+            val tl    = Offset(inset, inset)
+
+            if (total == 0.0) {
+                drawArc(
+                    color      = emptyColor,
+                    startAngle = -90f, sweepAngle = 360f,
+                    useCenter  = false, topLeft = tl, size = arcSz,
+                    style      = Stroke(width = sw)
+                )
+            } else {
+                if (expAngle > 0f) {
+                    drawArc(
+                        color      = expenseColor,
+                        startAngle = -90f, sweepAngle = expAngle,
+                        useCenter  = false, topLeft = tl, size = arcSz,
+                        style      = Stroke(width = sw, cap = StrokeCap.Butt)
+                    )
+                }
+                if (incAngle > 0f) {
+                    drawArc(
+                        color      = incomeColor,
+                        startAngle = -90f + expAngle, sweepAngle = incAngle,
+                        useCenter  = false, topLeft = tl, size = arcSz,
+                        style      = Stroke(width = sw, cap = StrokeCap.Butt)
+                    )
+                }
+            }
+        }
+
+        // Текст по центру
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier            = Modifier.padding(22.dp)
+        ) {
+            Text(
+                "Расходы",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+            Text(
+                formatMoney(totalExpense),
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color      = expenseColor,
+                maxLines   = 1
+            )
+            if (totalIncome > 0.0) {
+                HorizontalDivider(
+                    modifier  = Modifier.padding(vertical = 2.dp),
+                    thickness = 0.5.dp,
+                    color     = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                Text(
+                    "+${formatMoney(totalIncome)}",
+                    style    = MaterialTheme.typography.labelSmall,
+                    color    = incomeColor,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+// ── Диалог добавления / редактирования ───────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryEditDialog(
     existing:    CategoryEntity?,
     defaultType: TransactionType,
-    onSave:  (String, TransactionType, String, Double) -> Unit,
+    onSave:   (String, TransactionType, String, Double) -> Unit,
+    onDelete: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     var name     by remember { mutableStateOf(existing?.name ?: "") }
     var type     by remember { mutableStateOf(existing?.type ?: defaultType) }
     var colorHex by remember { mutableStateOf(existing?.colorHex ?: "#FF5722") }
     var budget   by remember {
-        mutableStateOf(existing?.budgetAmount?.let {
-            if (it > 0) it.toString() else ""
-        } ?: "")
+        mutableStateOf(
+            existing?.budgetAmount?.let { if (it > 0) it.toString() else "" } ?: ""
+        )
     }
 
     val colorPalette = listOf(
@@ -429,17 +647,15 @@ private fun CategoryEditDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Название
                 OutlinedTextField(
-                    value = name,
+                    value         = name,
                     onValueChange = { name = it },
-                    label = { Text("Название") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.Category, null) }
+                    label         = { Text("Название") },
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                    leadingIcon   = { Icon(Icons.Outlined.Category, null) }
                 )
 
-                // Расход / Доход
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     listOf(
                         TransactionType.EXPENSE to "Расход",
@@ -454,17 +670,15 @@ private fun CategoryEditDialog(
                     }
                 }
 
-                // Лимит бюджета
                 OutlinedTextField(
-                    value = budget,
+                    value         = budget,
                     onValueChange = { budget = it },
-                    label = { Text("Лимит в месяц (0 = без лимита)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.AttachMoney, null) }
+                    label         = { Text("Лимит в месяц (0 = без лимита)") },
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                    leadingIcon   = { Icon(Icons.Outlined.AttachMoney, null) }
                 )
 
-                // Выбор цвета
                 Text(
                     "Цвет",
                     style = MaterialTheme.typography.labelMedium,
@@ -486,7 +700,7 @@ private fun CategoryEditDialog(
                                 Icon(
                                     Icons.Default.Check, null,
                                     modifier = Modifier.size(18.dp),
-                                    tint = Color.White
+                                    tint     = Color.White
                                 )
                             }
                         }
@@ -501,31 +715,39 @@ private fun CategoryEditDialog(
             }) { Text("Сохранить") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (existing != null && onDelete != null) {
+                    TextButton(
+                        onClick = { onDelete(); onDismiss() },
+                        colors  = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) { Text("Удалить") }
+                    Spacer(Modifier.width(4.dp))
+                }
+                TextButton(onClick = onDismiss) { Text("Отмена") }
+            }
         }
     )
 }
 
-// ── Пунктирная рамка (аналог AccountsScreen) ─────────────────────────────────
+// ── Пунктирный круговой бордер ────────────────────────────────────────────────
 
-private fun Modifier.categoryDashedBorder(
-    color: Color,
-    cornerRadius: Dp,
-    dashWidth: Dp = 8.dp,
-    dashGap: Dp = 5.dp,
+private fun Modifier.dashedCircleBorder(
+    color:       Color,
+    dashWidth:   Dp = 8.dp,
+    dashGap:     Dp = 5.dp,
     strokeWidth: Dp = 1.5.dp
 ): Modifier = this.drawBehind {
-    val cr = cornerRadius.toPx()
     val sw = strokeWidth.toPx()
-    val dw = dashWidth.toPx()
-    val dg = dashGap.toPx()
-    drawRoundRect(
-        color = color,
-        size  = Size(size.width, size.height),
-        cornerRadius = CornerRadius(cr, cr),
-        style = Stroke(
-            width = sw,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dw, dg), 0f)
+    drawCircle(
+        color  = color,
+        radius = (size.minDimension - sw) / 2f,
+        style  = Stroke(
+            width      = sw,
+            pathEffect = PathEffect.dashPathEffect(
+                floatArrayOf(dashWidth.toPx(), dashGap.toPx()), 0f
+            )
         )
     )
 }
