@@ -20,4 +20,9 @@ class AccountRepository @Inject constructor(private val dao: AccountDao) {
     suspend fun update(account: AccountEntity) = dao.updateAccount(account)
 
     suspend fun delete(account: AccountEntity) = dao.deleteAccount(account)
+
+    suspend fun setDefault(accountId: Long) {
+        dao.clearAllDefault()
+        dao.setDefault(accountId)
+    }
 }

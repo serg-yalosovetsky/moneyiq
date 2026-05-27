@@ -53,12 +53,13 @@ private data class BottomTab(
     val unselectedIcon: ImageVector
 )
 
+// Порядок вкладок — как в оригинале 1Money
 private val TABS = listOf(
-    BottomTab("Обзор",      Icons.Filled.Home,                 Icons.Outlined.Home),
-    BottomTab("Транзакции", Icons.Filled.ReceiptLong,          Icons.Outlined.ReceiptLong),
-    BottomTab("Аналитика",  Icons.Filled.BarChart,             Icons.Outlined.BarChart),
-    BottomTab("Счета",      Icons.Filled.AccountBalanceWallet,  Icons.Outlined.AccountBalanceWallet),
-    BottomTab("Ещё",        Icons.Filled.MoreHoriz,            Icons.Outlined.MoreHoriz),
+    BottomTab("Счета",     Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet),
+    BottomTab("Категории", Icons.Filled.Category,             Icons.Outlined.Category),
+    BottomTab("Операции",  Icons.Filled.ReceiptLong,          Icons.Outlined.ReceiptLong),
+    BottomTab("Бюджет",    Icons.Filled.PieChart,             Icons.Outlined.PieChart),
+    BottomTab("Обзор",     Icons.Filled.Home,                 Icons.Outlined.Home),
 )
 
 // ── Main container ────────────────────────────────────────────────────────────
@@ -74,7 +75,8 @@ fun MainScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (selectedTab <= 1) {
+            // FAB только на вкладке "Операции" (tab 2) и "Обзор" (tab 4)
+            if (selectedTab == 2 || selectedTab == 4) {
                 FloatingActionButton(
                     onClick = onAddTransaction,
                     containerColor = MaterialTheme.colorScheme.primary
@@ -121,11 +123,20 @@ fun MainScreen(
             label = "tab_content"
         ) { tab ->
             when (tab) {
-                0 -> OverviewTab(state = state, padding = padding, onEditTransaction = onEditTransaction)
-                1 -> TransactionsListScreen(padding = padding, onEditTransaction = onEditTransaction)
-                2 -> ReportsScreen(padding = padding)
-                3 -> AccountsScreen(onNavigateBack = {}, embeddedMode = true)
-                4 -> MoreScreen(padding = padding)
+                // 0 → Счета (как в оригинале — первая вкладка)
+                0 -> AccountsScreen(padding = padding, embeddedMode = true)
+                // 1 → Категории
+                1 -> CategoriesScreen(
+                        onNavigateBack = {},
+                        embeddedMode = true,
+                        padding = padding
+                     )
+                // 2 → Операции (транзакции)
+                2 -> TransactionsListScreen(padding = padding, onEditTransaction = onEditTransaction)
+                // 3 → Бюджет (аналитика/отчёты)
+                3 -> ReportsScreen(padding = padding)
+                // 4 → Обзор (дашборд + последние операции)
+                4 -> OverviewTab(state = state, padding = padding, onEditTransaction = onEditTransaction)
             }
         }
     }

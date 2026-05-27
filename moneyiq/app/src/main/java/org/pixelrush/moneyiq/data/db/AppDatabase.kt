@@ -4,6 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import org.pixelrush.moneyiq.data.db.dao.AccountDao
 import org.pixelrush.moneyiq.data.db.dao.CategoryDao
 import org.pixelrush.moneyiq.data.db.dao.TransactionDao
@@ -20,9 +22,16 @@ class Converters {
     @TypeConverter fun stringToTxType(v: String): TransactionType = TransactionType.valueOf(v)
 }
 
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Add isDefault flag (which account is "starred" / primary)
+        database.execSQL("ALTER TABLE accounts ADD COLUMN isDefault INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

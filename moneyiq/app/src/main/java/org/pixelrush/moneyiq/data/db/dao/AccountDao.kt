@@ -30,4 +30,10 @@ interface AccountDao {
 
     @Query("SELECT COUNT(*) FROM accounts")
     suspend fun count(): Int
+
+    @Query("UPDATE accounts SET isDefault = 0")
+    suspend fun clearAllDefault()
+
+    @Query("UPDATE accounts SET isDefault = 1 WHERE id = :id")
+    suspend fun setDefault(id: Long)
 }

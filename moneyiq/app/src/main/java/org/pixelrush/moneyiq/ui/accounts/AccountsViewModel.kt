@@ -27,9 +27,16 @@ class AccountsViewModel @Inject constructor(
         AccountsUiState(accounts = accounts, totalBalance = total)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AccountsUiState())
 
-    fun add(name: String, type: AccountType, balance: Double, color: String) {
+    fun add(name: String, type: AccountType, balance: Double, color: String, currency: String = "RUB") {
         viewModelScope.launch {
-            repo.save(AccountEntity(name = name, type = type, balance = balance, colorHex = color))
+            val isFirst = repo.getAllAccounts().first().isEmpty()
+            repo.save(
+                AccountEntity(
+                    name = name, type = type, balance = balance,
+                    colorHex = color, currency = currency,
+                    isDefault = isFirst   // первый счёт = по умолчанию
+                )
+            )
         }
     }
 
@@ -39,5 +46,9 @@ class AccountsViewModel @Inject constructor(
 
     fun delete(account: AccountEntity) {
         viewModelScope.launch { repo.delete(account) }
+    }
+
+    fun setDefault(account: AccountEntity) {
+        viewModelScope.launch { repo.setDefault(account.id) }
     }
 }

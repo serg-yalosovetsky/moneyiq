@@ -27,6 +27,7 @@ import kotlin.math.min
 fun CategoriesScreen(
     onNavigateBack: () -> Unit,
     embeddedMode: Boolean = false,
+    padding: PaddingValues = PaddingValues(),
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -79,7 +80,7 @@ fun CategoriesScreen(
     }
 
     if (embeddedMode) {
-        CategoryBody(PaddingValues(bottom = 88.dp))
+        CategoryBody(padding)
         return
     }
 
