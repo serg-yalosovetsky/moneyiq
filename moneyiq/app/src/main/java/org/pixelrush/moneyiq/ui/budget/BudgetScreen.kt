@@ -1,4 +1,4 @@
-package org.pixelrush.moneyiq.ui.budget
+﻿package org.pixelrush.moneyiq.ui.budget
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,125 +25,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
-import org.pixelrush.moneyiq.data.repository.AccountRepository
-import org.pixelrush.moneyiq.data.repository.AppMonth
-import org.pixelrush.moneyiq.data.repository.CategoryRepository
-import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
-import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
-import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
-import java.util.*
-import org.pixelrush.moneyiq.ui.categories.CalcStateHolder
-import org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad
+import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.categories.categoryIconFor
-import org.pixelrush.moneyiq.ui.categories.rememberCalcState
+import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
-import javax.inject.Inject
-
-// ── Data classes ──────────────────────────────────────────────────────────────
-
-data class BudgetSelMonth(val year: Int, val month: Int)
-
-data class BudgetCatRow(
-    val category: CategoryEntity,
-    val amount:   Double        // потрачено (EXPENSE) или получено (INCOME)
-)
-
-data class BudgetSectionData(
-    val totalBudget: Double,
-    val totalAmount: Double,
-    val rows:        List<BudgetCatRow>
-)
-
-data class BudgetUiState(
-    val selectedMonth: BudgetSelMonth = run {
-        val cal = Calendar.getInstance()
-        BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    },
-    val appMonth:       AppMonth          = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
-    val daysInMonth:    Int              = 31,
-    val pillLabel:      String           = "",
-    val pillBadge:      String           = "31",
-    val totalBalance:   Double           = 0.0,
-    val expenseSection: BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList()),
-    val incomeSection:  BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList())
-)
-
-// ── ViewModel ─────────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class BudgetViewModel @Inject constructor(
-    private val categoryRepo: CategoryRepository,
-    private val txRepo:       TransactionRepository,
-    private val accountRepo:  AccountRepository,
-    private val monthRepo:    SelectedMonthRepository         // ← общий репозиторий
-) : ViewModel() {
-
-    val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { am ->
-        val sel        = BudgetSelMonth(am.year, am.month)
-        val (from, to) = monthRepo.computeRange(am)
-        combine(
-            categoryRepo.getByType(TransactionType.EXPENSE),
-            categoryRepo.getByType(TransactionType.INCOME),
-            txRepo.getCategorySpending(TransactionType.EXPENSE, from, to),
-            txRepo.getCategorySpending(TransactionType.INCOME, from, to),
-            accountRepo.getTotalBalance()
-        ) { expCats, incCats, expSpend, incSpend, rawBalance ->
-            val expMap  = expSpend.associate { it.categoryId to it.total }
-            val incMap  = incSpend.associate { it.categoryId to it.total }
-            val expRows = expCats.map { BudgetCatRow(it, expMap[it.id] ?: 0.0) }
-            val incRows = incCats.map { BudgetCatRow(it, incMap[it.id] ?: 0.0) }
-            BudgetUiState(
-                selectedMonth  = sel,
-                appMonth       = am,
-                daysInMonth    = monthRepo.daysInPeriod(am),
-                pillLabel      = monthRepo.pillLabel(am),
-                pillBadge      = monthRepo.pillBadge(am),
-                totalBalance   = rawBalance ?: 0.0,
-                expenseSection = BudgetSectionData(
-                    totalBudget = expCats.sumOf { it.budgetAmount },
-                    totalAmount = expRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
-                    rows        = expRows
-                ),
-                incomeSection = BudgetSectionData(
-                    totalBudget = incCats.sumOf { it.budgetAmount },
-                    totalAmount = incRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
-                    rows        = incRows
-                )
-            )
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
-
-    fun prevMonth()                      = monthRepo.prevMonth()
-    fun nextMonth()                      = monthRepo.nextMonth()
-    fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
-    fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
-
-    fun updateCategoryBudget(category: org.pixelrush.moneyiq.data.db.entities.CategoryEntity, newBudget: Double) {
-        viewModelScope.launch { categoryRepo.update(category.copy(budgetAmount = newBudget)) }
-    }
-
-    fun clearAllBudgets() {
-        viewModelScope.launch {
-            val allCats = categoryRepo.getByType(TransactionType.EXPENSE).first() +
-                          categoryRepo.getByType(TransactionType.INCOME).first()
-            allCats.forEach { categoryRepo.update(it.copy(budgetAmount = 0.0)) }
-        }
-    }
-
-}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -315,71 +206,6 @@ private fun BudgetTopBar(totalBalance: Double, onSettingsClick: () -> Unit = {})
                 tint     = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp)
             )
-        }
-    }
-}
-
-// ── Пилюля-навигатор месяца (идентична TransactionsListScreen) ────────────────
-
-@Composable
-private fun BudgetMonthNavPill(
-    sel:         BudgetSelMonth,
-    daysInMonth: Int,
-    onPrev:      () -> Unit,
-    onNext:      () -> Unit
-) {
-    Row(
-        modifier              = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment     = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        IconButton(onClick = onPrev) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
-                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
-            }
-        }
-
-        val pillAccent = Color(0xFFD81B60)
-        Surface(
-            shape = RoundedCornerShape(50.dp),
-            color = pillAccent.copy(alpha = 0.12f)
-        ) {
-            Row(
-                modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(shape = CircleShape, color = pillAccent) {
-                    Text(
-                        "$daysInMonth",
-                        modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                        style      = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.White
-                    )
-                }
-                Text(
-                    "${MONTH_NAMES_UA[sel.month]} ${sel.year}",
-                    style      = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = pillAccent
-                )
-                Icon(
-                    Icons.Default.ArrowDropDown, null,
-                    tint     = pillAccent,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-
-        IconButton(onClick = onNext) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
-                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
-            }
         }
     }
 }

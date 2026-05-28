@@ -1,4 +1,4 @@
-package org.pixelrush.moneyiq.ui.accounts
+﻿package org.pixelrush.moneyiq.ui.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -163,7 +163,7 @@ fun AccountsScreen(
 
     // Adjust balance
     adjustAccount?.let { acc ->
-        org.pixelrush.moneyiq.ui.categories.AmountCalculatorSheet(
+        org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet(
             initial        = acc.balance,
             currencySymbol = currencySymbol(acc.currency),
             title          = "Баланс рахунку",

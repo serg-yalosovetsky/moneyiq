@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountType
-import org.pixelrush.moneyiq.ui.categories.AmountCalculatorSheet
+import org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet
 
 // ── Currency data ─────────────────────────────────────────────────────────────
 

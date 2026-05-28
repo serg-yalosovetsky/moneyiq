@@ -14,10 +14,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 // ── Semantic colors ──────────────────────────────────────────────────────────
-val IncomeGreen  = Color(0xFF4CAF50)
-val ExpenseRed   = Color(0xFFF44336)
-val TransferBlue = Color(0xFF2196F3)
-val DebtOrange   = Color(0xFFFF9800)
+val IncomeGreen      = Color(0xFF4CAF50)
+val ExpenseRed       = Color(0xFFF44336)
+val TransferBlue     = Color(0xFF2196F3)
+val DebtOrange       = Color(0xFFFF9800)
+val BudgetExpenseColor = Color(0xFFD81B60)
+val BudgetIncomeColor  = Color(0xFF26A69A)
 
 // ── 1Money colour palette (Material 3) ───────────────────────────────────────
 // Light

@@ -5,10 +5,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
@@ -41,28 +41,17 @@ import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
-import kotlin.math.cos
-import kotlin.math.sin
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
-private val CHIP_WIDTH           = 86.dp
-private val CHIP_HEIGHT          = 112.dp
+private val CHIP_WIDTH           = 82.dp
+private val CHIP_HEIGHT          = 124.dp
 private val CHIP_CIRCLE_SIZE     = 48.dp
-private val CHIP_WIDTH_COMPACT   = 74.dp
-private val CHIP_HEIGHT_COMPACT  = 96.dp
+private val CHIP_WIDTH_COMPACT   = 70.dp
+private val CHIP_HEIGHT_COMPACT  = 108.dp
 private val CHIP_CIRCLE_COMPACT  = 40.dp
 private val DONUT_SECTION_HEIGHT = 360.dp
-private val SIDE_COLUMN_WIDTH    = 96.dp
-
-// ── Кутова позиція для орбітального макету ────────────────────────────────────
-
-private fun orbitalAngles(n: Int): List<Float> = when (n) {
-    1    -> listOf(270f)
-    2    -> listOf(210f, 330f)
-    3    -> listOf(30f, 150f, 270f)
-    else -> List(n) { i -> -90f + i * (360f / n) }   // рівномірно від верхньої точки
-}
+private val SIDE_COLUMN_WIDTH    = 90.dp
 
 // ── Головний екран ────────────────────────────────────────────────────────────
 
@@ -78,31 +67,32 @@ fun CategoriesScreen(
     viewModel:        CategoriesViewModel = hiltViewModel()
 ) {
     val state        by viewModel.state.collectAsState()
-    var selectedTab  by remember { mutableIntStateOf(0) }   // 0 = Витрати, 1 = Доходи
+    var selectedTab  by remember { mutableIntStateOf(0) }
 
-    // Яка категорія відкрита в QuickSheet; яку додаємо; яка показує ActionSheet; яку редагуємо
     var quickCategory      by remember { mutableStateOf<CategoryEntity?>(null) }
     var actionCategory     by remember { mutableStateOf<CategoryEntity?>(null) }
     var editCategory       by remember { mutableStateOf<CategoryEntity?>(null) }
     var expandedCategoryId by remember { mutableStateOf<Long?>(null) }
     var showAddSheet       by remember { mutableStateOf(false) }
 
+    // Collapse double-click expansion when toggling subcategory view
+    LaunchedEffect(state.showSubcategories) {
+        if (state.showSubcategories) expandedCategoryId = null
+    }
+
     val allCategoriesForTab = (if (selectedTab == 0) state.expenseCategories else state.incomeCategories)
         .filter { !it.archived }
     val spending   = if (selectedTab == 0) state.monthSpending else state.monthIncome
-    // childCounts: підкатегорії лише з ненульовими витратами (для бейджа і умов розкриття)
     val childCounts = allCategoriesForTab
         .filter { it.parentId != null && (spending[it.id] ?: 0.0) > 0.0 }
         .groupBy { it.parentId!! }
         .mapValues { it.value.size }
-    // Якщо згорнуто — показуємо лише кореневі (parentId == null)
     val categories = if (!state.showSubcategories) {
         allCategoriesForTab.filter { it.parentId == null }
     } else {
         allCategoriesForTab
     }
 
-    // Коли підкатегорії згорнуті — підсумовуємо витрати дочірніх у батьківські
     val effectiveSpending: Map<Long, Double> = if (!state.showSubcategories) {
         val result = spending.toMutableMap()
         allCategoriesForTab.filter { it.parentId != null }.forEach { child ->
@@ -122,7 +112,6 @@ fun CategoriesScreen(
                 onSwipeRight = viewModel::prevMonth
             )
     ) {
-        // Навігатор місяців
         SharedMonthNavPill(
             appMonth       = state.appMonth,
             daysInPeriod   = state.daysInMonth,
@@ -131,7 +120,6 @@ fun CategoriesScreen(
             onSelectPeriod = viewModel::setPeriod
         )
 
-        // Сітка категорій (без TabRow — donut є перемикачем)
         CategoriesGridContent(
             categories            = categories,
             allCategoriesForTab   = allCategoriesForTab,
@@ -185,7 +173,7 @@ fun CategoriesScreen(
         )
     }
 
-    // ── Редагування категорії (з ActionSheet) ────────────────────────────────
+    // ── Редагування категорії ────────────────────────────────────────────────
     editCategory?.let { cat ->
         CategoryFormSheet(
             existing    = cat,
@@ -222,7 +210,7 @@ fun CategoriesScreen(
     }
 }
 
-// ── Сітка: доnat-чарт + чипи ─────────────────────────────────────────────────
+// ── Сітка: donut-чарт + чипи ─────────────────────────────────────────────────
 
 @Composable
 internal fun CategoriesGridContent(
@@ -244,13 +232,6 @@ internal fun CategoriesGridContent(
     childCounts:           Map<Long, Int>   = emptyMap(),
     isCompact:             Boolean          = false
 ) {
-    // Розклад по позиціях:
-    //   Рядок top  (0..3): перші 4 категорії
-    //   Рядок mid         : 2 зліва | donut | 2 справа
-    //   Рядки ext (8+)    : по 4 у рядку
-    //   «+»               : окремий рядок в самому низу
-
-    // Коли підкатегорії розгорнуті — групуємо дочірні одразу за батьком
     val sorted: List<CategoryEntity> = if (showSubcategories) {
         val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId!! }
         val roots    = categories.filter { it.parentId == null }
@@ -266,7 +247,6 @@ internal fun CategoriesGridContent(
         categories.sortedByDescending { spending[it.id] ?: 0.0 }
     }
 
-    // Карта child.id → colorHex батька (для підсвічення фону підкатегорій)
     val parentColors: Map<Long, String> = if (showSubcategories) {
         val parentMap = categories.filter { it.parentId == null }.associateBy { it.id }
         categories.filter { it.parentId != null }.mapNotNull { child ->
@@ -274,16 +254,21 @@ internal fun CategoriesGridContent(
         }.toMap()
     } else emptyMap()
 
-    val active   = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
-    val inactive = sorted.filter { (spending[it.id] ?: 0.0) == 0.0 }
-    // Якщо немає жодних активних — показуємо тільки кореневі категорії (без підкатегорій)
-    val display  = if (active.isNotEmpty()) active else sorted.filter { it.parentId == null }
-    var showInactive by remember { mutableStateOf(false) }
+    val active  = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
+    val display = if (active.isNotEmpty()) active else sorted.filter { it.parentId == null }
 
-    val topRow   = display.take(4)
-    val midLeft  = display.drop(4).take(2)
-    val midRight = display.drop(6).take(2)
-    val extCats  = display.drop(8)
+    // When subcategories are expanded, everything goes below the donut — no overlap possible
+    val topRow   = if (!showSubcategories) display.take(4) else emptyList()
+    val midLeft  = if (!showSubcategories) display.drop(4).take(2) else emptyList()
+    val midRight = if (!showSubcategories) display.drop(6).take(2) else emptyList()
+    val extCats  = if (!showSubcategories) display.drop(8) else display
+
+    // Double-click expansion strip (only in collapsed mode)
+    val expandedCat = if (expandedCategoryId != null && !showSubcategories)
+        display.find { it.id == expandedCategoryId } else null
+    val expandedChildren = expandedCat?.let {
+        allCategoriesForTab.filter { c -> c.parentId == it.id && !c.archived }
+    } ?: emptyList()
 
     LazyColumn(
         modifier       = Modifier.fillMaxSize(),
@@ -319,224 +304,39 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Верхній рядок: 4 чипи ───────────────────────────────────────
+        // ── Top row: 4 чипи (тільки в згорнутому режимі) ────────────────
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                repeat(4) { i ->
-                    val cat = topRow.getOrNull(i)
-                    val isExpanded = cat != null && cat.id == expandedCategoryId
-                    val chipChildren = if (isExpanded)
-                        allCategoriesForTab.filter { it.parentId == cat!!.id && (spending[it.id] ?: 0.0) > 0.0 }
-                    else emptyList()
-                    Box(
-                        Modifier
-                            .width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH)
-                            .zIndex(if (isExpanded) 10f else 0f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (cat != null) {
-                            if (isExpanded && chipChildren.isNotEmpty()) {
-                                OrbitalCategoryGroup(
-                                    parent       = cat,
-                                    children     = chipChildren,
-                                    spending     = spending,
-                                    onClickParent = { onChipClick(cat) },
-                                    onClickChild  = { child -> onChipClick(child) },
-                                    onDoubleClick = { onChipDoubleClick(cat.id) }
-                                )
-                            } else {
-                                CategoryChip(
-                                    category       = cat,
-                                    spending       = spending[cat.id] ?: 0.0,
-                                    onClick        = { onChipClick(cat) },
-                                    childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = { onChipLongClick(cat) },
-                                    onDoubleClick  = {
-                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                        else onChipClick(cat)
-                                    },
-                                    showChildBadge = !showSubcategories,
-                                    groupColorHex  = parentColors[cat.id],
-                                    isCompact      = isCompact
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Середній рядок: [2 зліва] | [donut] | [2 справа] ────────────
-        item {
-            Row(
-                modifier          = Modifier
-                    .fillMaxWidth()
-                    .height(DONUT_SECTION_HEIGHT)
-                    .padding(horizontal = 6.dp, vertical = 8.dp)
-                    .graphicsLayer { clip = false },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Ліва колонка — в коридорі між краєм екрана і донатом
-                Column(
-                    modifier              = Modifier
-                        .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
-                        .graphicsLayer { clip = false },
-                    verticalArrangement   = Arrangement.SpaceBetween,
-                    horizontalAlignment   = Alignment.CenterHorizontally
-                ) {
-                    midLeft.forEach { cat ->
-                        val isExpanded   = cat.id == expandedCategoryId
-                        val chipChildren = if (isExpanded)
-                            allCategoriesForTab.filter { it.parentId == cat.id }
-                        else emptyList()
-                        Box(
-                            Modifier.zIndex(if (isExpanded) 10f else 0f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isExpanded && chipChildren.isNotEmpty()) {
-                                OrbitalCategoryGroup(
-                                    parent        = cat,
-                                    children      = chipChildren,
-                                    spending      = spending,
-                                    onClickParent = { onChipClick(cat) },
-                                    onClickChild  = { child -> onChipClick(child) },
-                                    onDoubleClick = { onChipDoubleClick(cat.id) }
-                                )
-                            } else {
-                                CategoryChip(
-                                    category       = cat,
-                                    spending       = spending[cat.id] ?: 0.0,
-                                    onClick        = { onChipClick(cat) },
-                                    childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = { onChipLongClick(cat) },
-                                    onDoubleClick  = {
-                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                        else onChipClick(cat)
-                                    },
-                                    showChildBadge = !showSubcategories,
-                                    groupColorHex  = parentColors[cat.id],
-                                    isCompact      = isCompact
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Donut-чарт (центр — кнопка перемикання)
-                DonutChart(
-                    categories   = categories,
-                    spending     = spending,
-                    totalExpense = totalExpense,
-                    totalIncome  = totalIncome,
-                    selectedTab  = selectedTab,
-                    onToggle     = onToggleTab,
-                    modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
-                )
-
-                // Права колонка — в коридорі між донатом і краєм екрана
-                Column(
-                    modifier              = Modifier
-                        .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
-                        .graphicsLayer { clip = false },
-                    verticalArrangement   = Arrangement.SpaceBetween,
-                    horizontalAlignment   = Alignment.CenterHorizontally
-                ) {
-                    midRight.forEach { cat ->
-                        val isExpanded   = cat.id == expandedCategoryId
-                        val chipChildren = if (isExpanded)
-                            allCategoriesForTab.filter { it.parentId == cat.id }
-                        else emptyList()
-                        Box(
-                            Modifier.zIndex(if (isExpanded) 10f else 0f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isExpanded && chipChildren.isNotEmpty()) {
-                                OrbitalCategoryGroup(
-                                    parent        = cat,
-                                    children      = chipChildren,
-                                    spending      = spending,
-                                    onClickParent = { onChipClick(cat) },
-                                    onClickChild  = { child -> onChipClick(child) },
-                                    onDoubleClick = { onChipDoubleClick(cat.id) }
-                                )
-                            } else {
-                                CategoryChip(
-                                    category       = cat,
-                                    spending       = spending[cat.id] ?: 0.0,
-                                    onClick        = { onChipClick(cat) },
-                                    childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = { onChipLongClick(cat) },
-                                    onDoubleClick  = {
-                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                        else onChipClick(cat)
-                                    },
-                                    showChildBadge = !showSubcategories,
-                                    groupColorHex  = parentColors[cat.id],
-                                    isCompact      = isCompact
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Розширені рядки: по 4 ────────────────────────────────────────
-        if (extCats.isNotEmpty()) {
-            items(extCats.chunked(4)) { rowCats ->
+            if (!showSubcategories) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
                         .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.Top
                 ) {
                     repeat(4) { i ->
-                        val cat = rowCats.getOrNull(i)
-                        val isExpanded = cat != null && cat.id == expandedCategoryId
-                        val chipChildren = if (isExpanded)
-                            allCategoriesForTab.filter { it.parentId == cat!!.id && (spending[it.id] ?: 0.0) > 0.0 }
-                        else emptyList()
+                        val cat = topRow.getOrNull(i)
                         Box(
-                            Modifier
-                                .width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH)
-                                .zIndex(if (isExpanded) 10f else 0f),
+                            Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH),
                             contentAlignment = Alignment.Center
                         ) {
                             if (cat != null) {
-                                if (isExpanded && chipChildren.isNotEmpty()) {
-                                    OrbitalCategoryGroup(
-                                        parent        = cat,
-                                        children      = chipChildren,
-                                        spending      = spending,
-                                        onClickParent = { onChipClick(cat) },
-                                        onClickChild  = { child -> onChipClick(child) },
-                                        onDoubleClick = { onChipDoubleClick(cat.id) }
-                                    )
-                                } else {
-                                    CategoryChip(
-                                        category       = cat,
-                                        spending       = spending[cat.id] ?: 0.0,
-                                        onClick        = { onChipClick(cat) },
-                                        childCount     = childCounts[cat.id] ?: 0,
-                                        onLongPress    = { onChipLongClick(cat) },
-                                        onDoubleClick  = {
-                                            if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                            else onChipClick(cat)
-                                        },
-                                        showChildBadge = !showSubcategories,
-                                        groupColorHex  = parentColors[cat.id],
-                                        isCompact      = isCompact
-                                    )
-                                }
+                                CategoryChip(
+                                    category       = cat,
+                                    spending       = spending[cat.id] ?: 0.0,
+                                    onClick        = { onChipClick(cat) },
+                                    childCount     = childCounts[cat.id] ?: 0,
+                                    onLongPress    = { onChipLongClick(cat) },
+                                    onDoubleClick  = {
+                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
+                                        else onChipClick(cat)
+                                    },
+                                    showChildBadge = true,
+                                    groupColorHex  = parentColors[cat.id],
+                                    isCompact      = isCompact,
+                                    isExpanded     = cat.id == expandedCategoryId
+                                )
                             }
                         }
                     }
@@ -544,7 +344,181 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Кнопка «+» — в самому низу списку категорій ──────────────────
+        // ── Expansion strip після topRow ─────────────────────────────────
+        if (expandedCat != null && topRow.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+            item(key = "strip_top_${expandedCategoryId}") {
+                ExpandedCategoryStrip(
+                    parent           = expandedCat,
+                    children         = expandedChildren,
+                    spending         = spending,
+                    onClickParent    = { onChipClick(expandedCat) },
+                    onClickChild     = { onChipClick(it) },
+                    onLongClickChild = { onChipLongClick(it) }
+                )
+            }
+        }
+
+        // ── Mid row: donut повна ширина АБО [2 зліва][donut][2 справа] ──
+        item {
+            if (showSubcategories) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DONUT_SECTION_HEIGHT)
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    DonutChart(
+                        categories   = categories,
+                        spending     = spending,
+                        totalExpense = totalExpense,
+                        totalIncome  = totalIncome,
+                        selectedTab  = selectedTab,
+                        onToggle     = onToggleTab,
+                        modifier     = Modifier.fillMaxSize().padding(8.dp)
+                    )
+                }
+            } else {
+                Row(
+                    modifier          = Modifier
+                        .fillMaxWidth()
+                        .height(DONUT_SECTION_HEIGHT)
+                        .padding(horizontal = 6.dp, vertical = 8.dp)
+                        .graphicsLayer { clip = false },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier              = Modifier
+                            .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
+                            .graphicsLayer { clip = false },
+                        verticalArrangement   = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment   = Alignment.CenterHorizontally
+                    ) {
+                        midLeft.forEach { cat ->
+                            CategoryChip(
+                                category       = cat,
+                                spending       = spending[cat.id] ?: 0.0,
+                                onClick        = { onChipClick(cat) },
+                                childCount     = childCounts[cat.id] ?: 0,
+                                onLongPress    = { onChipLongClick(cat) },
+                                onDoubleClick  = {
+                                    if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
+                                    else onChipClick(cat)
+                                },
+                                showChildBadge = true,
+                                groupColorHex  = parentColors[cat.id],
+                                isCompact      = isCompact,
+                                isExpanded     = cat.id == expandedCategoryId
+                            )
+                        }
+                    }
+
+                    DonutChart(
+                        categories   = categories,
+                        spending     = spending,
+                        totalExpense = totalExpense,
+                        totalIncome  = totalIncome,
+                        selectedTab  = selectedTab,
+                        onToggle     = onToggleTab,
+                        modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
+                    )
+
+                    Column(
+                        modifier              = Modifier
+                            .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
+                            .graphicsLayer { clip = false },
+                        verticalArrangement   = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment   = Alignment.CenterHorizontally
+                    ) {
+                        midRight.forEach { cat ->
+                            CategoryChip(
+                                category       = cat,
+                                spending       = spending[cat.id] ?: 0.0,
+                                onClick        = { onChipClick(cat) },
+                                childCount     = childCounts[cat.id] ?: 0,
+                                onLongPress    = { onChipLongClick(cat) },
+                                onDoubleClick  = {
+                                    if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
+                                    else onChipClick(cat)
+                                },
+                                showChildBadge = true,
+                                groupColorHex  = parentColors[cat.id],
+                                isCompact      = isCompact,
+                                isExpanded     = cat.id == expandedCategoryId
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Expansion strip після mid-row ────────────────────────────────
+        if (expandedCat != null && (midLeft + midRight).any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+            item(key = "strip_mid_${expandedCategoryId}") {
+                ExpandedCategoryStrip(
+                    parent           = expandedCat,
+                    children         = expandedChildren,
+                    spending         = spending,
+                    onClickParent    = { onChipClick(expandedCat) },
+                    onClickChild     = { onChipClick(it) },
+                    onLongClickChild = { onChipLongClick(it) }
+                )
+            }
+        }
+
+        // ── Ext рядки: по 4, з expansion strip після рядка що містить expanded ──
+        extCats.chunked(4).forEach { rowCats ->
+            item(key = rowCats.firstOrNull()?.id) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    repeat(4) { i ->
+                        val cat = rowCats.getOrNull(i)
+                        Box(
+                            Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (cat != null) {
+                                CategoryChip(
+                                    category       = cat,
+                                    spending       = spending[cat.id] ?: 0.0,
+                                    onClick        = { onChipClick(cat) },
+                                    childCount     = childCounts[cat.id] ?: 0,
+                                    onLongPress    = { onChipLongClick(cat) },
+                                    onDoubleClick  = {
+                                        if ((childCounts[cat.id] ?: 0) > 0 && !showSubcategories)
+                                            onChipDoubleClick(cat.id)
+                                        else onChipClick(cat)
+                                    },
+                                    showChildBadge = !showSubcategories,
+                                    groupColorHex  = parentColors[cat.id],
+                                    isCompact      = isCompact,
+                                    isExpanded     = cat.id == expandedCategoryId
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (expandedCat != null && rowCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                item(key = "strip_ext_${expandedCategoryId}") {
+                    ExpandedCategoryStrip(
+                        parent           = expandedCat,
+                        children         = expandedChildren,
+                        spending         = spending,
+                        onClickParent    = { onChipClick(expandedCat) },
+                        onClickChild     = { onChipClick(it) },
+                        onLongClickChild = { onChipLongClick(it) }
+                    )
+                }
+            }
+        }
+
+        // ── Кнопка «+» ──────────────────────────────────────────────────
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
@@ -585,91 +559,10 @@ internal fun CategoriesGridContent(
                 }
             }
         }
-
-        // ── Приховані категорії (0 витрат) ───────────────────────────────
-        if (active.isNotEmpty() && inactive.isNotEmpty()) {
-            item {
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .clickable { showInactive = !showInactive }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "${inactive.size} категор. (0 ₴)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        if (showInactive) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    )
-                }
-            }
-            if (showInactive) {
-                items(inactive.chunked(4)) { rowCats ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        repeat(4) { i ->
-                            val cat = rowCats.getOrNull(i)
-                            val isExpanded   = cat != null && cat.id == expandedCategoryId
-                            val chipChildren = if (isExpanded)
-                                allCategoriesForTab.filter { it.parentId == cat!!.id }
-                            else emptyList()
-                            Box(
-                                Modifier
-                                    .width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH)
-                                    .zIndex(if (isExpanded) 10f else 0f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (cat != null) {
-                                    if (isExpanded && chipChildren.isNotEmpty()) {
-                                        OrbitalCategoryGroup(
-                                            parent        = cat,
-                                            children      = chipChildren,
-                                            spending      = spending,
-                                            onClickParent = { onChipClick(cat) },
-                                            onClickChild  = { child -> onChipClick(child) },
-                                            onDoubleClick = { onChipDoubleClick(cat.id) }
-                                        )
-                                    } else {
-                                        CategoryChip(
-                                            category       = cat,
-                                            spending       = 0.0,
-                                            onClick        = { onChipClick(cat) },
-                                            childCount     = childCounts[cat.id] ?: 0,
-                                            onLongPress    = { onChipLongClick(cat) },
-                                            onDoubleClick  = {
-                                                if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                                else onChipClick(cat)
-                                            },
-                                            showChildBadge = !showSubcategories,
-                                            groupColorHex  = parentColors[cat.id],
-                                            isCompact      = isCompact
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
-// ── Чип категорії: назва / бюджет / коло / витрачено ─────────────────────────
+// ── Чип категорії ─────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -682,14 +575,16 @@ private fun CategoryChip(
     onDoubleClick:  () -> Unit = {},
     showChildBadge: Boolean = false,
     groupColorHex:  String? = null,
-    isCompact:      Boolean = false
+    isCompact:      Boolean = false,
+    isExpanded:     Boolean = false
 ) {
     val chipW      = if (isCompact) CHIP_WIDTH_COMPACT   else CHIP_WIDTH
     val chipH      = if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT
     val circleSize = if (isCompact) CHIP_CIRCLE_COMPACT  else CHIP_CIRCLE_SIZE
     val iconSize   = if (isCompact) 22.dp  else 26.dp
     val titleSize  = if (isCompact) 10.sp  else 11.sp
-    val moneySize  = if (isCompact) 9.sp   else 10.sp
+    val moneySize  = if (isCompact)  8.sp  else  9.sp
+    val spendSize  = if (isCompact)  9.sp  else 10.sp
 
     val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
@@ -705,7 +600,13 @@ private fun CategoryChip(
     Column(
         modifier = Modifier
             .size(width = chipW, height = chipH)
-            .let { m -> if (groupBg != null) m.clip(RoundedCornerShape(12.dp)).background(groupBg) else m }
+            .let { m ->
+                when {
+                    isExpanded  -> m.clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f))
+                    groupBg != null -> m.clip(RoundedCornerShape(12.dp)).background(groupBg)
+                    else -> m
+                }
+            }
             .combinedClickable(onClick = onClick, onLongClick = onLongPress, onDoubleClick = onDoubleClick)
             .padding(vertical = 2.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -714,33 +615,44 @@ private fun CategoryChip(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isCompact) 20.dp else 28.dp),
+                .height(if (isCompact) 22.dp else 28.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 category.name,
-                style      = MaterialTheme.typography.bodyMedium.copy(fontSize = titleSize),
-                fontWeight = FontWeight.Bold,
+                style      = MaterialTheme.typography.labelSmall.copy(
+                    fontSize   = titleSize,
+                    lineHeight = if (isCompact) 12.sp else 13.sp
+                ),
+                fontWeight = FontWeight.SemiBold,
                 maxLines   = 2,
                 overflow   = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+                softWrap   = true,
+                textAlign  = TextAlign.Center,
                 color      = MaterialTheme.colorScheme.onSurface,
                 modifier   = Modifier.fillMaxWidth()
             )
         }
-        // Бюджет
-        Text(
-            if (category.budgetAmount > 0.0) formatMoney(category.budgetAmount) + " ₴" else "0 ₴",
-            style      = MaterialTheme.typography.bodySmall.copy(fontSize = moneySize),
-            fontWeight = FontWeight.Bold,
-            color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis,
-            textAlign  = TextAlign.Center,
-            modifier   = Modifier.fillMaxWidth()
-        )
+        // 2. Бюджет або spacer
+        if (category.budgetAmount > 0.0) {
+            Text(
+                formatMoney(category.budgetAmount) + " ₴",
+                style      = MaterialTheme.typography.labelSmall.copy(
+                    fontSize   = moneySize,
+                    lineHeight = if (isCompact) 10.sp else 11.sp
+                ),
+                fontWeight = FontWeight.Normal,
+                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis,
+                textAlign  = TextAlign.Center,
+                modifier   = Modifier.fillMaxWidth()
+            )
+        } else {
+            Spacer(Modifier.height(if (isCompact) 10.dp else 11.dp))
+        }
         Spacer(Modifier.height(if (isCompact) 2.dp else 3.dp))
-        // 3. Кругла іконка
+        // 3. Іконка — outer Box рисує кільце expansion поза кліпом внутрішнього кола
         val iconKey = remember(category.icon, category.name) {
             if (category.icon == "category")
                 suggestCategoryStyle(category.name, category.type).first
@@ -748,7 +660,19 @@ private fun CategoryChip(
                 category.icon
         }
         val hasSpending = spending > 0.0
-        Box(modifier = Modifier.size(circleSize)) {
+        Box(
+            modifier = Modifier
+                .size(circleSize)
+                .then(
+                    if (isExpanded) Modifier.drawBehind {
+                        drawCircle(
+                            color  = color.copy(alpha = 0.45f),
+                            radius = size.minDimension / 2f + 4.dp.toPx(),
+                            style  = Stroke(width = 2.5.dp.toPx())
+                        )
+                    } else Modifier
+                )
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -771,8 +695,12 @@ private fun CategoryChip(
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+$childCount", style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 7.sp else 8.sp),
-                        color = MaterialTheme.colorScheme.onPrimary, maxLines = 1)
+                    Text(
+                        "+$childCount",
+                        style    = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 7.sp else 8.sp),
+                        color    = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1
+                    )
                 }
             }
         }
@@ -780,8 +708,11 @@ private fun CategoryChip(
         // 4. Витрачено
         Text(
             formatMoney(spending) + " ₴",
-            style      = MaterialTheme.typography.bodySmall.copy(fontSize = moneySize),
-            fontWeight = FontWeight.Bold,
+            style      = MaterialTheme.typography.labelSmall.copy(
+                fontSize   = spendSize,
+                lineHeight = if (isCompact) 11.sp else 12.sp
+            ),
+            fontWeight = FontWeight.SemiBold,
             color      = if (spending > 0.0) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
             maxLines   = 1,
             overflow   = TextOverflow.Ellipsis,
@@ -791,118 +722,132 @@ private fun CategoryChip(
     }
 }
 
-// ── Орбітальна група підкатегорій (подвійний клік) ───────────────────────────
-
-private val ORBITAL_PARENT  = 50.dp
-private val ORBITAL_CHILD   = 28.dp
+// ── Полоса підкатегорій (замість орбітального overlayу) ──────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun OrbitalCategoryGroup(
-    parent:        CategoryEntity,
-    children:      List<CategoryEntity>,
-    spending:      Map<Long, Double>,
-    onClickParent: () -> Unit,
-    onClickChild:  (CategoryEntity) -> Unit,
-    onDoubleClick: () -> Unit,
-    modifier:      Modifier = Modifier
+private fun ExpandedCategoryStrip(
+    parent:           CategoryEntity,
+    children:         List<CategoryEntity>,
+    spending:         Map<Long, Double>,
+    onClickParent:    () -> Unit,
+    onClickChild:     (CategoryEntity) -> Unit,
+    onLongClickChild: (CategoryEntity) -> Unit = {}
 ) {
     val parentColor = remember(parent.colorHex) {
         try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
-    val dashColor    = parentColor.copy(alpha = 0.45f)
-    val kids         = children  // всі дочірні з витратами > 0 (фільтруються на виклику)
-    val angles       = orbitalAngles(kids.size)
-    // Масштабуємо радіус: для великої кількості дітей — більший радіус щоб не перекривалися
-    val orbitRadius  = when {
-        kids.size <= 3 -> 55.dp
-        kids.size <= 5 -> 62.dp
-        kids.size <= 7 -> 70.dp
-        else           -> 78.dp
-    }
-    val orbitBoxSize = (orbitRadius.value * 2 + ORBITAL_CHILD.value + 36).dp
+    val parentIconKey = if (parent.icon == "category")
+        suggestCategoryStyle(parent.name, parent.type).first else parent.icon
+    val parentSpend   = spending[parent.id] ?: 0.0
+    val sortedKids    = children.sortedByDescending { spending[it.id] ?: 0.0 }
 
-    Box(
-        modifier = modifier
-            .requiredSize(orbitBoxSize)
-            .combinedClickable(onClick = {}, onDoubleClick = onDoubleClick),
-        contentAlignment = Alignment.Center
+    Card(
+        modifier  = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = parentColor.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        // Пунктирне кільце
-        Canvas(Modifier.matchParentSize()) {
-            val r = orbitRadius.toPx()
-            drawCircle(
-                color  = dashColor,
-                radius = r,
-                style  = Stroke(
-                    width      = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()), 0f)
-                )
-            )
-        }
-
-        // Батьківський чип
-        val parentIconKey = if (parent.icon == "category")
-            suggestCategoryStyle(parent.name, parent.type).first else parent.icon
-        Box(
-            modifier = Modifier
-                .size(ORBITAL_PARENT)
-                .clip(CircleShape)
-                .background(parentColor)
-                .clickable { onClickParent() },
-            contentAlignment = Alignment.Center
+        Row(
+            modifier              = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(categoryIconFor(parentIconKey), null, tint = Color.White, modifier = Modifier.size(26.dp))
-        }
-
-        // Підкатегорії за кутами
-        kids.forEachIndexed { i, child ->
-            val angleDeg = angles[i]
-            val rad      = Math.toRadians(angleDeg.toDouble())
-            val ox       = (orbitRadius.value * cos(rad)).dp
-            val oy       = (orbitRadius.value * sin(rad)).dp
-            val childColor = remember(child.colorHex) {
-                try { Color(android.graphics.Color.parseColor(child.colorHex)) }
-                catch (_: Exception) { Color(0xFFFF5722) }
-            }
-            val childIconKey = if (child.icon == "category")
-                suggestCategoryStyle(child.name, child.type).first else child.icon
-            val childSpend = spending[child.id] ?: 0.0
-
+            // Батьківський чип
             Column(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(x = ox, y = oy)
-                    .width(52.dp)
-                    .clickable { onClickChild(child) },
+                modifier            = Modifier.clickable { onClickParent() }.width(64.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Box(
+                    modifier         = Modifier.size(44.dp).clip(CircleShape).background(parentColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(categoryIconFor(parentIconKey), null, tint = Color.White, modifier = Modifier.size(24.dp))
+                }
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    child.name,
-                    style     = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                    parent.name,
+                    style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                     maxLines  = 1,
                     overflow  = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    color     = MaterialTheme.colorScheme.onSurface
+                    modifier  = Modifier.fillMaxWidth()
                 )
-                Box(
-                    modifier = Modifier
-                        .size(ORBITAL_CHILD)
-                        .clip(CircleShape)
-                        .background(childColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(categoryIconFor(childIconKey), null, tint = Color.White, modifier = Modifier.size(16.dp))
-                }
                 Text(
-                    formatMoney(childSpend) + " ₴",
+                    formatMoney(parentSpend) + " ₴",
                     style      = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                     fontWeight = FontWeight.SemiBold,
-                    color      = if (childSpend > 0.0) childColor else MaterialTheme.colorScheme.onSurface.copy(0.4f),
+                    color      = if (parentSpend > 0) parentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                     maxLines   = 1,
-                    textAlign  = TextAlign.Center
+                    textAlign  = TextAlign.Center,
+                    modifier   = Modifier.fillMaxWidth()
                 )
+            }
+
+            Icon(
+                Icons.Default.ChevronRight, null,
+                modifier = Modifier.size(14.dp),
+                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+            )
+
+            // Дочірні чипи
+            Row(
+                modifier              = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                sortedKids.forEach { child ->
+                    val childColor = remember(child.colorHex) {
+                        try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                        catch (_: Exception) { Color(0xFFFF5722) }
+                    }
+                    val childIconKey = if (child.icon == "category")
+                        suggestCategoryStyle(child.name, child.type).first else child.icon
+                    val childSpend   = spending[child.id] ?: 0.0
+
+                    Column(
+                        modifier = Modifier
+                            .width(56.dp)
+                            .combinedClickable(
+                                onClick     = { onClickChild(child) },
+                                onLongClick = { onLongClickChild(child) }
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (childSpend > 0) childColor else childColor.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                categoryIconFor(childIconKey), null,
+                                tint     = if (childSpend > 0) Color.White else childColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Text(
+                            child.name,
+                            style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            maxLines  = 1,
+                            overflow  = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier  = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            formatMoney(childSpend) + " ₴",
+                            style      = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            fontWeight = FontWeight.SemiBold,
+                            color      = if (childSpend > 0) childColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                            maxLines   = 1,
+                            textAlign  = TextAlign.Center,
+                            modifier   = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     }
@@ -921,10 +866,9 @@ private fun AddCategoryChip(onClick: () -> Unit) {
             .padding(vertical = 2.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Порожні рядки для вирівнювання висоти з CategoryChip
-        Spacer(Modifier.height(25.dp))
-        Text("", style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp))
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(28.dp))
+        Text("", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp))
+        Spacer(Modifier.height(3.dp))
         Box(
             modifier = Modifier
                 .size(CHIP_CIRCLE_SIZE)
@@ -938,10 +882,10 @@ private fun AddCategoryChip(onClick: () -> Unit) {
                 modifier = Modifier.size(24.dp)
             )
         }
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(3.dp))
         Text(
             "Додати",
-            style     = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 12.sp),
             color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             maxLines  = 1,
             textAlign = TextAlign.Center,
@@ -950,7 +894,7 @@ private fun AddCategoryChip(onClick: () -> Unit) {
     }
 }
 
-// ── Donut-чарт з кнопкою перемикання в центрі ────────────────────────────────
+// ── Donut-чарт ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun DonutChart(
@@ -966,7 +910,6 @@ private fun DonutChart(
     val expenseColor = MaterialTheme.colorScheme.error
     val incomeColor  = Color(0xFF26A69A)
 
-    // Категорії поточного таба з ненульовими витратами, відсортовані за сумою
     val tabType = if (selectedTab == 0) TransactionType.EXPENSE else TransactionType.INCOME
     val activeSpending = categories
         .filter { it.type == tabType && !it.archived }
@@ -975,7 +918,6 @@ private fun DonutChart(
 
     val tabTotal = activeSpending.sumOf { it.second }
 
-    // Розбираємо кольори категорій
     val categoryColors = activeSpending.map { (cat, _) ->
         try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
@@ -1016,7 +958,6 @@ private fun DonutChart(
             }
         }
 
-        // Центр: розходи (червоний, більший) + доходи (зелений, менший)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier

@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
-import org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.categories.categoryIconFor
-import org.pixelrush.moneyiq.ui.categories.rememberCalcState
+import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
+import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
 import java.text.SimpleDateFormat
 import java.util.*
 
