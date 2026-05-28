@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -115,7 +116,7 @@ fun AccountsScreen(
         AccountFormSheet(
             initialType = acc.type,
             existing    = acc,
-            onSave      = { name, type, balance, color, currency, description, includeInTotal ->
+            onSave      = { name, type, balance, color, currency, description, includeInTotal, icon ->
                 viewModel.update(
                     acc.copy(
                         name           = name,
@@ -124,7 +125,8 @@ fun AccountsScreen(
                         colorHex       = color,
                         currency       = currency,
                         description    = description,
-                        includeInTotal = includeInTotal
+                        includeInTotal = includeInTotal,
+                        icon           = icon
                     )
                 )
                 editAccount = null
@@ -343,7 +345,7 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = accountTypeIcon(account.type),
+                imageVector = accountIconFromKey(account.icon),
                 contentDescription = null,
                 tint        = Color.White,
                 modifier    = Modifier.size(28.dp)
@@ -566,7 +568,7 @@ internal fun accountTypeIcon(type: AccountType): ImageVector = when (type) {
     AccountType.CASH       -> Icons.Outlined.Wallet
     AccountType.CARD       -> Icons.Outlined.CreditCard
     AccountType.SAVING     -> Icons.Outlined.Savings
-    AccountType.INVESTMENT -> Icons.Outlined.TrendingUp
+    AccountType.INVESTMENT -> Icons.AutoMirrored.Outlined.TrendingUp
     AccountType.DEBT       -> Icons.Outlined.MoneyOff
     AccountType.OTHER      -> Icons.Outlined.AccountBalance
 }

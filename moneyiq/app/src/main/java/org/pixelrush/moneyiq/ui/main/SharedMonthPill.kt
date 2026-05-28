@@ -19,8 +19,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
+import org.pixelrush.moneyiq.data.repository.PeriodMode
 import java.util.*
 
 private val PILL_ACCENT = Color(0xFFD81B60)
@@ -34,23 +36,23 @@ private val PILL_ACCENT = Color(0xFFD81B60)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SharedMonthNavPill(
-    year:        Int,
-    month:       Int,     // 0-based
-    daysInMonth: Int,
-    onPrev:      () -> Unit,
-    onNext:      () -> Unit,
-    onSelectMonth: (year: Int, month: Int) -> Unit = { _, _ -> }
+    appMonth:        AppMonth,
+    daysInPeriod:    Int,
+    pillLabel:       String,
+    pillBadge:       String,
+    onPrev:          () -> Unit,
+    onNext:          () -> Unit,
+    onSelectPeriod:  (AppMonth) -> Unit = {}
 ) {
     var showSheet by remember { mutableStateOf(false) }
 
     if (showSheet) {
         PeriodSelectorSheet(
-            currentYear   = year,
-            currentMonth  = month,
-            daysInMonth   = daysInMonth,
-            onDismiss     = { showSheet = false },
-            onSelectMonth = { y, m ->
-                onSelectMonth(y, m)
+            appMonth       = appMonth,
+            daysInPeriod   = daysInPeriod,
+            onDismiss      = { showSheet = false },
+            onSelectPeriod = { p ->
+                onSelectPeriod(p)
                 showSheet = false
             }
         )
@@ -63,7 +65,6 @@ fun SharedMonthNavPill(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // « подвійна стрілка вліво
         IconButton(onClick = onPrev) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
@@ -71,7 +72,6 @@ fun SharedMonthNavPill(
             }
         }
 
-        // Пілюля (клікабельна)
         Surface(
             shape    = RoundedCornerShape(50.dp),
             color    = PILL_ACCENT.copy(alpha = 0.12f),
@@ -84,7 +84,7 @@ fun SharedMonthNavPill(
             ) {
                 Surface(shape = CircleShape, color = PILL_ACCENT) {
                     Text(
-                        "$daysInMonth",
+                        pillBadge,
                         modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -92,7 +92,7 @@ fun SharedMonthNavPill(
                     )
                 }
                 Text(
-                    "${MONTH_NAMES_UA[month]} $year",
+                    pillLabel,
                     style      = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color      = PILL_ACCENT
@@ -105,7 +105,6 @@ fun SharedMonthNavPill(
             }
         }
 
-        // » подвійна стрілка вправо
         IconButton(onClick = onNext) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
@@ -129,11 +128,10 @@ private data class PeriodOption(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeriodSelectorSheet(
-    currentYear:   Int,
-    currentMonth:  Int,   // 0-based
-    daysInMonth:   Int,
+    appMonth:      AppMonth,
+    daysInPeriod:  Int,
     onDismiss:     () -> Unit,
-    onSelectMonth: (year: Int, month: Int) -> Unit
+    onSelectPeriod: (AppMonth) -> Unit
 ) {
     val today     = Calendar.getInstance()
     val todayYear = today.get(Calendar.YEAR)
@@ -141,30 +139,40 @@ fun PeriodSelectorSheet(
     val todayDay  = today.get(Calendar.DAY_OF_MONTH)
     val yearDays  = if (todayYear % 4 == 0 && (todayYear % 100 != 0 || todayYear % 400 == 0)) 366 else 365
 
-    val weekStart = (today.clone() as Calendar).apply {
-        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-    }
-    val weekEnd = (weekStart.clone() as Calendar).apply { add(Calendar.DAY_OF_WEEK, 6) }
-
-    fun monthNameOf(cal: Calendar) = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]
-
-    val wkLabel = "${weekStart.get(Calendar.DAY_OF_MONTH)} ${monthNameOf(weekStart)}" +
-                  " — ${weekEnd.get(Calendar.DAY_OF_MONTH)} ${monthNameOf(weekEnd)}"
+    val weekStart = (today.clone() as Calendar).apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek) }
+    val weekEnd   = (weekStart.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, 6) }
+    fun monthFull(c: Calendar) = MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)]
+    val wkLabel = "${weekStart.get(Calendar.DAY_OF_MONTH)} ${monthFull(weekStart)}" +
+                  " — ${weekEnd.get(Calendar.DAY_OF_MONTH)} ${monthFull(weekEnd)}"
 
     val options = listOf(
-        PeriodOption("all",   "Весь час",      "від початку",                       "∞",   null,                        Color(0xFF607D8B)),
-        PeriodOption("day",   "Виберіть день", "оберіть дату",                      null,  Icons.Default.CalendarMonth, Color(0xFF9E9E9E)),
-        PeriodOption("week",  "Тиждень",       wkLabel,                             "7",   null,                        Color(0xFF26A69A)),
-        PeriodOption("today", "Сьогодні",      "$todayDay ${MONTH_NAMES_UA_FULL[todayMon]}", "1", null,                Color(0xFF42A5F5)),
-        PeriodOption("year",  "Рік",           "$todayYear",                        "$yearDays", null,                  Color(0xFFEF6C00)),
-        PeriodOption("month", "Місяць",        "${MONTH_NAMES_UA_FULL[currentMonth]} $currentYear", "$daysInMonth", null, PILL_ACCENT),
+        PeriodOption("all",   "Весь час",      "від початку",
+                     "∞",   null, Color(0xFF607D8B)),
+        PeriodOption("day",   "Виберіть день", "оберіть дату",
+                     null,  Icons.Default.CalendarMonth, Color(0xFF9E9E9E)),
+        PeriodOption("week",  "Тиждень",       wkLabel,
+                     "7",   null, Color(0xFF26A69A)),
+        PeriodOption("today", "Сьогодні",      "$todayDay ${MONTH_NAMES_UA_FULL[todayMon]}",
+                     "1",   null, Color(0xFF42A5F5)),
+        PeriodOption("year",  "Рік",           "$todayYear",
+                     "$yearDays", null, Color(0xFFEF6C00)),
+        PeriodOption("month", "Місяць",        "${MONTH_NAMES_UA_FULL[appMonth.month]} ${appMonth.year}",
+                     "$daysInPeriod", null, PILL_ACCENT),
     )
 
-    // ── Sub-screen states ─────────────────────────────────────────────────────
+    val selectedId = when (appMonth.mode) {
+        PeriodMode.MONTH -> "month"
+        PeriodMode.TODAY -> "today"
+        PeriodMode.WEEK  -> "week"
+        PeriodMode.YEAR  -> "year"
+        PeriodMode.ALL   -> "all"
+        PeriodMode.DAY   -> "day"
+        PeriodMode.RANGE -> "range"
+    }
+
     var showDayPicker   by remember { mutableStateOf(false) }
     var showRangePicker by remember { mutableStateOf(false) }
 
-    // ── Day picker dialog (Material3) ─────────────────────────────────────────
     if (showDayPicker) {
         val dpState = rememberDatePickerState()
         DatePickerDialog(
@@ -172,27 +180,31 @@ fun PeriodSelectorSheet(
             confirmButton = {
                 TextButton(onClick = {
                     dpState.selectedDateMillis?.let { ms ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = ms }
-                        onSelectMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+                        val cal  = Calendar.getInstance().apply { timeInMillis = ms }
+                        val from = cal.apply {
+                            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                        val to = from + 86_399_999L
+                        onSelectPeriod(AppMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH),
+                                                PeriodMode.DAY, from, to))
                         showDayPicker = false
                         onDismiss()
                     }
                 }) { Text("OK") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDayPicker = false }) { Text("Скасувати") }
-            }
+            dismissButton = { TextButton(onClick = { showDayPicker = false }) { Text("Скасувати") } }
         ) { DatePicker(state = dpState) }
         return
     }
 
-    // ── Date range picker (fullscreen) ────────────────────────────────────────
     if (showRangePicker) {
         DateRangePickerFullScreen(
             onDismiss = { showRangePicker = false },
             onConfirm = { startMs, endMs ->
                 val cal = Calendar.getInstance().apply { timeInMillis = startMs }
-                onSelectMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+                onSelectPeriod(AppMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH),
+                                        PeriodMode.RANGE, startMs, endMs))
                 showRangePicker = false
                 onDismiss()
             }
@@ -200,117 +212,84 @@ fun PeriodSelectorSheet(
         return
     }
 
-    // ── Main bottom sheet ─────────────────────────────────────────────────────
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState       = sheetState,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor   = MaterialTheme.colorScheme.surface,
         dragHandle = {
-            Box(
-                Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier
-                        .size(width = 36.dp, height = 4.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
-                )
+            Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp),
+                contentAlignment = Alignment.Center) {
+                Box(Modifier.size(width = 36.dp, height = 4.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)))
             }
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 28.dp)
-        ) {
-            // Заголовок
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text(
                 "Період",
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                modifier   = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign  = TextAlign.Center
             )
 
-            // ── «Вибрати діапазон» ────────────────────────────────────────
             Surface(
-                onClick    = { showRangePicker = true },
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape      = RoundedCornerShape(16.dp),
-                color      = MaterialTheme.colorScheme.surfaceVariant
+                onClick  = { showRangePicker = true },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape    = RoundedCornerShape(16.dp),
+                color    = if (selectedId == "range") PILL_ACCENT.copy(alpha = 0.10f)
+                           else MaterialTheme.colorScheme.surfaceVariant,
+                border   = if (selectedId == "range")
+                               androidx.compose.foundation.BorderStroke(2.dp, PILL_ACCENT) else null
             ) {
                 Row(
-                    modifier          = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier          = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ⋯ бейдж
                     Box(
-                        modifier         = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
+                        modifier = Modifier.size(40.dp).clip(CircleShape)
                             .background(PILL_ACCENT.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "···",
-                            color      = PILL_ACCENT,
-                            fontWeight = FontWeight.Bold,
-                            style      = MaterialTheme.typography.titleMedium
-                        )
+                        Text("···", color = PILL_ACCENT, fontWeight = FontWeight.Bold,
+                             style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
+                        Text("Вибрати діапазон", style = MaterialTheme.typography.bodyMedium,
+                             fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Вибрати діапазон",
-                            style      = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            "${MONTH_NAMES_UA_FULL[currentMonth]} $currentYear",
+                            "${MONTH_NAMES_UA_FULL[appMonth.month]} ${appMonth.year}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )
                     }
-                    Icon(
-                        Icons.Default.ChevronRight, null,
-                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.ChevronRight, null,
+                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                         modifier = Modifier.size(20.dp))
                 }
             }
 
             Spacer(Modifier.height(10.dp))
 
-            // ── Сітка 2×3 ────────────────────────────────────────────────
             options.chunked(2).forEach { pair ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     pair.forEach { opt ->
                         PeriodOptionCard(
                             option     = opt,
-                            isSelected = opt.id == "month",   // завжди "Місяць" обраний
+                            isSelected = opt.id == selectedId,
                             modifier   = Modifier.weight(1f),
                             onClick    = {
                                 when (opt.id) {
-                                    "day"    -> { showDayPicker = true }
-                                    "month"  -> onSelectMonth(currentYear, currentMonth)
-                                    "today"  -> onSelectMonth(todayYear, todayMon)
-                                    "week"   -> onSelectMonth(todayYear, todayMon)
-                                    "year"   -> onSelectMonth(todayYear, 0)
-                                    "all"    -> onSelectMonth(todayYear, todayMon)
+                                    "day"   -> showDayPicker = true
+                                    "month" -> onSelectPeriod(AppMonth(appMonth.year, appMonth.month, PeriodMode.MONTH))
+                                    "today" -> onSelectPeriod(AppMonth(todayYear, todayMon, PeriodMode.TODAY))
+                                    "week"  -> onSelectPeriod(AppMonth(todayYear, todayMon, PeriodMode.WEEK))
+                                    "year"  -> onSelectPeriod(AppMonth(todayYear, 0, PeriodMode.YEAR))
+                                    "all"   -> onSelectPeriod(AppMonth(todayYear, todayMon, PeriodMode.ALL))
                                 }
                             }
                         )

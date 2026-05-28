@@ -101,6 +101,27 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    suspend fun getAllTransactions(): List<TransactionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTransactions(transactions: List<TransactionEntity>)
+
+    @Query("""
+        SELECT t.id, t.type, t.amount, t.accountId,
+               a.name AS accountName, a.colorHex AS accountColor,
+               t.toAccountId, ta.name AS toAccountName,
+               t.categoryId, c.name AS categoryName,
+               c.colorHex AS categoryColor, c.icon AS categoryIcon,
+               t.note, t.date
+        FROM transactions t
+        INNER JOIN accounts a ON t.accountId = a.id
+        LEFT JOIN accounts ta ON t.toAccountId = ta.id
+        LEFT JOIN categories c ON t.categoryId = c.id
+        ORDER BY t.date DESC
+    """)
+    suspend fun getAllTransactionsWithDetails(): List<TransactionWithDetails>
+
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
 

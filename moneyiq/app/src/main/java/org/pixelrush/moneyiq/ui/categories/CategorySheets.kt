@@ -1,11 +1,9 @@
 package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +32,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.accounts.IconColorPickerScreen
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -667,8 +666,9 @@ fun CategoryFormSheet(
     }
     var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showBudgetCalc   by remember { mutableStateOf(false) }
+    var showDeleteConfirm   by remember { mutableStateOf(false) }
+    var showBudgetCalc     by remember { mutableStateOf(false) }
+    var showIconColorPicker by remember { mutableStateOf(false) }
 
     val catColor = remember(colorHex) {
         try { Color(android.graphics.Color.parseColor(colorHex)) }
@@ -714,12 +714,13 @@ fun CategoryFormSheet(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Превʼю іконки
+                // Превʼю іконки (клік відкриває повноекранний пікер)
                 Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(catColor)
+                        .clickable { showIconColorPicker = true }
                         .align(Alignment.CenterHorizontally),
                     contentAlignment = Alignment.Center
                 ) {
@@ -749,45 +750,6 @@ fun CategoryFormSheet(
                                 label    = { Text(label) }
                             )
                         }
-                }
-
-                // Колір
-                Text("Колір", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(CATEGORY_FORM_COLORS) { hex ->
-                        val c = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp).clip(CircleShape).background(c)
-                                .then(if (colorHex == hex) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                                .clickable { colorHex = hex },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (colorHex == hex) Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        }
-                    }
-                }
-
-                // Іконка
-                Text("Іконка", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(CATEGORY_ICONS_LIST) { (key, icon) ->
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp).clip(CircleShape)
-                                .background(if (iconKey == key) catColor else MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { iconKey = key },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                icon, null,
-                                tint     = if (iconKey == key) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
                 }
 
                 // Бюджет (відкриває калькулятор)
@@ -880,6 +842,20 @@ fun CategoryFormSheet(
                 showBudgetCalc = false
             },
             onDismiss = { showBudgetCalc = false }
+        )
+    }
+
+    if (showIconColorPicker) {
+        IconColorPickerScreen(
+            initialIconKey  = iconKey,
+            initialColorHex = colorHex,
+            title           = "Значок категорії",
+            onResult        = { newIcon, newColor ->
+                iconKey  = newIcon
+                colorHex = newColor
+                showIconColorPicker = false
+            },
+            onDismiss = { showIconColorPicker = false }
         )
     }
 }

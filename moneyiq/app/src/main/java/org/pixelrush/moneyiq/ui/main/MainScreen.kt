@@ -86,20 +86,17 @@ fun MainScreen(
     val initialPage     = settings.homeScreen.index
 
     val activeTabs = if (budgetVisible) TABS else TABS.filterIndexed { i, _ -> i != 3 }
-    val pagerState  = rememberPagerState(initialPage = initialPage.coerceIn(0, activeTabs.lastIndex),
+    // initialPage used only on first composition — subsequent setting changes don't force scroll
+    val safeInitial = if (!budgetVisible && initialPage == HomeScreenTab.BUDGET.index)
+        HomeScreenTab.CATEGORIES.index
+    else initialPage.coerceIn(0, activeTabs.lastIndex)
+    val pagerState  = rememberPagerState(initialPage = safeInitial,
                                         pageCount    = { activeTabs.size })
     val scope       = rememberCoroutineScope()
     val currentPage = pagerState.currentPage
     val mainState  by mainViewModel.state.collectAsState()
     val totalBalance = mainState.totalBalance
     val drawerState  = rememberDrawerState(DrawerValue.Closed)
-
-    LaunchedEffect(settings.homeScreen, budgetVisible) {
-        val target = if (!budgetVisible && settings.homeScreen == HomeScreenTab.BUDGET)
-            HomeScreenTab.CATEGORIES.index
-        else settings.homeScreen.index.coerceIn(0, activeTabs.lastIndex)
-        pagerState.scrollToPage(target)
-    }
 
     // ── Новий рахунок ────────────────────────────────────────────────────────
     var showAccTypeSheet by remember { mutableStateOf(false) }
@@ -136,17 +133,6 @@ fun MainScreen(
         }
     ) {
     Scaffold(
-        floatingActionButton = {
-            if (currentPage == 2) {
-                FloatingActionButton(
-                    onClick        = onAddTransaction,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Додати транзакцію",
-                        tint = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-        },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -246,8 +232,8 @@ fun MainScreen(
         AccountFormSheet(
             initialType = type,
             existing    = null,
-            onSave      = { name, accType, balance, color, currency, description, includeInTotal ->
-                accountsViewModel.add(name, accType, balance, color, currency, description, includeInTotal)
+            onSave      = { name, accType, balance, color, currency, description, includeInTotal, icon ->
+                accountsViewModel.add(name, accType, balance, color, currency, description, includeInTotal, icon)
                 pendingAccType = null
             },
             onDismiss   = { pendingAccType = null }
@@ -376,7 +362,7 @@ private fun AppDrawerContent(
 
         // Menu items
         DrawerMenuItem(Icons.Outlined.Person,     "Увійти")
-        DrawerMenuItem(Icons.Outlined.Settings,   "Налаштування")
+        DrawerMenuItem(Icons.Outlined.Settings,   "Налаштування", onClick = onSettingsClick)
         DrawerMenuItem(Icons.Outlined.Storage,    "Дані",         onClick = onDataClick)
         DrawerMenuItem(Icons.Outlined.StarBorder, "Оцініть нас")
         DrawerMenuItem(Icons.Outlined.Headset,    "Підтримка")

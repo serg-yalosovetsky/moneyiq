@@ -37,6 +37,12 @@ interface AccountDao {
     @Query("UPDATE accounts SET isDefault = 1 WHERE id = :id")
     suspend fun setDefault(id: Long)
 
+    @Query("SELECT * FROM accounts ORDER BY sortOrder ASC, name ASC")
+    suspend fun getAllAccountsOnce(): List<AccountEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAccounts(accounts: List<AccountEntity>)
+
     @Query("DELETE FROM accounts")
     suspend fun deleteAllAccounts()
 

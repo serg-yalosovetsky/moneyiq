@@ -11,6 +11,7 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
+import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
@@ -28,6 +29,7 @@ data class CategoriesUiState(
         Calendar.getInstance().get(Calendar.YEAR),
         Calendar.getInstance().get(Calendar.MONTH)
     ),
+    val appMonth:     AppMonth            = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:  Int                = 31,
     val totalExpense: Double             = 0.0,
     val totalIncome:  Double             = 0.0,
@@ -45,9 +47,9 @@ class CategoriesViewModel @Inject constructor(
 
     /** Месячные данные по категориям */
     private val monthlyState: StateFlow<CategoriesUiState> =
-        monthRepo.month.flatMapLatest { appMonth ->
-            val sel        = SelectedMonth(appMonth.year, appMonth.month)
-            val (from, to) = monthRange(sel)
+        monthRepo.month.flatMapLatest { am ->
+            val sel        = SelectedMonth(am.year, am.month)
+            val (from, to) = monthRepo.computeRange(am)
             combine(
                 repo.getByType(TransactionType.EXPENSE),
                 repo.getByType(TransactionType.INCOME),
@@ -60,7 +62,8 @@ class CategoriesViewModel @Inject constructor(
                     monthSpending     = expSpending.associate { it.categoryId to it.total },
                     monthIncome       = incSpending.associate { it.categoryId to it.total },
                     selectedMonth     = sel,
-                    daysInMonth       = monthRepo.daysInMonth(sel.year, sel.month),
+                    appMonth          = am,
+                    daysInMonth       = monthRepo.daysInPeriod(am),
                     totalExpense      = expSpending.sumOf { it.total },
                     totalIncome       = incSpending.sumOf { it.total }
                 )
@@ -75,10 +78,10 @@ class CategoriesViewModel @Inject constructor(
         catState.copy(accounts = accounts)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
 
-    /** Делегируем навигацию по месяцам в общий репозиторий */
-    fun prevMonth()                      = monthRepo.prevMonth()
-    fun nextMonth()                      = monthRepo.nextMonth()
-    fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
+    fun prevMonth()                          = monthRepo.prevMonth()
+    fun nextMonth()                          = monthRepo.nextMonth()
+    fun goToMonth(year: Int, month: Int)     = monthRepo.goToMonth(year, month)
+    fun setPeriod(appMonth: AppMonth)        = monthRepo.setPeriod(appMonth)
 
     fun add(
         name:   String,
@@ -132,16 +135,4 @@ class CategoriesViewModel @Inject constructor(
         }
     }
 
-    private fun monthRange(sel: SelectedMonth): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(sel.year, sel.month, 1, 0, 0, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val from = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        return from to cal.timeInMillis
-    }
 }

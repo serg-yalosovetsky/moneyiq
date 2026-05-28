@@ -38,7 +38,11 @@ data class AppSettings(
     val currencyFormatIndex: Int = 2,
     val firstDayOfWeek: Int = 2,
     val firstDayOfMonth: Int = 1,
-    val language: String = "default"
+    val language: String = "default",
+    // Google Drive auto-backup
+    val driveBackupFolderUri: String = "",
+    val driveBackupEnabled: Boolean = false,
+    val driveBackupLastDate: Long = 0L
 )
 
 @Singleton
@@ -60,7 +64,10 @@ class SettingsRepository @Inject constructor(
         val KEY_CURRENCY_FORMAT    = intPreferencesKey("currency_format")
         val KEY_FIRST_DAY_OF_WEEK  = intPreferencesKey("first_day_of_week")
         val KEY_FIRST_DAY_OF_MONTH = intPreferencesKey("first_day_of_month")
-        val KEY_LANGUAGE           = stringPreferencesKey("language")
+        val KEY_LANGUAGE                = stringPreferencesKey("language")
+        val KEY_DRIVE_BACKUP_FOLDER_URI = stringPreferencesKey("drive_backup_folder_uri")
+        val KEY_DRIVE_BACKUP_ENABLED    = booleanPreferencesKey("drive_backup_enabled")
+        val KEY_DRIVE_BACKUP_LAST_DATE  = longPreferencesKey("drive_backup_last_date")
     }
 
     val settings: Flow<AppSettings> = ds.data.map { p ->
@@ -77,7 +84,10 @@ class SettingsRepository @Inject constructor(
             currencyFormatIndex    = p[KEY_CURRENCY_FORMAT] ?: 2,
             firstDayOfWeek         = p[KEY_FIRST_DAY_OF_WEEK] ?: 2,
             firstDayOfMonth        = p[KEY_FIRST_DAY_OF_MONTH] ?: 1,
-            language               = p[KEY_LANGUAGE] ?: "default"
+            language               = p[KEY_LANGUAGE] ?: "default",
+            driveBackupFolderUri   = p[KEY_DRIVE_BACKUP_FOLDER_URI] ?: "",
+            driveBackupEnabled     = p[KEY_DRIVE_BACKUP_ENABLED] ?: false,
+            driveBackupLastDate    = p[KEY_DRIVE_BACKUP_LAST_DATE] ?: 0L
         )
     }
 

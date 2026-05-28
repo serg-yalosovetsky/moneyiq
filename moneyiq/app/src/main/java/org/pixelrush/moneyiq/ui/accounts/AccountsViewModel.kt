@@ -34,7 +34,8 @@ class AccountsViewModel @Inject constructor(
         color: String,
         currency: String = "UAH",
         description: String = "",
-        includeInTotal: Boolean = true
+        includeInTotal: Boolean = true,
+        icon: String = "account_balance_wallet"
     ) {
         viewModelScope.launch {
             val isFirst = repo.getAllAccounts().first().isEmpty()
@@ -44,7 +45,8 @@ class AccountsViewModel @Inject constructor(
                     colorHex = color, currency = currency,
                     isDefault = isFirst,
                     description = description,
-                    includeInTotal = includeInTotal
+                    includeInTotal = includeInTotal,
+                    icon = icon
                 )
             )
         }

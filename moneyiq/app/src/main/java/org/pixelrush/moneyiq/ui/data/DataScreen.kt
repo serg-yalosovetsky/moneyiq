@@ -1,7 +1,12 @@
 package org.pixelrush.moneyiq.ui.data
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,17 +36,24 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.pixelrush.moneyiq.data.db.dao.AccountDao
 import org.pixelrush.moneyiq.data.db.dao.CategoryDao
 import org.pixelrush.moneyiq.data.db.dao.TransactionDao
+import org.pixelrush.moneyiq.data.repository.SettingsRepository
+import org.pixelrush.moneyiq.util.BackupData
+import org.pixelrush.moneyiq.util.BackupSerializer
+import org.pixelrush.moneyiq.util.CsvExporter
+import org.pixelrush.moneyiq.workers.DriveBackupEntry
+import org.pixelrush.moneyiq.workers.DriveBackupWorker
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-// ── Data models ───────────────────────────────────────────────────────────────
+// ── UiState ───────────────────────────────────────────────────────────────────
 
 data class BackupEntry(
     val timestamp: Long,
@@ -50,46 +62,285 @@ data class BackupEntry(
     val categoryCount: Int
 )
 
+data class DataUiState(
+    val localBackups: List<BackupEntry>       = emptyList(),
+    val driveBackups: List<DriveBackupEntry>  = emptyList(),
+    val driveFolderUri: String                = "",
+    val driveFolderName: String               = "",
+    val driveBackupEnabled: Boolean           = false,
+    val driveLastBackupMs: Long               = 0L,
+    val isExporting: Boolean                  = false,
+    val isImporting: Boolean                  = false,
+    val isBacking: Boolean                    = false,
+    val message: String?                      = null
+)
+
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
 @HiltViewModel
 class DataViewModel @Inject constructor(
-    private val txDao: TransactionDao,
-    private val accountDao: AccountDao,
-    private val categoryDao: CategoryDao
+    private val txDao:       TransactionDao,
+    private val accountDao:  AccountDao,
+    private val categoryDao: CategoryDao,
+    private val settingsRepo: SettingsRepository
 ) : ViewModel() {
 
-    private val _backups = MutableStateFlow<List<BackupEntry>>(emptyList())
-    val backups: StateFlow<List<BackupEntry>> = _backups
+    private val _state = MutableStateFlow(DataUiState())
+    val state: StateFlow<DataUiState> = _state
 
-    fun loadBackups(context: Context) {
-        val prefs = context.getSharedPreferences("moneyiq_backups", Context.MODE_PRIVATE)
-        _backups.value = parseBackups(prefs)
+    // ── Завантаження ──────────────────────────────────────────────────────────
+
+    fun loadState(context: Context) {
+        viewModelScope.launch {
+            val settings = settingsRepo.settings.first()
+            val localBackups = parseLocalBackups(context)
+            val driveUri     = settings.driveBackupFolderUri
+            val driveName    = if (driveUri.isNotBlank()) {
+                runCatching {
+                    DriveBackupWorker.getFolderDisplayName(context, Uri.parse(driveUri))
+                }.getOrNull() ?: driveUri.substringAfterLast("/")
+            } else ""
+            val driveBackups = if (driveUri.isNotBlank()) {
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        DriveBackupWorker.listBackupFiles(context, Uri.parse(driveUri))
+                    }.getOrDefault(emptyList())
+                }
+            } else emptyList()
+
+            _state.value = _state.value.copy(
+                localBackups      = localBackups,
+                driveBackups      = driveBackups,
+                driveFolderUri    = driveUri,
+                driveFolderName   = driveName,
+                driveBackupEnabled = settings.driveBackupEnabled,
+                driveLastBackupMs  = settings.driveBackupLastDate
+            )
+        }
     }
 
-    fun createBackup(context: Context) {
+    // ── JSON Експорт ──────────────────────────────────────────────────────────
+
+    /** Збирає всі дані і повертає JSON рядок (suspend) */
+    suspend fun buildExportJson(): String = withContext(Dispatchers.IO) {
+        val accounts     = accountDao.getAllAccountsOnce()
+        val categories   = categoryDao.getAllCategoriesOnce()
+        val transactions = txDao.getAllTransactions()
+        BackupSerializer.serialize(
+            BackupData(BackupSerializer.BACKUP_VERSION, System.currentTimeMillis(),
+                accounts, categories, transactions)
+        )
+    }
+
+    fun writeExportToUri(context: Context, uri: Uri, json: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val txCount = txDao.count()
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    os.write(json.toByteArray(Charsets.UTF_8))
+                    os.flush()
+                }
+                showMessage("Експорт успішно збережено ✓")
+            } catch (e: Exception) {
+                showMessage("Помилка запису: ${e.message}")
+            }
+        }
+    }
+
+    // ── JSON Імпорт ───────────────────────────────────────────────────────────
+
+    fun importFromUri(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isImporting = true)
+            try {
+                val json = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)
+                        ?.bufferedReader(Charsets.UTF_8)?.readText()
+                } ?: throw Exception("Не вдалося прочитати файл")
+
+                val data = withContext(Dispatchers.IO) {
+                    BackupSerializer.deserialize(json)
+                }
+                importBackupData(data)
+                showMessage("Імпорт успішно завершено: " +
+                        "${data.accounts.size} рахунків, " +
+                        "${data.categories.size} категорій, " +
+                        "${data.transactions.size} операцій ✓")
+                loadState(context)
+            } catch (e: Exception) {
+                showMessage("Помилка імпорту: ${e.message}")
+            } finally {
+                _state.value = _state.value.copy(isImporting = false)
+            }
+        }
+    }
+
+    private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
+        // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
+        txDao.deleteAllTransactions()
+        accountDao.deleteAllAccounts()
+        categoryDao.deleteAllCategories()
+        accountDao.insertAccounts(data.accounts)
+        categoryDao.insertCategories(data.categories)
+        txDao.insertTransactions(data.transactions)
+    }
+
+    // ── CSV Експорт ───────────────────────────────────────────────────────────
+
+    fun buildCsvShareIntent(context: Context): Intent? {
+        return try {
+            val all = runCatching { txDao.getAllTransactionsWithDetails() }.getOrNull()
+                ?: return null
+            // Синхронно на main thread — поганий патерн, але для intent побудови OK
+            CsvExporter.export(context, all)
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun buildCsvShareIntentSuspend(context: Context): Intent? = withContext(Dispatchers.IO) {
+        try {
+            val all = txDao.getAllTransactionsWithDetails()
+            CsvExporter.export(context, all)
+        } catch (e: Exception) { null }
+    }
+
+    // ── Google Drive ──────────────────────────────────────────────────────────
+
+    fun configureDriveFolder(context: Context, treeUri: Uri) {
+        viewModelScope.launch {
+            // Дозвіл на читання/запис
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(treeUri, flags)
+
+            val uriStr = treeUri.toString()
+            settingsRepo.update {
+                it[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = uriStr
+            }
+            loadState(context)
+        }
+    }
+
+    fun clearDriveFolder(context: Context) {
+        viewModelScope.launch {
+            settingsRepo.update {
+                it[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = ""
+                it[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED]    = false
+            }
+            DriveBackupWorker.cancel(context)
+            _state.value = _state.value.copy(
+                driveFolderUri    = "",
+                driveFolderName   = "",
+                driveBackupEnabled = false,
+                driveBackups      = emptyList()
+            )
+        }
+    }
+
+    fun setDriveAutoBackup(context: Context, enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.update {
+                it[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED] = enabled
+            }
+            if (enabled) DriveBackupWorker.schedule(context)
+            else         DriveBackupWorker.cancel(context)
+            _state.value = _state.value.copy(driveBackupEnabled = enabled)
+        }
+    }
+
+    fun backupToDriveNow(context: Context) {
+        if (_state.value.isBacking) return
+        val folderUri = _state.value.driveFolderUri
+        if (folderUri.isBlank()) {
+            showMessage("Спочатку виберіть папку в Google Drive")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isBacking = true)
+            try {
+                val accounts     = withContext(Dispatchers.IO) { accountDao.getAllAccountsOnce() }
+                val categories   = withContext(Dispatchers.IO) { categoryDao.getAllCategoriesOnce() }
+                val transactions = withContext(Dispatchers.IO) { txDao.getAllTransactions() }
+
+                val json = withContext(Dispatchers.IO) {
+                    BackupSerializer.serialize(
+                        BackupData(BackupSerializer.BACKUP_VERSION,
+                            System.currentTimeMillis(), accounts, categories, transactions)
+                    )
+                }
+
+                val treeUri  = Uri.parse(folderUri)
+                val dateFmt  = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val fileName = "moneyiq_${dateFmt.format(Date())}.json"
+
+                val ok = withContext(Dispatchers.IO) {
+                    try {
+                        val docUri = DriveBackupWorker.createDocumentInFolder(context, treeUri, fileName)
+                            ?: return@withContext false
+                        context.contentResolver.openOutputStream(docUri)?.use { os ->
+                            os.write(json.toByteArray(Charsets.UTF_8))
+                            os.flush()
+                        }
+                        true
+                    } catch (e: Exception) { false }
+                }
+
+                if (ok) {
+                    val now = System.currentTimeMillis()
+                    settingsRepo.update {
+                        it[SettingsRepository.KEY_DRIVE_BACKUP_LAST_DATE] = now
+                    }
+                    showMessage("Резервну копію збережено в Google Drive ✓")
+                    loadState(context)
+                } else {
+                    showMessage("Не вдалося записати в папку Drive")
+                }
+            } catch (e: Exception) {
+                showMessage("Помилка: ${e.message}")
+            } finally {
+                _state.value = _state.value.copy(isBacking = false)
+            }
+        }
+    }
+
+    fun restoreFromDrive(context: Context, treeUri: Uri, entry: DriveBackupEntry) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isImporting = true)
+            try {
+                val json = withContext(Dispatchers.IO) {
+                    DriveBackupWorker.readBackupFile(context, treeUri, entry.documentId)
+                } ?: throw Exception("Не вдалося прочитати файл Drive")
+                val data = withContext(Dispatchers.IO) { BackupSerializer.deserialize(json) }
+                importBackupData(data)
+                showMessage("Відновлено з Drive: ${entry.name} ✓")
+                loadState(context)
+            } catch (e: Exception) {
+                showMessage("Помилка відновлення: ${e.message}")
+            } finally {
+                _state.value = _state.value.copy(isImporting = false)
+            }
+        }
+    }
+
+    // ── Локальний бекап ───────────────────────────────────────────────────────
+
+    fun createLocalBackup(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val txCount  = txDao.count()
                 val accCount = accountDao.count()
                 val catCount = categoryDao.count()
-
-                val dbFile = context.getDatabasePath("moneyiq.db")
-                val backupDir = File(context.filesDir, "backups")
-                backupDir.mkdirs()
-                val timestamp = System.currentTimeMillis()
-                val backupFile = File(backupDir, "backup_$timestamp.db")
-                dbFile.copyTo(backupFile, overwrite = true)
-
-                val entry = BackupEntry(timestamp, txCount, accCount, catCount)
+                val dbFile   = context.getDatabasePath("moneyiq.db")
+                val backupDir = File(context.filesDir, "backups").also { it.mkdirs() }
+                val ts = System.currentTimeMillis()
+                dbFile.copyTo(File(backupDir, "backup_$ts.db"), overwrite = true)
+                val entry = BackupEntry(ts, txCount, accCount, catCount)
                 val prefs = context.getSharedPreferences("moneyiq_backups", Context.MODE_PRIVATE)
-                val current = parseBackups(prefs).toMutableList()
+                val current = parseLocalBackupsFromPrefs(prefs).toMutableList()
                 current.add(0, entry)
                 if (current.size > 10) current.removeAt(current.lastIndex)
-                saveBackups(prefs, current)
-                _backups.value = current
-
+                saveLocalBackups(prefs, current)
                 withContext(Dispatchers.Main) {
+                    _state.value = _state.value.copy(localBackups = current)
                     Toast.makeText(context, "Резервну копію створено ✓", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -99,6 +350,8 @@ class DataViewModel @Inject constructor(
             }
         }
     }
+
+    // ── Скидання даних ────────────────────────────────────────────────────────
 
     fun deleteAllData() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -118,26 +371,37 @@ class DataViewModel @Inject constructor(
         }
     }
 
-    private fun parseBackups(prefs: android.content.SharedPreferences): List<BackupEntry> {
+    // ── Утиліти ───────────────────────────────────────────────────────────────
+
+    fun clearMessage() { _state.value = _state.value.copy(message = null) }
+
+    private fun showMessage(msg: String) {
+        viewModelScope.launch { _state.value = _state.value.copy(message = msg) }
+    }
+
+    private fun parseLocalBackups(context: Context): List<BackupEntry> {
+        val prefs = context.getSharedPreferences("moneyiq_backups", Context.MODE_PRIVATE)
+        return parseLocalBackupsFromPrefs(prefs)
+    }
+
+    private fun parseLocalBackupsFromPrefs(prefs: android.content.SharedPreferences): List<BackupEntry> {
         val raw = prefs.getString("backups_list", "") ?: ""
         if (raw.isBlank()) return emptyList()
         return raw.split(";").mapNotNull { item ->
-            val parts = item.split(",")
-            if (parts.size == 4) BackupEntry(
-                parts[0].toLongOrNull() ?: return@mapNotNull null,
-                parts[1].toIntOrNull() ?: 0,
-                parts[2].toIntOrNull() ?: 0,
-                parts[3].toIntOrNull() ?: 0
+            val p = item.split(",")
+            if (p.size == 4) BackupEntry(
+                p[0].toLongOrNull() ?: return@mapNotNull null,
+                p[1].toIntOrNull() ?: 0,
+                p[2].toIntOrNull() ?: 0,
+                p[3].toIntOrNull() ?: 0
             ) else null
         }
     }
 
-    private fun saveBackups(prefs: android.content.SharedPreferences, list: List<BackupEntry>) {
-        prefs.edit()
-            .putString("backups_list", list.joinToString(";") {
-                "${it.timestamp},${it.txCount},${it.accountCount},${it.categoryCount}"
-            })
-            .apply()
+    private fun saveLocalBackups(prefs: android.content.SharedPreferences, list: List<BackupEntry>) {
+        prefs.edit().putString("backups_list",
+            list.joinToString(";") { "${it.timestamp},${it.txCount},${it.accountCount},${it.categoryCount}" }
+        ).apply()
     }
 }
 
@@ -149,11 +413,65 @@ fun DataScreen(
     onNavigateBack: () -> Unit,
     viewModel: DataViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val backups by viewModel.backups.collectAsState()
-    var showResetDialog by remember { mutableStateOf(false) }
+    val context  = LocalContext.current
+    val state    by viewModel.state.collectAsState()
+    val scope    = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) { viewModel.loadBackups(context) }
+    // Діалоги
+    var showResetDialog   by remember { mutableStateOf(false) }
+    var showImportConfirm by remember { mutableStateOf<Uri?>(null) }
+    var showRestoreFromDrive by remember { mutableStateOf<DriveBackupEntry?>(null) }
+    // JSON рядок для запису після відкриття CreateDocument
+    var pendingExportJson by remember { mutableStateOf<String?>(null) }
+    var pendingCsvIntent  by remember { mutableStateOf<Intent?>(null) }
+
+    LaunchedEffect(Unit) { viewModel.loadState(context) }
+
+    // Повідомлення
+    state.message?.let { msg ->
+        LaunchedEffect(msg) {
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            viewModel.clearMessage()
+        }
+    }
+
+    // ── Лаунчери ──────────────────────────────────────────────────────────────
+
+    // Вибір папки Google Drive
+    val folderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { viewModel.configureDriveFolder(context, it) }
+    }
+
+    // Збереження JSON-бекапу
+    val exportJsonLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let { dst ->
+            pendingExportJson?.let { json ->
+                viewModel.writeExportToUri(context, dst, json)
+                pendingExportJson = null
+            }
+        }
+    }
+
+    // Відкриття JSON-файлу для імпорту
+    val importJsonLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { showImportConfirm = it }
+    }
+
+    // Реакція на підготовлений CSV
+    LaunchedEffect(pendingCsvIntent) {
+        pendingCsvIntent?.let { intent ->
+            context.startActivity(Intent.createChooser(intent, "Поділитися CSV"))
+            pendingCsvIntent = null
+        }
+    }
+
+    // ── UI ────────────────────────────────────────────────────────────────────
 
     Scaffold(
         topBar = {
@@ -171,102 +489,283 @@ fun DataScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = 40.dp)
         ) {
+
+            // ── Скинути дані ──────────────────────────────────────────────────
             item {
                 ListItem(
                     modifier = Modifier.clickable { showResetDialog = true },
                     leadingContent = {
-                        Icon(
-                            Icons.Default.RestartAlt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                        Icon(Icons.Default.RestartAlt, null,
+                            tint = MaterialTheme.colorScheme.error)
                     },
-                    headlineContent = { Text("Скинути дані") }
+                    headlineContent = {
+                        Text("Скинути дані", color = MaterialTheme.colorScheme.error)
+                    }
                 )
                 HorizontalDivider()
             }
 
-            item { DataSectionHeader("Експорт") }
+            // ── Імпорт / Експорт ──────────────────────────────────────────────
+            item { DataSectionHeader("Імпорт / Експорт") }
 
             item {
-                DataRowItem(
-                    icon = Icons.Default.FileDownload,
-                    title = "Імпорт даних",
-                    premium = true,
-                    onClick = {}
+                DataActionItem(
+                    icon  = Icons.Default.FileUpload,
+                    title = "Експорт даних (JSON)",
+                    sub   = "Зберегти всі рахунки, категорії та операції",
+                    loading = state.isExporting,
+                    onClick = {
+                        if (!state.isExporting) {
+                            scope.launch {
+                                val json = viewModel.buildExportJson()
+                                pendingExportJson = json
+                                val fmt  = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault())
+                                exportJsonLauncher.launch("moneyiq_${fmt.format(Date())}.json")
+                            }
+                        }
+                    }
                 )
             }
             item {
-                DataRowItem(
-                    icon = Icons.Default.FileUpload,
-                    title = "Експорт даних",
-                    premium = false,
-                    onClick = {}
+                DataActionItem(
+                    icon  = Icons.Default.FileDownload,
+                    title = "Імпорт даних (JSON)",
+                    sub   = "Відновити з файлу резервної копії",
+                    loading = state.isImporting,
+                    onClick = {
+                        if (!state.isImporting) {
+                            importJsonLauncher.launch(arrayOf("application/json", "*/*"))
+                        }
+                    }
                 )
             }
             item {
-                DataRowItem(
-                    icon = Icons.Default.TableChart,
-                    title = "Експортувати дані в CSV",
-                    premium = true,
-                    onClick = {}
+                DataActionItem(
+                    icon    = Icons.Default.TableChart,
+                    title   = "Експорт у CSV",
+                    sub     = "Операції у форматі Excel/Google Sheets",
+                    onClick = {
+                        scope.launch {
+                            val intent = viewModel.buildCsvShareIntentSuspend(context)
+                            if (intent != null) pendingCsvIntent = intent
+                            else Toast.makeText(context, "Немає операцій для експорту", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 )
                 HorizontalDivider()
             }
 
-            item { DataSectionHeader("Резервне копіювання даних") }
+            // ── Google Drive автобекап ─────────────────────────────────────────
+            item { DataSectionHeader("Google Drive — автобекап") }
+
+            if (state.driveFolderUri.isBlank()) {
+                // Папка не вибрана
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.CloudUpload,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                "Автоматично зберігайте бекапи у Google Drive",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Щодня о 2:00 нова резервна копія буде\nдодаватись до вибраної папки",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = { folderLauncher.launch(null) },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.FolderOpen, null,
+                                    modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Вибрати папку в Google Drive")
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Папка вибрана — показуємо статус
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CloudDone, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    state.driveFolderName.ifBlank { "Google Drive" },
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.clearDriveFolder(context) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, "Від'єднати",
+                                        modifier = Modifier.size(18.dp))
+                                }
+                            }
+                            if (state.driveLastBackupMs > 0L) {
+                                Spacer(Modifier.height(4.dp))
+                                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+                                Text(
+                                    "Останній бекап: ${fmt.format(Date(state.driveLastBackupMs))}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    ListItem(
+                        leadingContent = {
+                            Icon(Icons.Default.Autorenew, null,
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        headlineContent = { Text("Щоденний автобекап") },
+                        supportingContent = { Text("Щодня о 2:00, при наявності інтернету") },
+                        trailingContent = {
+                            Switch(
+                                checked = state.driveBackupEnabled,
+                                onCheckedChange = { viewModel.setDriveAutoBackup(context, it) }
+                            )
+                        }
+                    )
+                }
+                item {
+                    ListItem(
+                        modifier = Modifier.clickable(enabled = !state.isBacking) {
+                            viewModel.backupToDriveNow(context)
+                        },
+                        leadingContent = {
+                            if (state.isBacking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.Backup, null,
+                                    tint = MaterialTheme.colorScheme.primary)
+                            }
+                        },
+                        headlineContent = {
+                            Text("Зробити бекап зараз",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium)
+                        }
+                    )
+                }
+                item {
+                    ListItem(
+                        modifier = Modifier.clickable { folderLauncher.launch(null) },
+                        leadingContent = {
+                            Icon(Icons.Default.FolderOpen, null,
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        headlineContent = { Text("Змінити папку") }
+                    )
+                    HorizontalDivider()
+                }
+
+                // Список Drive-бекапів
+                if (state.driveBackups.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Збережені бекапи в Drive (${state.driveBackups.size})",
+                            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    items(state.driveBackups) { entry ->
+                        DriveBackupItem(
+                            entry = entry,
+                            onRestore = { showRestoreFromDrive = entry }
+                        )
+                    }
+                    item { HorizontalDivider() }
+                }
+            }
+
+            // ── Локальний бекап ────────────────────────────────────────────────
+            item { DataSectionHeader("Локальний бекап") }
 
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFFFFEBEE))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Icon(
-                        Icons.Outlined.Warning,
-                        contentDescription = null,
-                        tint = Color(0xFFD32F2F),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
+                    Icon(Icons.Outlined.Warning, null,
+                        tint = Color(0xFFD32F2F), modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Резервні копії зберігаються локально на твоєму пристрої. " +
-                                "Видалення чи перевстановлення застосунку призведе до їхньої втрати.",
+                        "Локальні копії зберігаються лише на пристрої. " +
+                        "Видалення або перевстановлення застосунку призведе до їхньої втрати.",
                         color = Color(0xFFD32F2F),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
-
             item {
                 ListItem(
-                    modifier = Modifier.clickable { viewModel.createBackup(context) },
+                    modifier = Modifier.clickable { viewModel.createLocalBackup(context) },
                     leadingContent = {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.AddCircleOutline, null,
+                            tint = MaterialTheme.colorScheme.primary)
                     },
                     headlineContent = {
-                        Text(
-                            "Створити резервну копію",
+                        Text("Створити резервну копію",
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
+                            fontWeight = FontWeight.Medium)
                     }
                 )
             }
-
-            items(backups) { backup ->
-                BackupListItem(backup = backup)
+            items(state.localBackups) { backup ->
+                LocalBackupItem(backup = backup)
             }
         }
     }
+
+    // ── Діалоги ───────────────────────────────────────────────────────────────
 
     if (showResetDialog) {
         ResetDataDialog(
@@ -281,9 +780,83 @@ fun DataScreen(
             onDismiss = { showResetDialog = false }
         )
     }
+
+    showImportConfirm?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { showImportConfirm = null },
+            icon = { Icon(Icons.Default.Warning, null,
+                tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Замінити всі дані?") },
+            text = {
+                Text("Поточні рахунки, категорії та операції будуть видалені " +
+                     "і замінені даними з файлу. Дію неможливо скасувати.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.importFromUri(context, uri)
+                        showImportConfirm = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Замінити") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirm = null }) { Text("Скасувати") }
+            }
+        )
+    }
+
+    showRestoreFromDrive?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { showRestoreFromDrive = null },
+            icon = { Icon(Icons.Default.CloudDownload, null,
+                tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Відновити з Drive?") },
+            text = {
+                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+                Text("Відновити резервну копію:\n${entry.name}\n" +
+                     "(${fmt.format(Date(entry.modifiedMs))})\n\n" +
+                     "Поточні дані будуть замінені.")
+            },
+            confirmButton = {
+                val uri = state.driveFolderUri
+                TextButton(onClick = {
+                    if (uri.isNotBlank()) {
+                        viewModel.restoreFromDrive(context, Uri.parse(uri), entry)
+                    }
+                    showRestoreFromDrive = null
+                }) { Text("Відновити") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreFromDrive = null }) { Text("Скасувати") }
+            }
+        )
+    }
+
+    // Прогрес-індикатор під час імпорту
+    if (state.isImporting) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(16.dp))
+                    Text("Імпорт даних…")
+                }
+            }
+        }
+    }
 }
 
-// ── Private composables ───────────────────────────────────────────────────────
+// ── Приватні composable ───────────────────────────────────────────────────────
 
 @Composable
 private fun DataSectionHeader(title: String) {
@@ -297,82 +870,74 @@ private fun DataSectionHeader(title: String) {
 }
 
 @Composable
-private fun DataRowItem(
+private fun DataActionItem(
     icon: ImageVector,
     title: String,
-    premium: Boolean,
+    sub: String? = null,
+    loading: Boolean = false,
     onClick: () -> Unit
 ) {
     ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.clickable(enabled = !loading, onClick = onClick),
         leadingContent = {
-            Box(modifier = Modifier.size(36.dp)) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(26.dp)
-                        .align(Alignment.Center),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-                if (premium) {
-                    Icon(
-                        Icons.Outlined.WorkspacePremium,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .align(Alignment.TopEnd),
-                        tint = Color(0xFFFFB300)
-                    )
-                }
-            }
+            if (loading) CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            else Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface)
         },
-        headlineContent = { Text(title) }
+        headlineContent  = { Text(title) },
+        supportingContent = sub?.let { { Text(it, style = MaterialTheme.typography.bodySmall) } }
     )
 }
 
 @Composable
-private fun BackupListItem(backup: BackupEntry) {
-    val dateFormat = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale("uk")) }
-    val dateStr = dateFormat.format(Date(backup.timestamp))
-    val txLabel = pluralUk(backup.txCount, "операція", "операції", "операцій")
-    val accLabel = pluralUk(backup.accountCount, "рахунок", "рахунки", "рахунків")
-    val catLabel = pluralUk(backup.categoryCount, "категорія", "категорії", "категорій")
+private fun DriveBackupItem(
+    entry: DriveBackupEntry,
+    onRestore: () -> Unit
+) {
+    val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+    val size = when {
+        entry.sizeBytes < 1024        -> "${entry.sizeBytes} Б"
+        entry.sizeBytes < 1024 * 1024 -> "${entry.sizeBytes / 1024} КБ"
+        else -> "${"%.1f".format(entry.sizeBytes / (1024.0 * 1024))} МБ"
+    }
+    ListItem(
+        leadingContent = {
+            Icon(Icons.Default.CloudQueue, null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp))
+        },
+        headlineContent  = { Text(entry.name, style = MaterialTheme.typography.bodyMedium) },
+        supportingContent = {
+            Text("${fmt.format(Date(entry.modifiedMs))}  ·  $size",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+        trailingContent = {
+            TextButton(onClick = onRestore) { Text("Відновити") }
+        }
+    )
+}
+
+@Composable
+private fun LocalBackupItem(backup: BackupEntry) {
+    val fmt    = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale("uk")) }
+    val txLbl  = pluralUk(backup.txCount,      "операція",  "операції",  "операцій")
+    val accLbl = pluralUk(backup.accountCount,  "рахунок",   "рахунки",   "рахунків")
+    val catLbl = pluralUk(backup.categoryCount, "категорія", "категорії", "категорій")
 
     ListItem(
         leadingContent = {
-            Box(modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(26.dp)
-                        .align(Alignment.Center),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Icon(
-                    Icons.Outlined.WorkspacePremium,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.TopEnd),
-                    tint = Color(0xFFFFB300)
-                )
-            }
+            Icon(Icons.Default.History, null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         },
-        headlineContent = { Text("Щоденне резервування", fontWeight = FontWeight.Medium) },
+        headlineContent  = { Text("Локальний бекап", fontWeight = FontWeight.Medium) },
         supportingContent = {
             Column {
-                Text(
-                    dateStr,
+                Text(fmt.format(Date(backup.timestamp)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                )
-                Text(
-                    "${backup.txCount} $txLabel · ${backup.accountCount} $accLabel · ${backup.categoryCount} $catLabel",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                Text("${backup.txCount} $txLbl · ${backup.accountCount} $accLbl · ${backup.categoryCount} $catLbl",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                )
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
             }
         }
     )
@@ -407,26 +972,20 @@ private fun ResetDataDialog(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
+                Icon(Icons.Default.Delete, null,
                     modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
+                    tint = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    "Скинути дані",
+                Text("Скинути дані",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                    fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "Щоб видалити всі ваші дані (рахунки, категорії, операції та бюджети), " +
-                            "виберіть Видалити всі дані.\n\n" +
-                            "Щоб видалити лише операції, виберіть Видалити всі операції.",
+                    "Щоб видалити всі ваші дані (рахунки, категорії, операції та бюджети), " +
+                    "виберіть Видалити всі дані.\n\n" +
+                    "Щоб видалити лише операції, виберіть Видалити всі операції.",
                     style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
+                    textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(24.dp))
                 Button(
@@ -434,19 +993,15 @@ private fun ResetDataDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor   = MaterialTheme.colorScheme.onErrorContainer
                     )
-                ) {
-                    Text("Видалити всі дані", fontWeight = FontWeight.SemiBold)
-                }
+                ) { Text("Видалити всі дані", fontWeight = FontWeight.SemiBold) }
                 Spacer(Modifier.height(4.dp))
                 TextButton(onClick = onDeleteTransactions) {
                     Text("Видалити всі операції")
                 }
-                TextButton(onClick = onDismiss) {
-                    Text("Відмінити")
-                }
+                TextButton(onClick = onDismiss) { Text("Відмінити") }
             }
         }
     }

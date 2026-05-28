@@ -195,7 +195,7 @@ private fun AccountTypeOption(
 fun AccountFormSheet(
     initialType: AccountType = AccountType.CASH,
     existing:    org.pixelrush.moneyiq.data.db.entities.AccountEntity? = null,
-    onSave:      (name: String, type: AccountType, balance: Double, color: String, currency: String, description: String, includeInTotal: Boolean) -> Unit,
+    onSave:      (name: String, type: AccountType, balance: Double, color: String, currency: String, description: String, includeInTotal: Boolean, icon: String) -> Unit,
     onDismiss:   () -> Unit
 ) {
     var name           by remember { mutableStateOf(existing?.name ?: "") }
@@ -206,15 +206,16 @@ fun AccountFormSheet(
         )
     }
     var colorHex       by remember { mutableStateOf(existing?.colorHex ?: "#D81B60") }
+    var iconKey        by remember { mutableStateOf(existing?.icon ?: "account_balance_wallet") }
     var currency       by remember { mutableStateOf(existing?.currency ?: "UAH") }
     var description    by remember { mutableStateOf(existing?.description ?: "") }
     var includeInTotal by remember { mutableStateOf(existing?.includeInTotal ?: true) }
 
-    var showColorPicker    by remember { mutableStateOf(false) }
-    var showTypePicker     by remember { mutableStateOf(false) }
-    var showCurrencyPicker by remember { mutableStateOf(false) }
-    var showDescEditor     by remember { mutableStateOf(false) }
-    var showBalanceInput   by remember { mutableStateOf(false) }
+    var showIconColorPicker by remember { mutableStateOf(false) }
+    var showTypePicker      by remember { mutableStateOf(false) }
+    var showCurrencyPicker  by remember { mutableStateOf(false) }
+    var showDescEditor      by remember { mutableStateOf(false) }
+    var showBalanceInput    by remember { mutableStateOf(false) }
 
     val accentColor = remember(colorHex) {
         try { Color(android.graphics.Color.parseColor(colorHex)) }
@@ -251,7 +252,7 @@ fun AccountFormSheet(
                             onClick = {
                                 val b = balanceStr.replace(",", ".").toDoubleOrNull() ?: 0.0
                                 if (name.isNotBlank()) {
-                                    onSave(name, type, b, colorHex, currency, description, includeInTotal)
+                                    onSave(name, type, b, colorHex, currency, description, includeInTotal, iconKey)
                                 }
                             },
                             shape           = RoundedCornerShape(50),
@@ -296,17 +297,17 @@ fun AccountFormSheet(
                                         }
                                     }
                                 )
-                                // Colored icon box
+                                // Colored icon box (opens icon+color picker)
                                 Box(
                                     modifier         = Modifier
                                         .size(56.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(accentColor)
-                                        .clickable { showColorPicker = true },
+                                        .clickable { showIconColorPicker = true },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        accountTypeIcon(type), null,
+                                        accountIconFromKey(iconKey), null,
                                         tint     = Color.White,
                                         modifier = Modifier.size(28.dp)
                                     )
@@ -379,12 +380,16 @@ fun AccountFormSheet(
     }
 
     // ── Nested sheets ────────────────────────────────────────────────────────
-    if (showColorPicker) {
-        ColorPickerSheet(
-            colors    = ACCOUNT_FORM_COLORS,
-            selected  = colorHex,
-            onSelect  = { colorHex = it; showColorPicker = false },
-            onDismiss = { showColorPicker = false }
+    if (showIconColorPicker) {
+        IconColorPickerScreen(
+            initialIconKey  = iconKey,
+            initialColorHex = colorHex,
+            onResult = { newIcon, newColor ->
+                iconKey  = newIcon
+                colorHex = newColor
+                showIconColorPicker = false
+            },
+            onDismiss = { showIconColorPicker = false }
         )
     }
 

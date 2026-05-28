@@ -48,6 +48,7 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
+import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
@@ -72,7 +73,10 @@ data class TxListUiState(
         val cal = Calendar.getInstance()
         TxSelectedMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
     },
+    val appMonth:          AppMonth                 = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:       Int                      = 31,
+    val pillLabel:         String                   = "",
+    val pillBadge:         String                   = "31",
     val transactions:      List<TransactionWithDetails> = emptyList(),
     val totalIncome:       Double                   = 0.0,
     val totalExpense:      Double                   = 0.0,
@@ -94,30 +98,30 @@ class TransactionsListViewModel @Inject constructor(
     private val monthRepo:    SelectedMonthRepository
 ) : ViewModel() {
 
-    val state: StateFlow<TxListUiState> = monthRepo.month.flatMapLatest { appMonth ->
-        val sel = TxSelectedMonth(appMonth.year, appMonth.month)
-        val (from, to) = monthRange(sel)
+    val state: StateFlow<TxListUiState> = monthRepo.month.flatMapLatest { am ->
+        val sel        = TxSelectedMonth(am.year, am.month)
+        val (from, to) = monthRepo.computeRange(am)
         combine(
             txRepo.getTransactionsByPeriod(from, to),
             accountRepo.getTotalBalance(),
             accountRepo.getAllAccounts(),
             categoryRepo.getAll()
         ) { txList, rawBalance, accounts, categories ->
-            val balance  = rawBalance ?: 0.0
-            val income   = txList.filter { it.type == TransactionType.INCOME || it.type == TransactionType.BORROW }
-                .sumOf { it.amount }
-            val expense  = txList.filter { it.type == TransactionType.EXPENSE || it.type == TransactionType.LEND || it.type == TransactionType.REPAY }
-                .sumOf { it.amount }
-            val cal = Calendar.getInstance().also { it.set(sel.year, sel.month, 1) }
+            val balance = rawBalance ?: 0.0
+            val income  = txList.filter { it.type == TransactionType.INCOME || it.type == TransactionType.BORROW }.sumOf { it.amount }
+            val expense = txList.filter { it.type == TransactionType.EXPENSE || it.type == TransactionType.LEND || it.type == TransactionType.REPAY }.sumOf { it.amount }
             TxListUiState(
-                selectedMonth   = sel,
-                daysInMonth     = cal.getActualMaximum(Calendar.DAY_OF_MONTH),
-                transactions    = txList,
-                totalIncome     = income,
-                totalExpense    = expense,
-                closingBalance  = balance,
-                openingBalance  = balance - income + expense,
-                accounts        = accounts,
+                selectedMonth     = sel,
+                appMonth          = am,
+                daysInMonth       = monthRepo.daysInPeriod(am),
+                pillLabel         = monthRepo.pillLabel(am),
+                pillBadge         = monthRepo.pillBadge(am),
+                transactions      = txList,
+                totalIncome       = income,
+                totalExpense      = expense,
+                closingBalance    = balance,
+                openingBalance    = balance - income + expense,
+                accounts          = accounts,
                 expenseCategories = categories.filter { it.type == TransactionType.EXPENSE && !it.archived },
                 incomeCategories  = categories.filter { it.type == TransactionType.INCOME && !it.archived }
             )
@@ -127,6 +131,7 @@ class TransactionsListViewModel @Inject constructor(
     fun prevMonth()                      = monthRepo.prevMonth()
     fun nextMonth()                      = monthRepo.nextMonth()
     fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
+    fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
 
     fun recordTransaction(accountId: Long, category: CategoryEntity, amount: Double, note: String, date: Long) {
         viewModelScope.launch {
@@ -143,15 +148,21 @@ class TransactionsListViewModel @Inject constructor(
         }
     }
 
-    private fun monthRange(sel: TxSelectedMonth): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(sel.year, sel.month, 1, 0, 0, 0); cal.set(Calendar.MILLISECOND, 0)
-        val from = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
-        return from to cal.timeInMillis
+    fun recordTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, date: Long) {
+        viewModelScope.launch {
+            txRepo.addTransaction(
+                TransactionEntity(
+                    type        = TransactionType.TRANSFER,
+                    amount      = amount,
+                    accountId   = fromAccountId,
+                    toAccountId = toAccountId,
+                    note        = "",
+                    date        = date
+                )
+            )
+        }
     }
+
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -174,8 +185,9 @@ fun TransactionsListScreen(
     var showFilterSheet   by remember { mutableStateOf(false) }
 
     // ── Швидке додавання ───────────────────────────────────────────────────
-    var showCategoryPicker by remember { mutableStateOf(false) }
-    var quickCategory      by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showCategoryPicker    by remember { mutableStateOf(false) }
+    var quickCategory         by remember { mutableStateOf<CategoryEntity?>(null) }
+    var transferFromAccount   by remember { mutableStateOf<AccountEntity?>(null) }
 
     // ── Клієнтська фільтрація ─────────────────────────────────────────────
     val filteredTransactions = remember(state.transactions, filterQuery, filterTypes, filterAccountIds, filterCategoryIds) {
@@ -218,9 +230,10 @@ fun TransactionsListScreen(
 
             // Пілюля-навігатор місяця
             SharedMonthNavPill(
-                year          = state.selectedMonth.year,
-                month         = state.selectedMonth.month,
-                daysInMonth   = state.daysInMonth,
+                appMonth      = state.appMonth,
+                daysInPeriod  = state.daysInMonth,
+                pillLabel     = state.pillLabel,
+                pillBadge     = state.pillBadge,
                 onPrev        = viewModel::prevMonth,
                 onNext        = viewModel::nextMonth,
                 onSelectMonth = viewModel::goToMonth
@@ -310,10 +323,15 @@ fun TransactionsListScreen(
         CategoryPickerSheet(
             expenseCategories = state.expenseCategories,
             incomeCategories  = state.incomeCategories,
+            accounts          = state.accounts,
             categorySpending  = categorySpending,
             onSelect          = { cat ->
                 showCategoryPicker = false
                 quickCategory = cat
+            },
+            onTransfer        = { acc ->
+                showCategoryPicker = false
+                transferFromAccount = acc
             },
             onDismiss = { showCategoryPicker = false }
         )
@@ -329,6 +347,19 @@ fun TransactionsListScreen(
                 quickCategory = null
             },
             onDismiss = { quickCategory = null }
+        )
+    }
+
+    // ── TransferQuickSheet ────────────────────────────────────────────────
+    transferFromAccount?.let { fromAcc ->
+        TransferQuickSheet(
+            fromAccount = fromAcc,
+            allAccounts = state.accounts,
+            onSave      = { toAccountId, amount, date ->
+                viewModel.recordTransfer(fromAcc.id, toAccountId, amount, date)
+                transferFromAccount = null
+            },
+            onDismiss = { transferFromAccount = null }
         )
     }
 }
@@ -629,17 +660,20 @@ private fun FilterSection(title: String, content: @Composable FlowRowScope.() ->
 private fun CategoryPickerSheet(
     expenseCategories: List<CategoryEntity>,
     incomeCategories:  List<CategoryEntity>,
+    accounts:          List<AccountEntity>,
     categorySpending:  Map<Long?, Double>,
     onSelect:          (CategoryEntity) -> Unit,
+    onTransfer:        (AccountEntity) -> Unit,
     onDismiss:         () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(1) }  // 0=Дохід, 1=Витрата, 2=Переказ
     val screenH = LocalConfiguration.current.screenHeightDp.dp
 
-    val tabTypes = listOf(
-        TransactionType.INCOME  to "Дохід",
-        TransactionType.EXPENSE to "Витрата",
-        null                    to "Переказ"
+    data class TabDef(val type: TransactionType?, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+    val tabDefs = listOf(
+        TabDef(TransactionType.INCOME,  "Дохід",   Icons.Default.ArrowUpward),
+        TabDef(TransactionType.EXPENSE, "Витрата", Icons.Default.ArrowDownward),
+        TabDef(null,                    "Переказ", Icons.Default.SwapHoriz)
     )
 
     ModalBottomSheet(
@@ -655,32 +689,40 @@ private fun CategoryPickerSheet(
                 containerColor   = MaterialTheme.colorScheme.surface,
                 contentColor     = MaterialTheme.colorScheme.primary
             ) {
-                tabTypes.forEachIndexed { i, (type, label) ->
+                tabDefs.forEachIndexed { i, tab ->
+                    val active = selectedTab == i
+                    val tint = if (active) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                     Tab(
-                        selected = selectedTab == i,
+                        selected = active,
                         onClick  = { selectedTab = i },
                         text     = {
                             Row(
                                 verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Icon(
-                                    when (type) {
-                                        TransactionType.INCOME  -> Icons.Default.ArrowUpward
-                                        TransactionType.EXPENSE -> Icons.Default.ArrowDownward
-                                        else                    -> Icons.Default.SwapHoriz
-                                    },
-                                    null, modifier = Modifier.size(16.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, tint, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(tab.icon, null, tint = tint, modifier = Modifier.size(14.dp))
+                                }
+                                Text(
+                                    tab.label,
+                                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                    color      = tint
                                 )
-                                Text(label, fontWeight = if (selectedTab == i) FontWeight.SemiBold else FontWeight.Normal)
                             }
                         }
                     )
                 }
             }
 
-            // ── Сітка категорій ───────────────────────────────────────────
-            val currentType = tabTypes[selectedTab].first
+            // ── Контент по вкладці ────────────────────────────────────────
+            val currentType = tabDefs[selectedTab].type
             val categories  = when (currentType) {
                 TransactionType.INCOME  -> incomeCategories
                 TransactionType.EXPENSE -> expenseCategories
@@ -688,14 +730,32 @@ private fun CategoryPickerSheet(
             }
 
             if (currentType == null) {
-                // Переказ — заглушка
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Виберіть рахунок для переказу\n(використайте кнопку «+» у шапці)",
-                        textAlign = TextAlign.Center,
-                        color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                        style     = MaterialTheme.typography.bodyMedium
-                    )
+                // Переказ — список рахунків
+                val totalBal = accounts.filter { it.includeInTotal }.sumOf { it.balance }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Рахунки",
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "${formatMoney(totalBal)} ₴",
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    accounts.forEach { acc ->
+                        AccountPickerRow(account = acc, onClick = { onTransfer(acc) })
+                    }
                 }
             } else {
                 LazyVerticalGrid(
@@ -711,6 +771,28 @@ private fun CategoryPickerSheet(
                             amount   = categorySpending[cat.id] ?: 0.0,
                             onClick  = { onSelect(cat) }
                         )
+                    }
+                    // Кнопка додавання категорії (заглушка)
+                    item {
+                        Column(
+                            modifier            = Modifier.padding(vertical = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(Modifier.height(30.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(54.dp)
+                                    .clip(CircleShape)
+                                    .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Add, null,
+                                    tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -728,6 +810,7 @@ private fun CategoryPickerCell(
         try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
+    val hasSpending = amount > 0
     Column(
         modifier            = Modifier
             .clickable(onClick = onClick)
@@ -736,12 +819,12 @@ private fun CategoryPickerCell(
     ) {
         Text(
             cat.name,
-            style     = MaterialTheme.typography.labelSmall,
-            maxLines  = 2,
-            overflow  = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            color     = MaterialTheme.colorScheme.onSurface,
-            modifier  = Modifier.fillMaxWidth().heightIn(min = 30.dp),
+            style      = MaterialTheme.typography.labelSmall,
+            maxLines   = 2,
+            overflow   = TextOverflow.Ellipsis,
+            textAlign  = TextAlign.Center,
+            color      = MaterialTheme.colorScheme.onSurface,
+            modifier   = Modifier.fillMaxWidth().heightIn(min = 30.dp),
             lineHeight = 14.sp
         )
         Spacer(Modifier.height(4.dp))
@@ -749,26 +832,195 @@ private fun CategoryPickerCell(
             modifier = Modifier
                 .size(54.dp)
                 .clip(CircleShape)
-                .background(catColor.copy(alpha = 0.15f))
-                .border(
-                    width = if (amount > 0) 2.dp else 1.dp,
-                    color = catColor.copy(alpha = if (amount > 0) 1f else 0.4f),
-                    shape = CircleShape
-                ),
+                .background(if (hasSpending) catColor else catColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(categoryIconFor(cat.icon), null, tint = catColor, modifier = Modifier.size(26.dp))
+            Icon(
+                categoryIconFor(cat.icon), null,
+                tint     = if (hasSpending) Color.White else catColor,
+                modifier = Modifier.size(26.dp)
+            )
         }
         Spacer(Modifier.height(4.dp))
         Text(
             "${formatMoney(amount)} ₴",
             style      = MaterialTheme.typography.labelSmall,
-            fontWeight = if (amount > 0) FontWeight.Bold else FontWeight.Normal,
-            color      = if (amount > 0) catColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            fontWeight = if (hasSpending) FontWeight.Bold else FontWeight.Normal,
+            color      = if (hasSpending) catColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
             textAlign  = TextAlign.Center,
             modifier   = Modifier.fillMaxWidth(),
             maxLines   = 1
         )
+    }
+}
+
+@Composable
+private fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
+    val accColor = remember(account.colorHex) {
+        try { Color(android.graphics.Color.parseColor(account.colorHex)) }
+        catch (_: Exception) { Color(0xFF3949AB) }
+    }
+    val balColor = when {
+        account.balance < 0 -> Color(0xFFD32F2F)
+        account.balance > 0 -> MaterialTheme.colorScheme.onSurface
+        else                -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    }
+    ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        leadingContent = {
+            Box(modifier = Modifier.size(52.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(accColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        org.pixelrush.moneyiq.ui.accounts.accountTypeIcon(account.type),
+                        null,
+                        tint     = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                if (account.isDefault) {
+                    Icon(
+                        Icons.Default.Star,
+                        null,
+                        tint     = Color(0xFFFFB300),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .align(Alignment.BottomStart)
+                    )
+                }
+            }
+        },
+        headlineContent = {
+            Text(account.name, fontWeight = FontWeight.SemiBold)
+        },
+        supportingContent = {
+            Text(
+                "${formatMoney(account.balance)} ₴",
+                color = balColor,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (account.balance != 0.0) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransferQuickSheet(
+    fromAccount: AccountEntity,
+    allAccounts: List<AccountEntity>,
+    onSave:      (toAccountId: Long, amount: Double, date: Long) -> Unit,
+    onDismiss:   () -> Unit
+) {
+    val toAccounts = allAccounts.filter { it.id != fromAccount.id }
+    var selectedTo by remember { mutableStateOf(toAccounts.firstOrNull()) }
+    var amountStr  by remember { mutableStateOf("") }
+    val fromColor  = remember(fromAccount.colorHex) {
+        try { Color(android.graphics.Color.parseColor(fromAccount.colorHex)) }
+        catch (_: Exception) { Color(0xFF3949AB) }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "Переказ з «${fromAccount.name}»",
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Рахунок призначення
+            Text("Куди:", style = MaterialTheme.typography.labelMedium,
+                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            toAccounts.forEach { acc ->
+                val accColor = remember(acc.colorHex) {
+                    try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
+                    catch (_: Exception) { Color(0xFF3949AB) }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (selectedTo?.id == acc.id)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else Color.Transparent
+                        )
+                        .clickable { selectedTo = acc }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(accColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            org.pixelrush.moneyiq.ui.accounts.accountTypeIcon(acc.type),
+                            null, tint = Color.White, modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(acc.name, fontWeight = FontWeight.Medium)
+                        Text(
+                            "${formatMoney(acc.balance)} ₴",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    }
+                    if (selectedTo?.id == acc.id) {
+                        Icon(Icons.Default.CheckCircle, null,
+                             tint = MaterialTheme.colorScheme.primary,
+                             modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+
+            // Сума
+            OutlinedTextField(
+                value         = amountStr,
+                onValueChange = { v -> if (v.all { it.isDigit() || it == '.' }) amountStr = v },
+                label         = { Text("Сума") },
+                modifier      = Modifier.fillMaxWidth(),
+                singleLine    = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                ),
+                leadingIcon   = { Icon(Icons.Default.SwapHoriz, null) }
+            )
+
+            // Кнопка Зберегти
+            Button(
+                onClick  = {
+                    val amount = amountStr.toDoubleOrNull() ?: return@Button
+                    val toAcc  = selectedTo ?: return@Button
+                    if (amount > 0) onSave(toAcc.id, amount, System.currentTimeMillis())
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled  = amountStr.toDoubleOrNull() != null &&
+                           (amountStr.toDoubleOrNull() ?: 0.0) > 0 &&
+                           selectedTo != null
+            ) {
+                Text("Зберегти переказ")
+            }
+        }
     }
 }
 
