@@ -44,7 +44,8 @@ import java.util.*
 internal val CATEGORY_FORM_COLORS = listOf(
     "#FF5722", "#F44336", "#E91E63", "#9C27B0",
     "#673AB7", "#3F51B5", "#2196F3", "#03A9F4",
-    "#009688", "#4CAF50", "#FFEB3B", "#FF9800"
+    "#009688", "#4CAF50", "#FFEB3B", "#FF9800",
+    "#6200EA", "#FF6D00", "#0288D1"   // AI / Aliexpress / Cloud
 )
 
 // ── Іконки категорій ──────────────────────────────────────────────────────────
@@ -66,6 +67,17 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "gift"       to Icons.Outlined.CardGiftcard,
     "phone"      to Icons.Outlined.PhoneAndroid,
     "sports"     to Icons.Outlined.FitnessCenter,
+    "wifi"       to Icons.Outlined.Wifi,
+    "delivery"   to Icons.Outlined.LocalShipping,
+    "devices"    to Icons.Outlined.Devices,
+    "transfer"   to Icons.Outlined.SwapHoriz,
+    "family"     to Icons.Outlined.FamilyRestroom,
+    "receipt"    to Icons.Outlined.Receipt,
+    "beauty"     to Icons.Outlined.SelfImprovement,
+    "ai"         to Icons.Outlined.Psychology,
+    "aliexpress" to Icons.Outlined.LocalMall,
+    "cloud"      to Icons.Outlined.Cloud,
+    "clothes"    to Icons.Outlined.Checkroom,
 )
 
 internal fun categoryIconFor(iconName: String): ImageVector =

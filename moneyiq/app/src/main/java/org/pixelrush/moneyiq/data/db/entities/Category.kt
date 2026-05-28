@@ -23,5 +23,6 @@ data class CategoryEntity(
     val budgetPeriod: String = "MONTHLY", // MONTHLY / WEEKLY
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
-    val archived: Boolean = false
+    val archived: Boolean = false,
+    val parentId: Long? = null          // null = широка (root) категорія
 )

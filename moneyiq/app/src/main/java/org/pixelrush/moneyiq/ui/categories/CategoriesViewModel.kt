@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -29,13 +30,14 @@ data class CategoriesUiState(
         Calendar.getInstance().get(Calendar.YEAR),
         Calendar.getInstance().get(Calendar.MONTH)
     ),
-    val appMonth:     AppMonth            = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
-    val daysInMonth:  Int                = 31,
-    val pillLabel:    String             = "",
-    val pillBadge:    String             = "31",
-    val totalExpense: Double             = 0.0,
-    val totalIncome:  Double             = 0.0,
-    val accounts:     List<AccountEntity> = emptyList()
+    val appMonth:           AppMonth             = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
+    val daysInMonth:        Int                  = 31,
+    val pillLabel:          String               = "",
+    val pillBadge:          String               = "31",
+    val totalExpense:       Double               = 0.0,
+    val totalIncome:        Double               = 0.0,
+    val accounts:           List<AccountEntity>  = emptyList(),
+    val showSubcategories:  Boolean              = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -74,18 +76,22 @@ class CategoriesViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
 
-    /** Полный state = месячные данные + список счетов */
+    private val _showSubcategories = MutableStateFlow(false)
+
+    /** Полный state = месячные данные + список счетов + флаг разворачивания */
     val state: StateFlow<CategoriesUiState> = combine(
         monthlyState,
-        accountRepo.getAllAccounts()
-    ) { catState, accounts ->
-        catState.copy(accounts = accounts)
+        accountRepo.getAllAccounts(),
+        _showSubcategories
+    ) { catState, accounts, showSub ->
+        catState.copy(accounts = accounts, showSubcategories = showSub)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
 
     fun prevMonth()                          = monthRepo.prevMonth()
     fun nextMonth()                          = monthRepo.nextMonth()
     fun goToMonth(year: Int, month: Int)     = monthRepo.goToMonth(year, month)
     fun setPeriod(appMonth: AppMonth)        = monthRepo.setPeriod(appMonth)
+    fun toggleSubcategories()               { _showSubcategories.value = !_showSubcategories.value }
 
     fun add(
         name:   String,

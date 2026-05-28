@@ -41,7 +41,7 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
             // Доходы
             CategoryEntity(name = "Зарплата",           type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "work",       isDefault = true, sortOrder = 1),
             CategoryEntity(name = "Фриланс",            type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "work",       isDefault = true, sortOrder = 2),
-            CategoryEntity(name = "Инвестиции",         type = TransactionType.INCOME,  colorHex = "#FFEB3B", icon = "money",      isDefault = true, sortOrder = 3),
+            CategoryEntity(name = "Инвестиции",         type = TransactionType.INCOME,  colorHex = "#FF8F00", icon = "money",      isDefault = true, sortOrder = 3),
             CategoryEntity(name = "Подарок",            type = TransactionType.INCOME,  colorHex = "#E91E63", icon = "gift",       isDefault = true, sortOrder = 4),
             CategoryEntity(name = "Прочие доходы",      type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "category",   isDefault = true, sortOrder = 5),
         )

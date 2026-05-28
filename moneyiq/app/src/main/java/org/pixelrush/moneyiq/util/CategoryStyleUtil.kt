@@ -10,55 +10,143 @@ import org.pixelrush.moneyiq.data.db.entities.TransactionType
 fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, String> {
     val n = name.lowercase().trim()
 
+    // Rules checked top-to-bottom; more specific rules must come first.
     val rules: List<Pair<String, List<String>>> = listOf(
-        "restaurant" to listOf("еда", "ресторан", "кафе", "обед", "ужин", "завтрак",
-                               "food", "cafe", "питан", "харч", "кухн"),
-        "shopping"   to listOf("покупки", "одежда", "одяг", "магазин", "продукт",
-                               "clothes", "market", "shopping", "взуття", "ринок"),
+        // AI services
+        "ai"         to listOf("ai ", " ai", "chatgpt", "openai", "claude", "gemini",
+                               "midjourney", "copilot", "gpt", "штучн", "нейромереж",
+                               "artificial intelligence", "llm"),
+
+        // Aliexpress / Asian marketplaces
+        "aliexpress" to listOf("aliexpress", "ali ", "алиекспресс", "аліекспрес",
+                               "temu", "shein", "wish", "banggood", "gearbest"),
+
+        // Cloud storage / subscriptions
+        "cloud"      to listOf("cloud", "хмар", "icloud", "google drive", "dropbox",
+                               "onedrive", "mega ", "backblaze", "хостинг", "vps", "сервер"),
+
+        // Transfers & money moves
+        "transfer"   to listOf("переказ", "перевод", "перевід", "transfer", "відправк", "розрахун"),
+
+        // Courier / delivery
+        "delivery"   to listOf("кур'єр", "курьер", "доставк", "delivery", "courier",
+                               "посилк", "нова пошта", "укрпошта", "meest", "justin"),
+
+        // Electronics / gadgets
+        "devices"    to listOf("електрон", "электрон", "техніка", "техника", "гаджет",
+                               "devices", "laptop", "ноутбук", "телевізор", "телевизор",
+                               "пристрій", "hardware", "software"),
+
+        // Internet (before phone to avoid overlap on "інтернет")
+        "wifi"       to listOf("інтернет", "інтернету", "internet", "wifi", "wi-fi",
+                               "broadband", "оптик", "провайдер"),
+
+        // Phone / mobile
+        "phone"      to listOf("зв'язок", "зв'язку", "связь", "мобільн",
+                               "phone", "mobile", "sim", "телефон", "поповнення",
+                               "lifecell", "kyivstar", "vodafone", "укртелеком"),
+
+        // Beauty / spa
+        "beauty"     to listOf("краса", "beauty", "салон", "перукарн", "косметик",
+                               "манікюр", "педикюр", "спа", "spa", "spa-"),
+
+        // Clothing (before shopping to avoid overlap)
+        "clothes"    to listOf("одяг", "взуття", "fashion", "одежд"),
+
+        // Family
+        "family"     to listOf("сім'я", "сімей", "family", "дітям", "дитяч",
+                               "дитин", "дитяча"),
+
+        // Bills / utilities (before home to be more specific)
+        "receipt"    to listOf("рахунки", "рахунок", "комунальн", "bills", "utilities",
+                               "счет", "оплат", "платіж"),
+
+        // Cafe (more specific than restaurant — must be before it)
+        "coffee"     to listOf("кафе", "кав'ярн", "кофе", "кава", "coffee", "cafe",
+                               "tea", "чай", "снэк", "снек", "snack"),
+
+        // Restaurants (includes "ресторація" — One Money's broad category name)
+        "restaurant" to listOf("ресторан", "ресторацій", "ресторація", "їдальн",
+                               "обід", "ужин", "завтрак", "food", "піца", "pizza",
+                               "суші", "sushi", "питан", "харч", "кухн", "restaurant"),
+
+        // Entertainment (includes "дозвілля" — One Money's broad category name)
+        "music"      to listOf("дозвілл", "розваг", "кіно", "музик", "концерт", "театр",
+                               "music", "entertainment", "netflix", "spotify", "steam"),
+
+        // Groceries / shopping
+        "shopping"   to listOf("продукти", "продукт", "покупки",
+                               "магазин", "market", "shopping", "ринок",
+                               "атб", "сільпо", "фора", "новус"),
+
+        // Transport / taxi
         "car"        to listOf("транспорт", "авто", "машин", "автомоб",
-                               "car", "taxi", "таксі", "автобус", "метро"),
-        "home"       to listOf("дом", "жильё", "жилл", "квартир", "аренд",
-                               "home", "rent", "house", "комунал", "ремонт", "будинок"),
-        "work"       to listOf("работа", "зарплат", "офис", "бизнес", "фриланс",
-                               "work", "salary", "бізнес", "заробіт", "доход від"),
-        "school"     to listOf("образован", "школ", "учёб", "учеб", "навчан",
-                               "курс", "study", "education", "університет"),
-        "health"     to listOf("здоровь", "аптек", "врач", "медицин",
-                               "health", "doctor", "ліки", "лікар", "клінік"),
-        "flight"     to listOf("путешеств", "перелёт", "перельот", "відпочин",
-                               "flight", "travel", "туризм", "відпустк", "отпуск"),
-        "music"      to listOf("музык", "музик", "розваг", "кино", "кіно",
-                               "развлечен", "music", "entertainment", "концерт", "театр"),
-        "money"      to listOf("деньги", "гроші", "финанс", "інвестиц", "инвестиц",
-                               "банк", "money", "invest", "вклад", "криптo", "crypto"),
-        "coffee"     to listOf("кофе", "кава", "coffee", "tea", "чай",
-                               "снэк", "снек", "snack"),
-        "pets"       to listOf("животн", "питомец", "тварин", "домашн",
-                               "pet", "кошк", "собак", "кіт"),
-        "gift"       to listOf("подарок", "подарун", "gift", "present",
-                               "свят", "birthday", "день народ"),
-        "phone"      to listOf("телефон", "связь", "зв'язок", "інтернет", "интернет",
-                               "мобільн", "phone", "mobile", "інтерн"),
-        "sports"     to listOf("спорт", "фитнес", "фітнес", "спортзал",
-                               "gym", "sport", "тренув", "йога", "yoga")
+                               "car", "taxi", "таксі", "автобус", "метро",
+                               "uklon", "bolt", "uber", "паркінг", "бензин", "пальне"),
+
+        // Home / utilities
+        "home"       to listOf("комунал", "квартир", "аренд", "оренд",
+                               "home", "rent", "house", "ремонт", "будинок",
+                               "електроенергія", "газ ", "вода ", "опален"),
+
+        // Work / income
+        "work"       to listOf("зарплат", "заробіт", "офіс", "бізнес", "фриланс",
+                               "work", "salary", "доход від", "дохід"),
+
+        // Education
+        "school"     to listOf("освіт", "навчан", "школ", "курс", "study",
+                               "education", "університет", "репетитор"),
+
+        // Health
+        "health"     to listOf("медицин", "здоров", "аптек", "лікар", "ліки",
+                               "health", "doctor", "клінік", "стоматолог"),
+
+        // Travel / flights
+        "flight"     to listOf("відпочин", "туризм", "відпустк", "перельот",
+                               "flight", "travel", "готель", "hotel", "booking"),
+
+        // Finance / savings
+        "money"      to listOf("інвестиц", "інвестицій", "банк", "крипто",
+                               "invest", "crypto", "накопич", "депозит", "вклад"),
+
+        // Pets
+        "pets"       to listOf("тварин", "домашн", "кіт", "собак", "pet", "ветеринар"),
+
+        // Gifts
+        "gift"       to listOf("подарун", "подарок", "gift", "present",
+                               "свят", "день народ", "birthday"),
+
+        // Sports
+        "sports"     to listOf("спорт", "фітнес", "спортзал", "gym", "тренув", "йога", "yoga")
     )
 
     val iconColorMap = mapOf(
-        "restaurant" to "#FF5722",
-        "shopping"   to "#4CAF50",
-        "car"        to "#2196F3",
-        "home"       to "#9C27B0",
-        "work"       to "#4CAF50",
-        "school"     to "#FF9800",
-        "health"     to "#E91E63",
-        "flight"     to "#03A9F4",
-        "music"      to "#673AB7",
-        "money"      to "#FFEB3B",
-        "coffee"     to "#FF9800",
-        "pets"       to "#FF5722",
-        "gift"       to "#E91E63",
-        "phone"      to "#3F51B5",
-        "sports"     to "#F44336"
+        "ai"         to "#6200EA",  // deep-purple   — AI сервіси
+        "aliexpress" to "#FF6D00",  // orange        — Aliexpress
+        "cloud"      to "#0288D1",  // sky-blue      — Cloud/хостинг
+        "transfer"   to "#00897B",  // teal          — Переказ
+        "delivery"   to "#FF6F00",  // amber         — Кур'єр
+        "devices"    to "#607D8B",  // blue-grey     — Електроніка
+        "wifi"       to "#00BCD4",  // cyan          — Інтернет
+        "phone"      to "#3F51B5",  // indigo        — Зв'язок
+        "coffee"     to "#795548",  // brown         — Кафе
+        "restaurant" to "#FF5722",  // deep-orange   — Ресторани
+        "shopping"   to "#43A047",  // green         — Продукти
+        "car"        to "#2196F3",  // blue          — Таксі/Авто
+        "home"       to "#9C27B0",  // purple        — Комунальні
+        "work"       to "#1565C0",  // dark-blue     — Зарплата
+        "school"     to "#FF9800",  // orange        — Освіта
+        "health"     to "#E91E63",  // pink          — Медицина
+        "flight"     to "#03A9F4",  // light-blue    — Подорожі
+        "music"      to "#673AB7",  // deep-purple   — Розваги
+        "money"      to "#F9A825",  // amber-dark    — Інвестиції
+        "pets"       to "#8D6E63",  // brown-light   — Тварини
+        "gift"       to "#EC407A",  // pink-light    — Подарунки
+        "sports"     to "#F44336",  // red           — Спорт
+        "beauty"     to "#AD1457",  // dark-pink     — Краса
+        "clothes"    to "#00838F",  // dark-cyan     — Одяг
+        "family"     to "#7B1FA2",  // purple        — Сім'я
+        "receipt"    to "#546E7A"   // blue-grey     — Рахунки
     )
 
     for ((icon, keywords) in rules) {
@@ -67,6 +155,7 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         }
     }
 
-    val fallbackColor = if (type == TransactionType.INCOME) "#4CAF50" else "#FF5722"
+    // Unrecognised / "Інше" — neutral grey
+    val fallbackColor = if (type == TransactionType.INCOME) "#4CAF50" else "#78909C"
     return "category" to fallbackColor
 }

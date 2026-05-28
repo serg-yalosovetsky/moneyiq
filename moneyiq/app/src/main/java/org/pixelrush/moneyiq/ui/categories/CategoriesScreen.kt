@@ -33,6 +33,7 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
@@ -65,6 +66,10 @@ fun CategoriesScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
+            .horizontalSwipe(
+                onSwipeLeft  = viewModel::nextMonth,
+                onSwipeRight = viewModel::prevMonth
+            )
     ) {
         // Навігатор місяців
         SharedMonthNavPill(
@@ -231,6 +236,8 @@ internal fun CategoriesGridContent(
 
                 // Donut-чарт (центр — кнопка перемикання)
                 DonutChart(
+                    categories   = categories,
+                    spending     = spending,
                     totalExpense = totalExpense,
                     totalIncome  = totalIncome,
                     selectedTab  = selectedTab,
@@ -457,19 +464,32 @@ private fun AddCategoryChip(onClick: () -> Unit) {
 
 @Composable
 private fun DonutChart(
+    categories:   List<CategoryEntity>,
+    spending:     Map<Long, Double>,
     totalExpense: Double,
     totalIncome:  Double,
     selectedTab:  Int,
     onToggle:     () -> Unit,
     modifier:     Modifier = Modifier
 ) {
+    val emptyColor   = MaterialTheme.colorScheme.surfaceVariant
     val expenseColor = MaterialTheme.colorScheme.error
     val incomeColor  = Color(0xFF26A69A)
-    val emptyColor   = MaterialTheme.colorScheme.surfaceVariant
 
-    val total    = totalExpense + totalIncome
-    val expAngle = if (total > 0.0) (totalExpense / total * 360.0).toFloat() else 0f
-    val incAngle = if (total > 0.0) (totalIncome  / total * 360.0).toFloat() else 0f
+    // Категорії поточного таба з ненульовими витратами, відсортовані за сумою
+    val tabType = if (selectedTab == 0) TransactionType.EXPENSE else TransactionType.INCOME
+    val activeSpending = categories
+        .filter { it.type == tabType && !it.archived }
+        .mapNotNull { cat -> (spending[cat.id] ?: 0.0).takeIf { it > 0.0 }?.let { cat to it } }
+        .sortedByDescending { it.second }
+
+    val tabTotal = activeSpending.sumOf { it.second }
+
+    // Розбираємо кольори категорій
+    val categoryColors = activeSpending.map { (cat, _) ->
+        try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+        catch (_: Exception) { Color(0xFFFF5722) }
+    }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -483,7 +503,7 @@ private fun DonutChart(
                 y = (size.height - minDim) / 2f + inset
             )
 
-            if (total == 0.0) {
+            if (tabTotal == 0.0) {
                 drawArc(
                     color      = emptyColor,
                     startAngle = -90f, sweepAngle = 360f,
@@ -491,21 +511,17 @@ private fun DonutChart(
                     style      = Stroke(width = sw)
                 )
             } else {
-                if (expAngle > 0f) {
+                var startAngle = -90f
+                activeSpending.forEachIndexed { idx, (_, amount) ->
+                    val sweep = (amount / tabTotal * 360.0).toFloat()
                     drawArc(
-                        color      = expenseColor,
-                        startAngle = -90f, sweepAngle = expAngle,
+                        color      = categoryColors[idx],
+                        startAngle = startAngle,
+                        sweepAngle = sweep,
                         useCenter  = false, topLeft = tl, size = arcSz,
                         style      = Stroke(width = sw, cap = StrokeCap.Butt)
                     )
-                }
-                if (incAngle > 0f) {
-                    drawArc(
-                        color      = incomeColor,
-                        startAngle = -90f + expAngle, sweepAngle = incAngle,
-                        useCenter  = false, topLeft = tl, size = arcSz,
-                        style      = Stroke(width = sw, cap = StrokeCap.Butt)
-                    )
+                    startAngle += sweep
                 }
             }
         }

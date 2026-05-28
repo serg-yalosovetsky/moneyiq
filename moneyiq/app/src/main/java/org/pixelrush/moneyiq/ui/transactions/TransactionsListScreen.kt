@@ -63,6 +63,7 @@ import org.pixelrush.moneyiq.ui.main.SectionHeader
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.TransactionListItem
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -226,7 +227,13 @@ fun TransactionsListScreen(
             .mapValues { (_, txList) -> txList.sumOf { it.amount } }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .horizontalSwipe(
+            onSwipeLeft  = viewModel::nextMonth,
+            onSwipeRight = viewModel::prevMonth
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

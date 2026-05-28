@@ -188,15 +188,9 @@ class DataViewModel @Inject constructor(
     }
 
     private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
-        val validIconKeys = setOf(
-            "category", "shopping", "restaurant", "car", "home", "work", "school",
-            "health", "flight", "music", "money", "coffee", "pets", "gift", "phone", "sports"
-        )
         val sanitizedCategories = data.categories.map { cat ->
-            if (cat.icon !in validIconKeys) {
-                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-                cat.copy(icon = icon, colorHex = color)
-            } else cat
+            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+            cat.copy(icon = icon, colorHex = color)
         }
         // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
         txDao.deleteAllTransactions()
@@ -428,15 +422,9 @@ class DataViewModel @Inject constructor(
 
     /** MERGE-імпорт: вставляє/оновлює дані БЕЗ видалення існуючих (on conflict REPLACE by id) */
     private suspend fun mergeBackupData(data: BackupData) = withContext(Dispatchers.IO) {
-        val validIconKeys = setOf(
-            "category", "shopping", "restaurant", "car", "home", "work", "school",
-            "health", "flight", "music", "money", "coffee", "pets", "gift", "phone", "sports"
-        )
         val sanitizedCategories = data.categories.map { cat ->
-            if (cat.icon !in validIconKeys) {
-                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-                cat.copy(icon = icon, colorHex = color)
-            } else cat
+            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+            cat.copy(icon = icon, colorHex = color)
         }
         // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
         accountDao.insertAccounts(data.accounts)

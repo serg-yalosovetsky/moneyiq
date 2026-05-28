@@ -2,10 +2,8 @@ package org.pixelrush.moneyiq.ui.budget
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,6 +42,7 @@ import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 import java.util.*
 import org.pixelrush.moneyiq.ui.categories.CalcStateHolder
 import org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad
@@ -111,8 +110,16 @@ class BudgetViewModel @Inject constructor(
                 pillLabel      = monthRepo.pillLabel(am),
                 pillBadge      = monthRepo.pillBadge(am),
                 totalBalance   = rawBalance ?: 0.0,
-                expenseSection = BudgetSectionData(expCats.sumOf { it.budgetAmount }, expRows.sumOf { it.amount }, expRows),
-                incomeSection  = BudgetSectionData(incCats.sumOf { it.budgetAmount }, incRows.sumOf { it.amount }, incRows)
+                expenseSection = BudgetSectionData(
+                    totalBudget = expCats.sumOf { it.budgetAmount },
+                    totalAmount = expRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
+                    rows        = expRows
+                ),
+                incomeSection = BudgetSectionData(
+                    totalBudget = incCats.sumOf { it.budgetAmount },
+                    totalAmount = incRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
+                    rows        = incRows
+                )
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
@@ -160,6 +167,10 @@ fun BudgetScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
+            .horizontalSwipe(
+                onSwipeLeft  = viewModel::nextMonth,
+                onSwipeRight = viewModel::prevMonth
+            )
     ) {
         if (!embeddedMode) {
             BudgetTopBar(
@@ -458,10 +469,13 @@ private fun BudgetSectionCard(
                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface)
                     Text(
-                        formatMoney(remaining),
+                        "${formatMoney(remaining)} ₴",
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                        color = if (remaining < 0) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = when {
+                            remaining < 0   -> MaterialTheme.colorScheme.error
+                            remaining > 0   -> accentColor
+                            else            -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        }
                     )
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -469,7 +483,7 @@ private fun BudgetSectionCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (data.totalAmount > 0) accentColor
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-                    Text("в бюджеті ${formatMoney(data.totalBudget)}",
+                    Text("в бюджеті ${formatMoney(data.totalBudget)} ₴",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
                 }
@@ -489,21 +503,44 @@ private fun BudgetSectionCard(
         // ── Chip-row for unbudgeted (or all in currentExpensesMode) ──────
         if (chipRows.isNotEmpty()) {
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Row(
-                modifier              = Modifier
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                visibleChips.forEach { row ->
-                    BudgetCatChip(row = row, accentColor = accentColor, onClick = { editingRow = row })
+            val rowBg = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            if (!expanded) {
+                Row(modifier = rowBg) {
+                    visibleChips.forEach { row ->
+                        Box(Modifier.weight(1f)) {
+                            BudgetCatChip(row = row, accentColor = accentColor, onClick = { editingRow = row })
+                        }
+                    }
+                    if (hasMoreChips) {
+                        Box(Modifier.weight(1f)) {
+                            MoreLessChip(
+                                expanded  = false,
+                                remaining = chipRows.size - 3,
+                                onClick   = { expanded = true }
+                            )
+                        }
+                    }
                 }
-                if (hasMoreChips) {
-                    MoreLessChip(
-                        expanded  = expanded,
-                        remaining = chipRows.size - 3,
-                        onClick   = { expanded = !expanded }
-                    )
+            } else {
+                val totalItems = chipRows.size + 1
+                Column(modifier = rowBg) {
+                    (0 until totalItems).chunked(4).forEach { indices ->
+                        Row(Modifier.fillMaxWidth()) {
+                            indices.forEach { i ->
+                                Box(Modifier.weight(1f)) {
+                                    if (i < chipRows.size) {
+                                        val r = chipRows[i]
+                                        BudgetCatChip(row = r, accentColor = accentColor, onClick = { editingRow = r })
+                                    } else {
+                                        MoreLessChip(expanded = true, remaining = 0, onClick = { expanded = false })
+                                    }
+                                }
+                            }
+                            repeat(4 - indices.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
                 }
             }
         }
@@ -558,12 +595,15 @@ private fun BudgetCatFullRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                formatMoney(remaining),
+                "${formatMoney(remaining)} ₴",
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = if (remaining < 0) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = when {
+                    remaining < 0 -> MaterialTheme.colorScheme.error
+                    remaining > 0 -> accentColor
+                    else          -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                }
             )
-            Text("в бюджеті ${formatMoney(row.category.budgetAmount)}",
+            Text("в бюджеті ${formatMoney(row.category.budgetAmount)} ₴",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
         }
@@ -585,7 +625,7 @@ private fun BudgetCatChip(
 
     Column(
         modifier = Modifier
-            .width(88.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -601,23 +641,17 @@ private fun BudgetCatChip(
             lineHeight = MaterialTheme.typography.labelSmall.lineHeight
         )
         Spacer(Modifier.height(2.dp))
+        val hasAmount = row.amount > 0
         Box(
             modifier = Modifier
                 .size(54.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f))
-                .drawBehind {
-                    drawCircle(
-                        color  = color,
-                        radius = size.minDimension / 2f,
-                        style  = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-                    )
-                },
+                .background(if (hasAmount) color else color.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 budgetIconFor(row.category.icon), null,
-                tint     = color,
+                tint     = if (hasAmount) Color.White else color,
                 modifier = Modifier.size(26.dp)
             )
         }
@@ -643,7 +677,7 @@ private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit)
 
     Column(
         modifier = Modifier
-            .width(76.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally

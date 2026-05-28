@@ -48,6 +48,7 @@ import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 import java.util.*
 import javax.inject.Inject
 
@@ -247,9 +248,10 @@ class OverviewViewModel @Inject constructor(
         val daysPassed = if (isCurrentMonth) todayDay.coerceAtLeast(1) else dim
         val dailyAvg   = if (daysPassed > 0) monthTotal / daysPassed else 0.0
 
-        val maxAmt = catSpend.maxOfOrNull { it.total } ?: 0.0
+        val activeSpend = catSpend.filter { it.total > 0 }
+        val maxAmt = activeSpend.maxOfOrNull { it.total } ?: 0.0
         val catMap = cats.associate { it.id to it }
-        val catRows = catSpend.map { cs ->
+        val catRows = activeSpend.map { cs ->
             OverviewCatRow(
                 categoryId   = cs.categoryId,
                 name         = cs.categoryName,
@@ -339,38 +341,10 @@ fun OverviewScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    var dx = 0f
-                    var dy = 0f
-                    var horizontalConfirmed = false
-                    var evt = awaitPointerEvent()
-                    while (evt.changes.any { it.pressed }) {
-                        val ch = evt.changes.firstOrNull() ?: break
-                        val delta = ch.position - ch.previousPosition
-                        dx += delta.x
-                        dy += delta.y
-                        if (!horizontalConfirmed) {
-                            val threshold = 14.dp.toPx()
-                            if (abs(dx) > threshold || abs(dy) > threshold) {
-                                if (abs(dx) > abs(dy) * 1.5f) {
-                                    horizontalConfirmed = true
-                                    ch.consume()
-                                } else {
-                                    break
-                                }
-                            }
-                        } else {
-                            ch.consume()
-                        }
-                        evt = awaitPointerEvent()
-                    }
-                    if (horizontalConfirmed) {
-                        if (dx < 0) viewModel.nextMonth() else viewModel.prevMonth()
-                    }
-                }
-            }
+            .horizontalSwipe(
+                onSwipeLeft  = viewModel::nextMonth,
+                onSwipeRight = viewModel::prevMonth
+            )
     ) {
         if (!embeddedMode) {
             OverviewTopBar(totalBalance = state.totalBalance)

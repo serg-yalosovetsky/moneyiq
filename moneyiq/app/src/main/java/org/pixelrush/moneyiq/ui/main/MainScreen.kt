@@ -28,6 +28,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.AccountType
@@ -583,4 +588,30 @@ fun formatMoney(amount: Double, currency: String = ""): String {
     nf.minimumFractionDigits = 2
     nf.maximumFractionDigits = 2
     return if (currency.isNotBlank()) "${nf.format(amount)} $currency" else nf.format(amount)
+}
+
+// ── Swipe gesture helper ──────────────────────────────────────────────────────
+
+private const val SWIPE_THRESHOLD = 60f
+
+fun Modifier.horizontalSwipe(
+    onSwipeLeft:  () -> Unit,
+    onSwipeRight: () -> Unit
+): Modifier = pointerInput(onSwipeLeft, onSwipeRight) {
+    awaitEachGesture {
+        val down   = awaitFirstDown(requireUnconsumed = false)
+        val startX = down.position.x
+        var endX   = startX
+        while (true) {
+            val event  = awaitPointerEvent()
+            val change = event.changes.lastOrNull() ?: break
+            endX = change.position.x
+            if (!change.pressed) break
+        }
+        val delta = endX - startX
+        when {
+            delta < -SWIPE_THRESHOLD -> onSwipeLeft()
+            delta >  SWIPE_THRESHOLD -> onSwipeRight()
+        }
+    }
 }

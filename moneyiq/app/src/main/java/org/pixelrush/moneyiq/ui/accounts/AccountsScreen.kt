@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -56,6 +57,10 @@ fun AccountsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
+            .horizontalSwipe(
+                onSwipeLeft  = { selectedSubTab = 1 },
+                onSwipeRight = { selectedSubTab = 0 }
+            )
     ) {
         if (!embeddedMode) {
             AccountsTopBar(
