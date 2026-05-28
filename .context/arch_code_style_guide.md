@@ -6,6 +6,7 @@
 - Keep state in ViewModels or screen-local Compose state depending on lifetime.
 - Use Flow from DAOs/repositories for reactive data.
 - Avoid broad refactors while fixing a focused UI or accounting issue.
+- ViewModels must live in their own file separate from the Screen file (e.g., `BudgetViewModel.kt` + `BudgetScreen.kt`).
 
 ## Compose UI
 
@@ -14,6 +15,25 @@
 - Avoid text wrapping in compact controls unless explicitly designed.
 - Prefer existing color/icon/category helpers.
 - Keep Ukrainian user-facing labels unless changing copy is part of the task.
+- Calculator and date-picker components live in `ui/components/calculator/` — import from there, not from `ui.categories`.
+- `categoryIconFor()` remains in `ui/categories/CategoryIcons.kt` (internal).
+- Transaction sheet composables are split into `TxSearchScreen.kt`, `CategoryPickerSheet.kt`, `TransferQuickSheet.kt`, `TransactionDetailSheet.kt` — do not re-merge into a single file. New transaction sheet composables go into the most relevant of these four files.
+
+## Companion File Pattern
+
+Large screen files (>600 lines) are split into a main file + one or more companion files in the same package:
+
+| Main file | Companion(s) | What goes in companion |
+|---|---|---|
+| `BudgetScreen.kt` | `BudgetSheets.kt` | Input/settings bottom sheets |
+| `CategoriesScreen.kt` | `CategoriesWidgets.kt` | Chip, panel, chart, border composables |
+| `CategorySheets.kt` | `CategoryFormSheets.kt` | CategoryFormSheet, ColorIconPickerSheet, EditCategoriesScreen |
+| `AccountSheets.kt` | `AccountPickerSheets.kt` | Picker sheets, dialogs, form helpers, AccountActionSheet |
+| `OverviewScreen.kt` | `OverviewSheets.kt` | CategoryDetailSheet |
+| `SettingsScreen.kt` | `SettingsSubScreens.kt` | Sub-pages, helpers, dialogs, data constants |
+| `DataScreen.kt` | `DataWidgets.kt` | All private composables and helper functions |
+
+**Visibility rule:** Composables/functions shared across files in the same package must be `internal`, not `private`. Use `private` only for helpers that are used exclusively within the same file.
 
 ## Persistence
 
@@ -21,11 +41,34 @@
 - Update `.context/DB_SCHEMA.md` after schema changes.
 - Keep repositories as the boundary for multi-entity mutations.
 
-## Testing And Verification
+## Testing
 
-- Minimum check for Kotlin/Compose changes: `app:compileDebugKotlin`.
-- For database/accounting changes, add focused unit or instrumentation coverage if the project has suitable test harnesses.
-- For UI-sensitive screens, prefer emulator screenshot validation when available.
+Unit test libraries are configured. Use these patterns:
+
+```kotlin
+@get:Rule val mainDispatcherRule = MainDispatcherRule()  // sets UnconfinedTestDispatcher
+```
+
+For Flow testing use Turbine:
+
+```kotlin
+vm.state.test {
+    val state = awaitItem()
+    assertEquals(expected, state.someField)
+    cancelAndIgnoreRemainingEvents()
+}
+```
+
+For ViewModel tests with lazy state (state updates only after all upstream flows emit):
+- Use `emptyFlow()` for one upstream to keep `isLoading = true` observable.
+- Use `flowOf(value)` to immediately trigger combine and set `isLoading = false`.
+
+Test commands:
+- Compile check: `gradlew :app:compileDebugKotlin`
+- Unit tests: `gradlew :app:testDebugUnitTest`
+- Instrumented tests (device required): `gradlew connectedAndroidTest`
+
+When adding new ViewModels or repositories, add corresponding tests following patterns in existing test files.
 
 ## Comments
 
