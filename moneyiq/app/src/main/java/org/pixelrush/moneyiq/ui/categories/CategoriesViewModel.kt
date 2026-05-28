@@ -26,6 +26,7 @@ data class CategoriesUiState(
     val incomeCategories:  List<CategoryEntity> = emptyList(),
     val monthSpending:     Map<Long, Double>     = emptyMap(),
     val monthIncome:       Map<Long, Double>     = emptyMap(),
+    val monthTxCounts:     Map<Long, Int>        = emptyMap(),
     val selectedMonth:     SelectedMonth = SelectedMonth(
         Calendar.getInstance().get(Calendar.YEAR),
         Calendar.getInstance().get(Calendar.MONTH)
@@ -65,6 +66,7 @@ class CategoriesViewModel @Inject constructor(
                     incomeCategories  = income,
                     monthSpending     = expSpending.associate { it.categoryId to it.total },
                     monthIncome       = incSpending.associate { it.categoryId to it.total },
+                    monthTxCounts     = (expSpending + incSpending).associate { it.categoryId to it.count },
                     selectedMonth     = sel,
                     appMonth          = am,
                     daysInMonth       = monthRepo.daysInPeriod(am),

@@ -27,7 +27,8 @@ data class CategorySpending(
     val categoryName: String,
     val categoryColor: String,
     val categoryIcon: String,
-    val total: Double
+    val total: Double,
+    val count: Int = 0
 )
 
 @Dao
@@ -74,7 +75,8 @@ interface TransactionDao {
     @Query("""
         SELECT c.id AS categoryId, c.name AS categoryName,
                c.colorHex AS categoryColor, c.icon AS categoryIcon,
-               COALESCE(SUM(t.amount), 0) AS total
+               COALESCE(SUM(t.amount), 0) AS total,
+               COUNT(t.id) AS count
         FROM categories c
         LEFT JOIN transactions t ON t.categoryId = c.id
             AND t.type = :type

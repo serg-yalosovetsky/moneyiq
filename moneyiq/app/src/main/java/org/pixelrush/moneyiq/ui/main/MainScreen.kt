@@ -79,7 +79,6 @@ private val TABS = listOf(
 @Composable
 fun MainScreen(
     onAddTransaction:    () -> Unit,
-    onEditTransaction:   (Long) -> Unit     = {},
     mainViewModel:       MainViewModel      = hiltViewModel(),
     accountsViewModel:   AccountsViewModel  = hiltViewModel(),
     categoriesViewModel: CategoriesViewModel = hiltViewModel(),
@@ -112,11 +111,12 @@ fun MainScreen(
     val triggerEditCategories: () -> Unit = { showEditCategories = true }
     val categoriesState by categoriesViewModel.state.collectAsState()
 
-    // ── Екран Дані / Налаштування / Пошук ────────────────────────────────────
-    var showDataScreen     by remember { mutableStateOf(false) }
-    var showSettingsScreen by remember { mutableStateOf(false) }
-    var openTxSearch       by remember { mutableStateOf(false) }
-    var showBudgetSettings by remember { mutableStateOf(false) }
+    // ── Екран Дані / Налаштування / Пошук / Фільтр за категорією ─────────────
+    var showDataScreen       by remember { mutableStateOf(false) }
+    var showSettingsScreen   by remember { mutableStateOf(false) }
+    var openTxSearch         by remember { mutableStateOf(false) }
+    var showBudgetSettings   by remember { mutableStateOf(false) }
+    var filterByCategoryId   by remember { mutableStateOf<Long?>(null) }
 
     if (showDataScreen) {
         DataScreen(onNavigateBack = { showDataScreen = false })
@@ -132,7 +132,8 @@ fun MainScreen(
     }
 
     // Жест «назад» — повертаємося на вкладку «Операції» (індекс 2), звідти — виходимо з додатку
-    val txTabIndex = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
+    val txTabIndex     = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
+    val budgetTabIndex = activeTabs.indexOfFirst { it.label == "Бюджет"   }.takeIf { it >= 0 } ?: -1
     val goBack: () -> Unit = {
         if (currentPage != txTabIndex) scope.launch { pagerState.animateScrollToPage(txTabIndex) }
     }
@@ -219,15 +220,24 @@ fun MainScreen(
                              onRequestAdd = triggerNewAccount
                          )
                     1 -> CategoriesScreen(
-                             padding      = bottomPadding,
-                             embeddedMode = true
+                             padding          = bottomPadding,
+                             embeddedMode     = true,
+                             onViewCategoryTx = { cat ->
+                                 filterByCategoryId = cat.id
+                                 scope.launch { pagerState.animateScrollToPage(txTabIndex) }
+                             },
+                             onViewBudget     = {
+                                 if (budgetTabIndex >= 0)
+                                     scope.launch { pagerState.animateScrollToPage(budgetTabIndex) }
+                             }
                          )
                     2 -> TransactionsListScreen(
-                             padding           = bottomPadding,
-                             onEditTransaction = onEditTransaction,
-                             embeddedMode      = true,
-                             openSearch        = openTxSearch,
-                             onSearchDismissed = { openTxSearch = false }
+                             padding                = bottomPadding,
+                             embeddedMode           = true,
+                             openSearch             = openTxSearch,
+                             onSearchDismissed      = { openTxSearch = false },
+                             initialCategoryFilter  = filterByCategoryId,
+                             onInitialFilterApplied = { filterByCategoryId = null }
                          )
                     3 -> BudgetScreen(
                              padding           = bottomPadding,

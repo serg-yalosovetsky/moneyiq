@@ -3,6 +3,7 @@ package org.pixelrush.moneyiq.ui.categories
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -82,6 +83,204 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
 
 internal fun categoryIconFor(iconName: String): ImageVector =
     CATEGORY_ICONS_LIST.firstOrNull { it.first == iconName }?.second ?: Icons.Outlined.Category
+
+// ── Category Action Sheet ─────────────────────────────────────────────────────
+
+private fun txCountLabel(n: Int): String = when {
+    n % 100 in 11..19 -> "$n операцій"
+    n % 10 == 1        -> "$n операція"
+    n % 10 in 2..4     -> "$n операції"
+    else               -> "$n операцій"
+}
+
+@Composable
+fun CategoryActionSheet(
+    category:      CategoryEntity,
+    spending:      Double,
+    txCount:       Int,
+    totalInPeriod: Double,
+    pillLabel:     String,
+    onEdit:        () -> Unit,
+    onBudget:      () -> Unit,
+    onOperations:  () -> Unit,
+    onDismiss:     () -> Unit
+) {
+    val catColor = remember(category.colorHex) {
+        try { Color(android.graphics.Color.parseColor(category.colorHex)) }
+        catch (_: Exception) { Color(0xFF4361EE) }
+    }
+    val percent  = if (totalInPeriod > 0.0) (spending / totalInPeriod * 100).toInt() else 0
+    val progress = if (totalInPeriod > 0.0) (spending / totalInPeriod).coerceIn(0.0, 1.0).toFloat() else 0f
+
+    // Повноекранний Dialog = скрим + кастомний шит знизу (без кліпінгу ModalBottomSheet)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties       = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            // ── Скрим ────────────────────────────────────────────────────
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication        = null,
+                        onClick           = onDismiss
+                    )
+            )
+
+            // ── Панель знизу ─────────────────────────────────────────────
+            Column(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+            ) {
+                // Зовнішній Box — не обрізає контент, тому іконка «виплаває» вище
+                Box(Modifier.fillMaxWidth()) {
+                    // Кольорова шапка
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                            .background(catColor)
+                            .padding(start = 20.dp, top = 20.dp, bottom = 20.dp, end = 20.dp)
+                    ) {
+                        Text(
+                            category.name,
+                            style      = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                txCountLabel(txCount),
+                                color = Color.White.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                "${formatMoney(spending)} ₴",
+                                color      = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style      = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            LinearProgressIndicator(
+                                progress   = { progress },
+                                modifier   = Modifier
+                                    .weight(1f)
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color      = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.28f)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                "$percent%",
+                                color      = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style      = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Row(Modifier.fillMaxWidth()) {
+                            Text(
+                                pillLabel,
+                                color = Color.White.copy(0.8f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                "${formatMoney(totalInPeriod)} ₴",
+                                color      = Color.White.copy(0.8f),
+                                fontWeight = FontWeight.Medium,
+                                style      = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    // Іконка — «виплаває» над верхнім краєм панелі на 36 dp
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 20.dp)
+                            .offset(y = (-36).dp)   // половина від розміру кола 72 dp
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(catColor)
+                            .border(3.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            categoryIconFor(category.icon), null,
+                            tint     = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                // ── Кнопки дій (білий фон) ────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CatActionButton(Icons.Default.Edit,     "Редагувати", catColor, onEdit,       Modifier.weight(1f))
+                    CatActionButton(Icons.Outlined.Speed,   "Бюджет",     catColor, onBudget,     Modifier.weight(1f))
+                    CatActionButton(Icons.Outlined.Receipt, "Операції",   catColor, onOperations, Modifier.weight(1f))
+                }
+
+                // Навігаційний відступ
+                Spacer(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .background(MaterialTheme.colorScheme.surface)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatActionButton(
+    icon:     ImageVector,
+    label:    String,
+    color:    Color,
+    onClick:  () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier            = modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier         = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(26.dp))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            label,
+            style     = MaterialTheme.typography.labelMedium,
+            color     = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
 // ── Quick Expense / Income Sheet ──────────────────────────────────────────────
 // Лейаут: 2 кольорові панелі (рахунок / категорія) + сума + нотатка +
@@ -792,17 +991,24 @@ fun CategoryFormSheet(
     }
     var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showBudgetCalc   by remember { mutableStateOf(false) }
 
-    // Авто-підказка іконки та кольору при введенні назви нової категорії
-    if (existing == null) {
-        LaunchedEffect(name) {
-            if (name.length >= 3 && iconKey == "category") {
-                val (sugIcon, sugColor) = suggestCategoryStyle(name, type)
-                iconKey  = sugIcon
-                colorHex = sugColor
-            }
+    var showNameDialog    by remember { mutableStateOf(false) }
+    var tempName          by remember { mutableStateOf("") }
+    var showIconPicker    by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBudgetCalc    by remember { mutableStateOf(false) }
+
+    // Для нової категорії — одразу відкриваємо введення назви
+    LaunchedEffect(Unit) {
+        if (existing == null) { tempName = ""; showNameDialog = true }
+    }
+
+    // Авто-підказка стилю при введенні назви нової категорії
+    LaunchedEffect(name) {
+        if (existing == null && name.length >= 3 && iconKey == "category") {
+            val (sugIcon, sugColor) = suggestCategoryStyle(name, type)
+            iconKey  = sugIcon
+            colorHex = sugColor
         }
     }
 
@@ -810,7 +1016,14 @@ fun CategoryFormSheet(
         try { Color(android.graphics.Color.parseColor(colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     } }
-    val hasBudget = budget.isNotBlank() && (budget.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0
+
+    fun doSave() {
+        if (name.isNotBlank()) {
+            val b = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
+            onSave(name, type, colorHex, iconKey, b, period, archived)
+            onDismiss()
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -820,9 +1033,7 @@ fun CategoryFormSheet(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = {
-                        Text(if (existing != null) "Редагувати категорію" else "Нова категорія")
-                    },
+                    title = { Text(if (existing != null) "Категорія" else "Нова категорія") },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
@@ -830,14 +1041,8 @@ fun CategoryFormSheet(
                     },
                     actions = {
                         TextButton(
-                            onClick = {
-                                val b = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
-                                if (name.isNotBlank()) {
-                                    onSave(name, type, colorHex, iconKey, b, period, archived)
-                                    onDismiss()
-                                }
-                            },
-                            enabled = name.isNotBlank()
+                            onClick  = ::doSave,
+                            enabled  = name.isNotBlank()
                         ) {
                             Text("Зберегти", fontWeight = FontWeight.SemiBold)
                         }
@@ -845,191 +1050,259 @@ fun CategoryFormSheet(
                 )
             }
         ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            LazyColumn(
+                modifier       = Modifier.fillMaxSize().padding(paddingValues),
+                contentPadding = PaddingValues(bottom = 32.dp)
             ) {
-                // Превʼю іконки
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(catColor)
-                        .align(Alignment.CenterHorizontally),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(categoryIconFor(iconKey), null, tint = Color.White, modifier = Modifier.size(38.dp))
-                }
-
-                // Вибір кольору
-                Text("Колір", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CATEGORY_FORM_COLORS.chunked(6).forEach { rowColors ->
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            rowColors.forEach { hex ->
-                                val c    = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
-                                val isSel = hex == colorHex
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(c)
-                                        .then(if (isSel) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                                        .clickable { colorHex = hex },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isSel) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Вибір іконки
-                Text("Іконка", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CATEGORY_ICONS_LIST.chunked(4).forEach { rowIcons ->
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            rowIcons.forEach { (key, icon) ->
-                                val isSel = key == iconKey
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSel) catColor else MaterialTheme.colorScheme.surfaceVariant)
-                                        .clickable { iconKey = key },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        icon, null,
-                                        tint     = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                            repeat(4 - rowIcons.size) { Spacer(Modifier.size(44.dp)) }
-                        }
-                    }
-                }
-
-                // Назва
-                OutlinedTextField(
-                    value         = name,
-                    onValueChange = { name = it },
-                    label         = { Text("Назва") },
-                    modifier      = Modifier.fillMaxWidth(),
-                    singleLine    = true,
-                    leadingIcon   = { Icon(Icons.Outlined.Category, null) }
-                )
-
-                // Тип
-                Text("Тип", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    listOf(TransactionType.EXPENSE to "Витрати", TransactionType.INCOME to "Доходи")
-                        .forEachIndexed { i, (t, label) ->
-                            SegmentedButton(
-                                selected = type == t,
-                                onClick  = { type = t },
-                                shape    = SegmentedButtonDefaults.itemShape(i, 2),
-                                label    = { Text(label) }
+                // ── Шапка: назва + іконка ────────────────────────────────────
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(end = 76.dp)) {
+                            Text(
+                                "Назва",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text  = name.ifBlank { "Торкніться для введення" },
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (name.isBlank())
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                        else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.clickable { tempName = name; showNameDialog = true }
                             )
                         }
+                        // Велика кольорова іконка праворуч
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(catColor)
+                                .clickable { showIconPicker = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                categoryIconFor(iconKey), null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
+                    }
                 }
 
-                // Бюджет (відкриває калькулятор)
-                val budgetNum = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
-                Box(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value         = if (budgetNum > 0.0) "$budget ₴" else "0 (без ліміту)",
-                        onValueChange = {},
-                        label         = { Text("Бюджет") },
-                        modifier      = Modifier.fillMaxWidth(),
-                        readOnly      = true,
-                        enabled       = false,
-                        leadingIcon   = { Icon(Icons.Outlined.AttachMoney, null) },
-                        colors        = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor        = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor      = MaterialTheme.colorScheme.outline,
-                            disabledLabelColor       = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                // ── Налаштування ─────────────────────────────────────────────
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Налаштування",
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.primary
                     )
-                    Box(Modifier.matchParentSize().clickable { showBudgetCalc = true })
                 }
 
-                // Період бюджету
-                if (hasBudget) {
-                    Text("Період бюджету", style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        listOf("MONTHLY" to "Місяць", "WEEKLY" to "Тиждень").forEachIndexed { i, (p, label) ->
-                            SegmentedButton(
-                                selected = period == p,
-                                onClick  = { period = p },
-                                shape    = SegmentedButtonDefaults.itemShape(i, 2),
-                                label    = { Text(label) }
+                // Тип (витрати / доходи)
+                item {
+                    ListItem(
+                        leadingContent  = {
+                            Icon(Icons.Outlined.Category, null,
+                                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                modifier = Modifier.size(22.dp))
+                        },
+                        headlineContent = { Text("Тип") },
+                        trailingContent = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(TransactionType.EXPENSE to "Витрати", TransactionType.INCOME to "Доходи")
+                                    .forEach { (t, label) ->
+                                        FilterChip(
+                                            selected = type == t,
+                                            onClick  = { type = t },
+                                            label    = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                                        )
+                                    }
+                            }
+                        }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                }
+
+                // Валюта
+                item {
+                    ListItem(
+                        leadingContent  = {
+                            Icon(Icons.Outlined.AttachMoney, null,
+                                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                modifier = Modifier.size(22.dp))
+                        },
+                        headlineContent  = { Text("Валюта категорії") },
+                        supportingContent = {
+                            Text(
+                                "Українська гривня – ₴",
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                             )
-                        }
-                    }
+                        },
+                        modifier = Modifier.clickable {}
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }
 
-                // Архів + видалення (тільки для редагування)
-                if (existing != null) {
+                // Бюджет
+                item {
+                    val budgetNum = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
+                    ListItem(
+                        leadingContent  = {
+                            Icon(Icons.Outlined.Speed, null,
+                                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                modifier = Modifier.size(22.dp))
+                        },
+                        headlineContent  = { Text("Бюджет") },
+                        supportingContent = {
+                            Text(
+                                if (budgetNum > 0.0) "$budget ₴ / ${if (period == "MONTHLY") "місяць" else "тиждень"}"
+                                else "Без ліміту",
+                                color = if (budgetNum > 0.0) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                            )
+                        },
+                        modifier = Modifier.clickable { showBudgetCalc = true }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                }
+
+                // ── Підкатегорії ─────────────────────────────────────────────
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Підкатегорії",
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                item {
+                    ListItem(
+                        leadingContent  = {
+                            Icon(Icons.Default.Add, null,
+                                tint     = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp))
+                        },
+                        headlineContent = {
+                            Text("Додати підкатегорію",
+                                color = MaterialTheme.colorScheme.primary)
+                        },
+                        modifier = Modifier.clickable {}
+                    )
                     HorizontalDivider()
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("В архів", style = MaterialTheme.typography.bodyLarge)
-                            Text("Категорія не відображатиметься в сітці",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-                        }
-                        Switch(checked = archived, onCheckedChange = { archived = it })
-                    }
+                }
+
+                // ── Архів ────────────────────────────────────────────────────
+                item {
+                    ListItem(
+                        leadingContent  = {
+                            Icon(Icons.Outlined.Archive, null,
+                                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(22.dp))
+                        },
+                        headlineContent  = { Text("Архівна категорія") },
+                        trailingContent  = {
+                            Switch(checked = archived, onCheckedChange = { archived = it })
+                        },
+                        modifier = Modifier.clickable { archived = !archived }
+                    )
                     HorizontalDivider()
-                    if (onDelete != null) {
-                        OutlinedButton(
-                            onClick  = { showDeleteConfirm = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            shape    = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Видалити категорію")
-                        }
+                }
+
+                // ── Видалити ─────────────────────────────────────────────────
+                if (onDelete != null) {
+                    item {
+                        ListItem(
+                            leadingContent  = {
+                                Icon(Icons.Default.Delete, null,
+                                    tint     = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(22.dp))
+                            },
+                            headlineContent = {
+                                Text("Видалити категорію",
+                                    color = MaterialTheme.colorScheme.error)
+                            },
+                            modifier = Modifier.clickable { showDeleteConfirm = true }
+                        )
                     }
                 }
             }
         }
     }
 
+    // ── Діалог назви ─────────────────────────────────────────────────────────
+    if (showNameDialog) {
+        AlertDialog(
+            onDismissRequest = { if (name.isNotBlank()) showNameDialog = false },
+            title   = { Text(if (existing != null) "Назва категорії" else "Нова категорія") },
+            text    = {
+                OutlinedTextField(
+                    value         = tempName,
+                    onValueChange = { tempName = it },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
+                    label         = { Text("Назва") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick  = { name = tempName; showNameDialog = false },
+                    enabled  = tempName.isNotBlank()
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                if (name.isNotBlank()) {
+                    TextButton(onClick = { showNameDialog = false }) { Text("Скасувати") }
+                }
+            }
+        )
+    }
+
+    // ── Пікер кольору та іконки ───────────────────────────────────────────────
+    if (showIconPicker) {
+        ColorIconPickerSheet(
+            currentColor = colorHex,
+            currentIcon  = iconKey,
+            onSave       = { newColor, newIcon ->
+                colorHex = newColor
+                iconKey  = newIcon
+                showIconPicker = false
+            },
+            onDismiss = { showIconPicker = false }
+        )
+    }
+
+    // ── Видалення ─────────────────────────────────────────────────────────────
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title   = { Text("Видалити категорію?") },
             text    = { Text("Транзакції залишаться, але без категорії.") },
             confirmButton = {
-                Button(onClick = { showDeleteConfirm = false; onDelete?.invoke() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                Button(
+                    onClick = { showDeleteConfirm = false; onDelete?.invoke() },
+                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text("Видалити") }
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Скасувати") } }
         )
     }
 
+    // ── Бюджет-калькулятор ────────────────────────────────────────────────────
     if (showBudgetCalc) {
         AmountCalculatorSheet(
             initial   = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
@@ -1041,7 +1314,108 @@ fun CategoryFormSheet(
             onDismiss = { showBudgetCalc = false }
         )
     }
+}
 
+// ── Пікер кольору та іконки (BottomSheet) ─────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ColorIconPickerSheet(
+    currentColor: String,
+    currentIcon:  String,
+    onSave:       (color: String, icon: String) -> Unit,
+    onDismiss:    () -> Unit
+) {
+    var selectedColor by remember { mutableStateOf(currentColor) }
+    var selectedIcon  by remember { mutableStateOf(currentIcon) }
+    val color by remember { derivedStateOf {
+        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        catch (_: Exception) { Color(0xFFFF5722) }
+    } }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Превʼю
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(color)
+                    .align(Alignment.CenterHorizontally),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(categoryIconFor(selectedIcon), null, tint = Color.White, modifier = Modifier.size(38.dp))
+            }
+
+            // Кольори
+            Text("Колір", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CATEGORY_FORM_COLORS.chunked(6).forEach { rowColors ->
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        rowColors.forEach { hex ->
+                            val c     = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
+                            val isSel = hex == selectedColor
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp).clip(CircleShape).background(c)
+                                    .then(if (isSel) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+                                    .clickable { selectedColor = hex },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSel) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Іконки
+            Text("Іконка", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CATEGORY_ICONS_LIST.chunked(4).forEach { rowIcons ->
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        rowIcons.forEach { (key, icon) ->
+                            val isSel = key == selectedIcon
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp).clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSel) color else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { selectedIcon = key },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(icon, null,
+                                    tint     = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        repeat(4 - rowIcons.size) { Spacer(Modifier.size(44.dp)) }
+                    }
+                }
+            }
+
+            // Кнопка збереження
+            Button(
+                onClick  = { onSave(selectedColor, selectedIcon) },
+                modifier = Modifier.fillMaxWidth(),
+                shape    = RoundedCornerShape(12.dp)
+            ) {
+                Text("Застосувати")
+            }
+        }
+    }
 }
 
 // ── Edit Categories Screen (повноекранний діалог) ─────────────────────────────

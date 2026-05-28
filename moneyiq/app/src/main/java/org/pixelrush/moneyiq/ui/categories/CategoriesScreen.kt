@@ -38,6 +38,7 @@ import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
+import org.pixelrush.moneyiq.util.suggestCategoryStyle
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
@@ -50,17 +51,21 @@ private val DONUT_SECTION_HEIGHT = 248.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(
-    onNavigateBack: () -> Unit    = {},
-    embeddedMode:   Boolean       = false,
-    padding:        PaddingValues = PaddingValues(),
-    viewModel:      CategoriesViewModel = hiltViewModel()
+    onNavigateBack:   () -> Unit    = {},
+    embeddedMode:     Boolean       = false,
+    padding:          PaddingValues = PaddingValues(),
+    onViewCategoryTx: (CategoryEntity) -> Unit = {},
+    onViewBudget:     () -> Unit    = {},
+    viewModel:        CategoriesViewModel = hiltViewModel()
 ) {
     val state        by viewModel.state.collectAsState()
     var selectedTab  by remember { mutableIntStateOf(0) }   // 0 = Витрати, 1 = Доходи
 
-    // Яка категорія відкрита в QuickSheet; яку додаємо
-    var quickCategory by remember { mutableStateOf<CategoryEntity?>(null) }
-    var showAddSheet  by remember { mutableStateOf(false) }
+    // Яка категорія відкрита в QuickSheet; яку додаємо; яка показує ActionSheet; яку редагуємо
+    var quickCategory  by remember { mutableStateOf<CategoryEntity?>(null) }
+    var actionCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var editCategory   by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showAddSheet   by remember { mutableStateOf(false) }
 
     val allCategoriesForTab = (if (selectedTab == 0) state.expenseCategories else state.incomeCategories)
         .filter { !it.archived }
@@ -76,6 +81,17 @@ fun CategoriesScreen(
         allCategoriesForTab
     }
     val spending   = if (selectedTab == 0) state.monthSpending else state.monthIncome
+
+    // Коли підкатегорії згорнуті — підсумовуємо витрати дочірніх у батьківські
+    val effectiveSpending: Map<Long, Double> = if (!state.showSubcategories) {
+        val result = spending.toMutableMap()
+        allCategoriesForTab.filter { it.parentId != null }.forEach { child ->
+            child.parentId?.let { pid ->
+                result[pid] = (result[pid] ?: 0.0) + (spending[child.id] ?: 0.0)
+            }
+        }
+        result
+    } else spending
 
     Column(
         modifier = Modifier
@@ -98,17 +114,35 @@ fun CategoriesScreen(
         // Сітка категорій (без TabRow — donut є перемикачем)
         CategoriesGridContent(
             categories            = categories,
-            spending              = spending,
+            spending              = effectiveSpending,
             totalExpense          = state.totalExpense,
             totalIncome           = state.totalIncome,
             selectedTab           = selectedTab,
             onToggleTab           = { selectedTab = if (selectedTab == 0) 1 else 0 },
             bottomPadding         = padding.calculateBottomPadding(),
             onChipClick           = { cat -> quickCategory = cat },
+            onChipLongClick       = { cat -> actionCategory = cat },
             onAdd                 = { showAddSheet = true },
             showSubcategories     = state.showSubcategories,
             onToggleSubcategories = viewModel::toggleSubcategories,
             childCounts           = childCounts
+        )
+    }
+
+    // ── Category action sheet (long press) ───────────────────────────────────
+    actionCategory?.let { cat ->
+        val catSpending = (if (cat.type == TransactionType.EXPENSE) state.monthSpending else state.monthIncome)[cat.id] ?: 0.0
+        val catTotal    = if (cat.type == TransactionType.EXPENSE) state.totalExpense else state.totalIncome
+        CategoryActionSheet(
+            category      = cat,
+            spending      = catSpending,
+            txCount       = state.monthTxCounts[cat.id] ?: 0,
+            totalInPeriod = catTotal,
+            pillLabel     = state.pillLabel,
+            onEdit        = { actionCategory = null; editCategory = cat },
+            onBudget      = { actionCategory = null; onViewBudget() },
+            onOperations  = { actionCategory = null; onViewCategoryTx(cat) },
+            onDismiss     = { actionCategory = null }
         )
     }
 
@@ -122,6 +156,27 @@ fun CategoriesScreen(
                 quickCategory = null
             },
             onDismiss = { quickCategory = null }
+        )
+    }
+
+    // ── Редагування категорії (з ActionSheet) ────────────────────────────────
+    editCategory?.let { cat ->
+        CategoryFormSheet(
+            existing    = cat,
+            defaultType = cat.type,
+            onSave      = { name, type, color, icon, budget, period, archived ->
+                viewModel.update(cat.copy(
+                    name         = name,
+                    type         = type,
+                    colorHex     = color,
+                    icon         = icon,
+                    budgetAmount = budget,
+                    budgetPeriod = period,
+                    archived     = archived
+                ))
+                editCategory = null
+            },
+            onDismiss = { editCategory = null }
         )
     }
 
@@ -152,6 +207,7 @@ internal fun CategoriesGridContent(
     onToggleTab:           () -> Unit,
     bottomPadding:         Dp,
     onChipClick:           (CategoryEntity) -> Unit,
+    onChipLongClick:       (CategoryEntity) -> Unit = {},
     onAdd:                 () -> Unit,
     showSubcategories:     Boolean          = false,
     onToggleSubcategories: () -> Unit       = {},
@@ -163,11 +219,34 @@ internal fun CategoriesGridContent(
     //   Рядки ext (9+)    : по 5 у рядку
     //   «+»               : окремий рядок в самому низу
 
-    val sorted   = categories.sortedByDescending { spending[it.id] ?: 0.0 }
+    // Коли підкатегорії розгорнуті — групуємо дочірні одразу за батьком
+    val sorted: List<CategoryEntity> = if (showSubcategories) {
+        val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId!! }
+        val roots    = categories.filter { it.parentId == null }
+            .sortedByDescending { spending[it.id] ?: 0.0 }
+        val orphans  = categories.filter { child ->
+            child.parentId != null && categories.none { it.id == child.parentId }
+        }.sortedByDescending { spending[it.id] ?: 0.0 }
+        roots.flatMap { root ->
+            listOf(root) + (childMap[root.id] ?: emptyList())
+                .sortedByDescending { spending[it.id] ?: 0.0 }
+        } + orphans
+    } else {
+        categories.sortedByDescending { spending[it.id] ?: 0.0 }
+    }
+
+    // Карта child.id → colorHex батька (для підсвічення фону підкатегорій)
+    val parentColors: Map<Long, String> = if (showSubcategories) {
+        val parentMap = categories.filter { it.parentId == null }.associateBy { it.id }
+        categories.filter { it.parentId != null }.mapNotNull { child ->
+            parentMap[child.parentId]?.let { child.id to it.colorHex }
+        }.toMap()
+    } else emptyMap()
+
     val active   = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
     val inactive = sorted.filter { (spending[it.id] ?: 0.0) == 0.0 }
-    // Якщо немає жодних активних — показуємо всі (нова установка / новий місяць)
-    val display  = if (active.isNotEmpty()) active else sorted
+    // Якщо немає жодних активних — показуємо тільки кореневі категорії (без підкатегорій)
+    val display  = if (active.isNotEmpty()) active else sorted.filter { it.parentId == null }
     var showInactive by remember { mutableStateOf(false) }
 
     val topRow   = display.take(5)
@@ -221,8 +300,10 @@ internal fun CategoriesGridContent(
                                 spending       = spending[cat.id] ?: 0.0,
                                 onClick        = { onChipClick(cat) },
                                 childCount     = childCounts[cat.id] ?: 0,
-                                onLongPress    = onToggleSubcategories,
-                                showChildBadge = !showSubcategories
+                                onLongPress    = { onChipLongClick(cat) },
+                                onDoubleClick  = onToggleSubcategories,
+                                showChildBadge = !showSubcategories,
+                                groupColorHex  = parentColors[cat.id]
                             )
                         }
                     }
@@ -239,11 +320,11 @@ internal fun CategoriesGridContent(
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ліва колонка — притиснута до лівого краю екрану
+                // Ліва колонка — притиснута до донату (правий край колонки)
                 Column(
-                    modifier              = Modifier.width(88.dp).fillMaxHeight(),
+                    modifier              = Modifier.width(80.dp).fillMaxHeight(),
                     verticalArrangement   = Arrangement.SpaceEvenly,
-                    horizontalAlignment   = Alignment.Start
+                    horizontalAlignment   = Alignment.End
                 ) {
                     midLeft.forEach { cat ->
                         CategoryChip(
@@ -251,8 +332,10 @@ internal fun CategoriesGridContent(
                             spending       = spending[cat.id] ?: 0.0,
                             onClick        = { onChipClick(cat) },
                             childCount     = childCounts[cat.id] ?: 0,
-                            onLongPress    = onToggleSubcategories,
-                            showChildBadge = !showSubcategories
+                            onLongPress    = { onChipLongClick(cat) },
+                            onDoubleClick  = onToggleSubcategories,
+                            showChildBadge = !showSubcategories,
+                            groupColorHex  = parentColors[cat.id]
                         )
                     }
                 }
@@ -268,11 +351,11 @@ internal fun CategoriesGridContent(
                     modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
                 )
 
-                // Права колонка — притиснута до правого краю екрану
+                // Права колонка — притиснута до донату (лівий край колонки)
                 Column(
-                    modifier              = Modifier.width(88.dp).fillMaxHeight(),
+                    modifier              = Modifier.width(80.dp).fillMaxHeight(),
                     verticalArrangement   = Arrangement.SpaceEvenly,
-                    horizontalAlignment   = Alignment.End
+                    horizontalAlignment   = Alignment.Start
                 ) {
                     midRight.forEach { cat ->
                         CategoryChip(
@@ -280,8 +363,10 @@ internal fun CategoriesGridContent(
                             spending       = spending[cat.id] ?: 0.0,
                             onClick        = { onChipClick(cat) },
                             childCount     = childCounts[cat.id] ?: 0,
-                            onLongPress    = onToggleSubcategories,
-                            showChildBadge = !showSubcategories
+                            onLongPress    = { onChipLongClick(cat) },
+                            onDoubleClick  = onToggleSubcategories,
+                            showChildBadge = !showSubcategories,
+                            groupColorHex  = parentColors[cat.id]
                         )
                     }
                 }
@@ -299,8 +384,10 @@ internal fun CategoriesGridContent(
                                 spending       = spending[cat.id] ?: 0.0,
                                 onClick        = { onChipClick(cat) },
                                 childCount     = childCounts[cat.id] ?: 0,
-                                onLongPress    = onToggleSubcategories,
-                                showChildBadge = !showSubcategories
+                                onLongPress    = { onChipLongClick(cat) },
+                                onDoubleClick  = onToggleSubcategories,
+                                showChildBadge = !showSubcategories,
+                                groupColorHex  = parentColors[cat.id]
                             )
                         }
                     }
@@ -386,8 +473,10 @@ internal fun CategoriesGridContent(
                                     spending       = 0.0,
                                     onClick        = { onChipClick(cat) },
                                     childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = onToggleSubcategories,
-                                    showChildBadge = !showSubcategories
+                                    onLongPress    = { onChipLongClick(cat) },
+                                    onDoubleClick  = onToggleSubcategories,
+                                    showChildBadge = !showSubcategories,
+                                    groupColorHex  = parentColors[cat.id]
                                 )
                             }
                         }
@@ -409,17 +498,26 @@ private fun CategoryChip(
     onClick:        () -> Unit,
     childCount:     Int     = 0,
     onLongPress:    () -> Unit = {},
-    showChildBadge: Boolean = false
+    onDoubleClick:  () -> Unit = {},
+    showChildBadge: Boolean = false,
+    groupColorHex:  String? = null
 ) {
     val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
+    val groupBg = remember(groupColorHex) {
+        groupColorHex?.let {
+            try { Color(android.graphics.Color.parseColor(it)).copy(alpha = 0.13f) }
+            catch (_: Exception) { null }
+        }
+    }
 
     Column(
         modifier = Modifier
             .width(CHIP_WIDTH)
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
+            .let { m -> if (groupBg != null) m.clip(RoundedCornerShape(12.dp)).background(groupBg) else m }
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress, onDoubleClick = onDoubleClick)
             .padding(vertical = 4.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -445,6 +543,12 @@ private fun CategoryChip(
         )
         Spacer(Modifier.height(3.dp))
         // 3. Кругла іконка з опціональним бейджем підкатегорій
+        val iconKey = remember(category.icon, category.name) {
+            if (category.icon == "category")
+                suggestCategoryStyle(category.name, category.type).first
+            else
+                category.icon
+        }
         Box(modifier = Modifier.size(CHIP_CIRCLE_SIZE)) {
             Box(
                 modifier = Modifier
@@ -454,7 +558,7 @@ private fun CategoryChip(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    categoryIconFor(category.icon), null,
+                    categoryIconFor(iconKey), null,
                     tint     = Color.White,
                     modifier = Modifier.size(24.dp)
                 )

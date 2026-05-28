@@ -566,7 +566,7 @@ private fun BudgetCatFullRow(
     Row(
         modifier          = Modifier
             .fillMaxWidth()
-            .background(accentColor.copy(alpha = 0.04f))
+            .background(color.copy(alpha = 0.10f))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
