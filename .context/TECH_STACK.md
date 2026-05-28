@@ -26,14 +26,34 @@
 
 - Room `2.7.0` for local persistence.
 - Hilt `2.54` for dependency injection.
-- DataStore Preferences for settings.
+- DataStore Preferences for settings (`SettingsRepository`).
 - Kotlin coroutines and Flow for reactive reads.
 
 ## Background Work And Extras
 
-- WorkManager for background work.
+- WorkManager for background work (`NotificationWorker`, `DriveBackupWorker`, `MonoFlowSyncWorker`).
 - MPAndroidChart is available for charts.
-- AndroidX Biometric dependency is present.
+- AndroidX Biometric (`BiometricPrompt` in `MainActivity`, triggers after 30s in background).
+
+## Crash Reporting
+
+- Sentry Android SDK `7.20.0` (`io.sentry:sentry-android`).
+- Gradle plugin `io.sentry.android.gradle:4.14.1` — uploads ProGuard mappings and source context on release builds.
+- Initialized in `MoneyIQApp.onCreate` via `SentryAndroid.init`. DSN is hardcoded; `isDebug = BuildConfig.DEBUG`; `tracesSampleRate = 1.0`.
+- Auth token for the build plugin is read from `local.properties` (`sentry.auth.token`) with `SENTRY_AUTH_TOKEN` env-var fallback for CI. Never commit the token.
+
+## Testing
+
+- JUnit 4.13.2 — test runner.
+- MockK 1.13.13 — mocking.
+- Turbine 1.2.0 — Flow testing.
+- Truth 1.4.4 — assertions.
+- kotlinx-coroutines-test 1.10.1 — `UnconfinedTestDispatcher`, `runTest`.
+- androidx.arch.core:core-testing 2.2.0 — `InstantTaskExecutorRule`.
+- Robolectric 4.14.1 — Android context in JVM tests.
+- Room testing 2.7.0 — in-memory database.
+- org.json:json:20231013 — BackupSerializer tests (org.json unavailable in pure JVM without this).
+- `util/MainDispatcherRule.kt` — shared JUnit rule that sets `UnconfinedTestDispatcher` as `Dispatchers.Main`.
 
 ## Conventions
 
@@ -41,3 +61,4 @@
 - Keep repository methods as the only place that mutates cross-entity state such as account balances.
 - Add Room migrations for schema changes; do not silently rely on destructive migration for user data.
 - Use existing icon keys and `CategoryStyleUtil` before inventing new category styling logic.
+- Calculator/date-picker components must be imported from `ui.components.calculator`, not from `ui.categories`.
