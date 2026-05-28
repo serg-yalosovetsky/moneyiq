@@ -1,6 +1,7 @@
 package org.pixelrush.moneyiq.ui.accounts
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,9 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -760,4 +762,165 @@ fun FormValueRow(
         thickness = 0.5.dp,
         color     = MaterialTheme.colorScheme.outlineVariant
     )
+}
+
+// ── AccountActionSheet ────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountActionSheet(
+    account:         org.pixelrush.moneyiq.data.db.entities.AccountEntity,
+    onDismiss:       () -> Unit,
+    onEdit:          () -> Unit,
+    onAdjustBalance: () -> Unit,
+    onTransactions:  () -> Unit,
+    onIncome:        () -> Unit,
+    onExpense:       () -> Unit,
+    onTransfer:      () -> Unit,
+    onSetDefault:    () -> Unit
+) {
+    val accentColor = remember(account.colorHex) {
+        try { Color(android.graphics.Color.parseColor(account.colorHex)) }
+        catch (_: Exception) { Color(0xFF4361EE) }
+    }
+    val sym = currencySymbol(account.currency)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface,
+        dragHandle       = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        ) {
+            // ── Картка рахунку ────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(accentColor)
+                    .padding(20.dp)
+            ) {
+                // Іконка + назва зліва
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier         = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            accountIconFromKey(account.icon), null,
+                            tint     = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        account.name,
+                        style      = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
+                    )
+                }
+
+                // Зірочка справа
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .clickable { onSetDefault(); onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Основний рахунок",
+                        tint     = if (account.isDefault) Color(0xFFFFD700) else Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Баланс по центру знизу
+                Column(
+                    modifier            = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Баланс рахунку",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Text(
+                        "${org.pixelrush.moneyiq.ui.main.formatMoney(account.balance)} $sym",
+                        style      = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── Рядки кнопок ─────────────────────────────────────────────
+            Row(
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                AccountActionButton(Icons.Default.Edit,                 "Редагувати", Color(0xFFFFAB00)) { onEdit(); onDismiss() }
+                AccountActionButton(Icons.Default.SwapVert,             "Баланс",     Color(0xFF9E9E9E)) { onAdjustBalance(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ReceiptLong, "Операції", Color(0xFF5C6BC0)) { onTransactions(); onDismiss() }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                AccountActionButton(Icons.Default.ArrowUpward,              "Поповнення", Color(0xFF00897B)) { onIncome(); onDismiss() }
+                AccountActionButton(Icons.Default.ArrowDownward,            "Списати",    Color(0xFFE91E63)) { onExpense(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ArrowForward, "Переказ",   Color(0xFF9E9E9E)) { onTransfer(); onDismiss() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountActionButton(
+    icon:    androidx.compose.ui.graphics.vector.ImageVector,
+    label:   String,
+    color:   Color,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier            = Modifier
+            .widthIn(min = 80.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier         = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(26.dp))
+        }
+        Text(
+            label,
+            style      = MaterialTheme.typography.labelSmall,
+            color      = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
+    }
 }

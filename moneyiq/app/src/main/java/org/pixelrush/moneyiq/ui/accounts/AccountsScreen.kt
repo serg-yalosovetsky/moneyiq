@@ -39,12 +39,18 @@ fun AccountsScreen(
     padding:        PaddingValues = PaddingValues(),
     onNavigateBack: () -> Unit    = {},
     embeddedMode:   Boolean       = false,
-    onRequestAdd:   () -> Unit    = {},          // called by "Додати рахунок" & top "+"
+    onRequestAdd:   () -> Unit    = {},
+    onAddIncome:    (AccountEntity) -> Unit = {},
+    onAddExpense:   (AccountEntity) -> Unit = {},
+    onAddTransfer:  (AccountEntity) -> Unit = {},
+    onViewTx:       (AccountEntity) -> Unit = {},
     viewModel:      AccountsViewModel = hiltViewModel()
 ) {
     val state          by viewModel.state.collectAsState()
     var selectedSubTab by remember { mutableIntStateOf(0) }
     var editAccount    by remember { mutableStateOf<AccountEntity?>(null) }
+    var actionAccount  by remember { mutableStateOf<AccountEntity?>(null) }
+    var adjustAccount  by remember { mutableStateOf<AccountEntity?>(null) }
 
     Column(
         modifier = Modifier
@@ -100,7 +106,7 @@ fun AccountsScreen(
                     state         = state,
                     bottomPadding = padding.calculateBottomPadding(),
                     onAdd         = onRequestAdd,
-                    onEdit        = { editAccount = it },
+                    onTap         = { actionAccount = it },
                     onDelete      = { viewModel.delete(it) },
                     onSetDefault  = { viewModel.setDefault(it) }
                  )
@@ -111,7 +117,22 @@ fun AccountsScreen(
         }
     }
 
-    // Edit dialog
+    // Action sheet
+    actionAccount?.let { acc ->
+        AccountActionSheet(
+            account         = acc,
+            onDismiss       = { actionAccount = null },
+            onEdit          = { editAccount = acc },
+            onAdjustBalance = { adjustAccount = acc },
+            onTransactions  = { onViewTx(acc) },
+            onIncome        = { onAddIncome(acc) },
+            onExpense       = { onAddExpense(acc) },
+            onTransfer      = { onAddTransfer(acc) },
+            onSetDefault    = { viewModel.setDefault(acc) }
+        )
+    }
+
+    // Edit form
     editAccount?.let { acc ->
         AccountFormSheet(
             initialType = acc.type,
@@ -132,6 +153,20 @@ fun AccountsScreen(
                 editAccount = null
             },
             onDismiss = { editAccount = null }
+        )
+    }
+
+    // Adjust balance
+    adjustAccount?.let { acc ->
+        org.pixelrush.moneyiq.ui.categories.AmountCalculatorSheet(
+            initial        = acc.balance,
+            currencySymbol = currencySymbol(acc.currency),
+            title          = "Баланс рахунку",
+            onResult       = { newBalance ->
+                viewModel.update(acc.copy(balance = newBalance))
+                adjustAccount = null
+            },
+            onDismiss = { adjustAccount = null }
         )
     }
 }
@@ -198,7 +233,7 @@ private fun AccountsListTab(
     state:         AccountsUiState,
     bottomPadding: Dp,
     onAdd:         () -> Unit,
-    onEdit:        (AccountEntity) -> Unit,
+    onTap:         (AccountEntity) -> Unit,
     onDelete:      (AccountEntity) -> Unit,
     onSetDefault:  (AccountEntity) -> Unit
 ) {
@@ -236,7 +271,7 @@ private fun AccountsListTab(
         items(state.accounts) { account ->
             AccountListItem(
                 account      = account,
-                onEdit       = { onEdit(account) },
+                onTap        = { onTap(account) },
                 onDelete     = { onDelete(account) },
                 onSetDefault = { onSetDefault(account) }
             )
@@ -254,9 +289,9 @@ private fun AccountsListTab(
 
 @Composable
 private fun AccountListItem(
-    account:     AccountEntity,
-    onEdit:      () -> Unit,
-    onDelete:    () -> Unit,
+    account:      AccountEntity,
+    onTap:        () -> Unit,
+    onDelete:     () -> Unit,
     onSetDefault: () -> Unit
 ) {
     val accentColor = remember(account.colorHex) {
@@ -269,7 +304,7 @@ private fun AccountListItem(
         modifier          = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onEdit() }
+            .clickable { onTap() }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -308,11 +343,6 @@ private fun AccountListItem(
                 )
             }
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text        = { Text("Редагувати") },
-                    leadingIcon = { Icon(Icons.Default.Edit, null) },
-                    onClick     = { onEdit(); showMenu = false }
-                )
                 if (!account.isDefault) {
                     DropdownMenuItem(
                         text        = { Text("Зробити основним") },

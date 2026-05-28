@@ -36,7 +36,7 @@ import org.pixelrush.moneyiq.ui.main.formatMoney
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
-private val CHIP_WIDTH          = 76.dp
+private val CHIP_WIDTH          = 82.dp
 private val CHIP_CIRCLE_SIZE    = 50.dp
 private val DONUT_SECTION_HEIGHT = 248.dp
 
@@ -68,12 +68,11 @@ fun CategoriesScreen(
     ) {
         // Навігатор місяців
         SharedMonthNavPill(
-            year          = state.selectedMonth.year,
-            month         = state.selectedMonth.month,
-            daysInMonth   = state.daysInMonth,
-            onPrev        = viewModel::prevMonth,
-            onNext        = viewModel::nextMonth,
-            onSelectMonth = viewModel::goToMonth
+            appMonth       = state.appMonth,
+            daysInPeriod   = state.daysInMonth,
+            onPrev         = viewModel::prevMonth,
+            onNext         = viewModel::nextMonth,
+            onSelectPeriod = viewModel::setPeriod
         )
 
         // Сітка категорій (без TabRow — donut є перемикачем)
@@ -138,11 +137,18 @@ internal fun CategoriesGridContent(
     //   Рядок bot         : «+» + наступні 3
     //   Рядки ext (11+)   : по 4 у рядку
 
-    val topRow   = categories.take(4)
-    val midLeft  = categories.drop(4).take(2)
-    val midRight = categories.drop(6).take(2)
-    val botFirst = categories.drop(8).take(3)
-    val extCats  = categories.drop(11)
+    val sorted   = categories.sortedByDescending { spending[it.id] ?: 0.0 }
+    val active   = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
+    val inactive = sorted.filter { (spending[it.id] ?: 0.0) == 0.0 }
+    // Якщо немає жодних активних — показуємо всі (нова установка / новий місяць)
+    val display  = if (active.isNotEmpty()) active else sorted
+    var showInactive by remember { mutableStateOf(false) }
+
+    val topRow   = display.take(4)
+    val midLeft  = display.drop(4).take(2)
+    val midRight = display.drop(6).take(2)
+    val botFirst = display.drop(8).take(3)
+    val extCats  = display.drop(11)
 
     LazyColumn(
         modifier       = Modifier.fillMaxSize(),
@@ -289,6 +295,50 @@ internal fun CategoriesGridContent(
                 }
             }
         }
+
+        // ── Приховані категорії (0 витрат) ───────────────────────────────
+        if (active.isNotEmpty() && inactive.isNotEmpty()) {
+            item {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .clickable { showInactive = !showInactive }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "${inactive.size} категор. (0 ₴)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        if (showInactive) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    )
+                }
+            }
+            if (showInactive) {
+                items(inactive.chunked(4)) { rowCats ->
+                    Row(
+                        modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        rowCats.forEach { cat ->
+                            CategoryChip(
+                                category = cat,
+                                spending = 0.0,
+                                onClick  = { onChipClick(cat) }
+                            )
+                        }
+                        repeat(4 - rowCats.size) { Spacer(Modifier.width(CHIP_WIDTH)) }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -316,7 +366,7 @@ private fun CategoryChip(
         Text(
             category.name,
             style     = MaterialTheme.typography.labelSmall,
-            maxLines  = 1,
+            maxLines  = 2,
             overflow  = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             color     = MaterialTheme.colorScheme.onSurface,
@@ -423,10 +473,15 @@ private fun DonutChart(
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val sw    = size.minDimension * 0.15f
-            val inset = sw / 2f
-            val arcSz = Size(size.width - sw, size.height - sw)
-            val tl    = Offset(inset, inset)
+            val minDim = size.minDimension
+            val sw     = minDim * 0.09f
+            val inset  = sw / 2f
+            val arcDim = minDim - sw
+            val arcSz  = Size(arcDim, arcDim)
+            val tl     = Offset(
+                x = (size.width  - minDim) / 2f + inset,
+                y = (size.height - minDim) / 2f + inset
+            )
 
             if (total == 0.0) {
                 drawArc(

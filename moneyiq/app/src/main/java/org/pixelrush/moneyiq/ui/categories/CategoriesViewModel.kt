@@ -31,6 +31,8 @@ data class CategoriesUiState(
     ),
     val appMonth:     AppMonth            = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:  Int                = 31,
+    val pillLabel:    String             = "",
+    val pillBadge:    String             = "31",
     val totalExpense: Double             = 0.0,
     val totalIncome:  Double             = 0.0,
     val accounts:     List<AccountEntity> = emptyList()
@@ -64,6 +66,8 @@ class CategoriesViewModel @Inject constructor(
                     selectedMonth     = sel,
                     appMonth          = am,
                     daysInMonth       = monthRepo.daysInPeriod(am),
+                    pillLabel         = monthRepo.pillLabel(am),
+                    pillBadge         = monthRepo.pillBadge(am),
                     totalExpense      = expSpending.sumOf { it.total },
                     totalIncome       = incSpending.sumOf { it.total }
                 )

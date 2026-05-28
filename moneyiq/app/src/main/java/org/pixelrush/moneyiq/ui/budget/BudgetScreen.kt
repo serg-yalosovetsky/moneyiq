@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
+import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
@@ -69,7 +70,10 @@ data class BudgetUiState(
         val cal = Calendar.getInstance()
         BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
     },
+    val appMonth:       AppMonth          = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:    Int              = 31,
+    val pillLabel:      String           = "",
+    val pillBadge:      String           = "31",
     val totalBalance:   Double           = 0.0,
     val expenseSection: BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList()),
     val incomeSection:  BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList())
@@ -86,9 +90,9 @@ class BudgetViewModel @Inject constructor(
     private val monthRepo:    SelectedMonthRepository         // ← общий репозиторий
 ) : ViewModel() {
 
-    val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { appMonth ->
-        val sel = BudgetSelMonth(appMonth.year, appMonth.month)
-        val (from, to) = monthRange(sel)
+    val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { am ->
+        val sel        = BudgetSelMonth(am.year, am.month)
+        val (from, to) = monthRepo.computeRange(am)
         combine(
             categoryRepo.getByType(TransactionType.EXPENSE),
             categoryRepo.getByType(TransactionType.INCOME),
@@ -100,29 +104,23 @@ class BudgetViewModel @Inject constructor(
             val incMap  = incSpend.associate { it.categoryId to it.total }
             val expRows = expCats.map { BudgetCatRow(it, expMap[it.id] ?: 0.0) }
             val incRows = incCats.map { BudgetCatRow(it, incMap[it.id] ?: 0.0) }
-            val cal     = Calendar.getInstance().also { it.set(sel.year, sel.month, 1) }
             BudgetUiState(
-                selectedMonth = sel,
-                daysInMonth   = cal.getActualMaximum(Calendar.DAY_OF_MONTH),
-                totalBalance  = rawBalance ?: 0.0,
-                expenseSection = BudgetSectionData(
-                    totalBudget = expCats.sumOf { it.budgetAmount },
-                    totalAmount = expRows.sumOf { it.amount },
-                    rows        = expRows
-                ),
-                incomeSection = BudgetSectionData(
-                    totalBudget = incCats.sumOf { it.budgetAmount },
-                    totalAmount = incRows.sumOf { it.amount },
-                    rows        = incRows
-                )
+                selectedMonth  = sel,
+                appMonth       = am,
+                daysInMonth    = monthRepo.daysInPeriod(am),
+                pillLabel      = monthRepo.pillLabel(am),
+                pillBadge      = monthRepo.pillBadge(am),
+                totalBalance   = rawBalance ?: 0.0,
+                expenseSection = BudgetSectionData(expCats.sumOf { it.budgetAmount }, expRows.sumOf { it.amount }, expRows),
+                incomeSection  = BudgetSectionData(incCats.sumOf { it.budgetAmount }, incRows.sumOf { it.amount }, incRows)
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
 
-    /** Делегируем навигацию в общий репозиторий */
     fun prevMonth()                      = monthRepo.prevMonth()
     fun nextMonth()                      = monthRepo.nextMonth()
     fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
+    fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
 
     fun updateCategoryBudget(category: org.pixelrush.moneyiq.data.db.entities.CategoryEntity, newBudget: Double) {
         viewModelScope.launch { categoryRepo.update(category.copy(budgetAmount = newBudget)) }
@@ -136,24 +134,17 @@ class BudgetViewModel @Inject constructor(
         }
     }
 
-    private fun monthRange(sel: BudgetSelMonth): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(sel.year, sel.month, 1, 0, 0, 0); cal.set(Calendar.MILLISECOND, 0)
-        val from = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59);      cal.set(Calendar.MILLISECOND, 999)
-        return from to cal.timeInMillis
-    }
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 @Composable
 fun BudgetScreen(
-    padding:      PaddingValues = PaddingValues(),
-    embeddedMode: Boolean       = false,
-    viewModel:    BudgetViewModel = hiltViewModel()
+    padding:           PaddingValues  = PaddingValues(),
+    embeddedMode:      Boolean        = false,
+    showSettings:      Boolean        = false,
+    onSettingsDismiss: () -> Unit     = {},
+    viewModel:         BudgetViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -162,6 +153,8 @@ fun BudgetScreen(
     val monthLabel          = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
     var showSettingsSheet   by remember { mutableStateOf(false) }
     var currentExpensesMode by remember { mutableStateOf(false) }
+    val settingsVisible     = showSettings || showSettingsSheet
+    var incomeBudgetRow     by remember { mutableStateOf<BudgetCatRow?>(null) }
 
     Column(
         modifier = Modifier
@@ -176,12 +169,11 @@ fun BudgetScreen(
         }
 
         SharedMonthNavPill(
-            year          = state.selectedMonth.year,
-            month         = state.selectedMonth.month,
-            daysInMonth   = state.daysInMonth,
-            onPrev        = viewModel::prevMonth,
-            onNext        = viewModel::nextMonth,
-            onSelectMonth = viewModel::goToMonth
+            appMonth       = state.appMonth,
+            daysInPeriod   = state.daysInMonth,
+            onPrev         = viewModel::prevMonth,
+            onNext         = viewModel::nextMonth,
+            onSelectPeriod = viewModel::setPeriod
         )
 
         LazyColumn(
@@ -214,17 +206,41 @@ fun BudgetScreen(
                 )
             }
             item { Spacer(Modifier.height(8.dp)) }
-            item { ExpectedIncomeBar() }
+            item {
+                IncomeBudgetBar(
+                    incomeSection  = state.incomeSection,
+                    expenseTotal   = state.expenseSection.totalAmount,
+                    onClick = {
+                        val row = state.incomeSection.rows.firstOrNull { it.category.budgetAmount == 0.0 }
+                            ?: state.incomeSection.rows.firstOrNull()
+                        incomeBudgetRow = row
+                    }
+                )
+            }
         }
     }
 
-    if (showSettingsSheet) {
+    incomeBudgetRow?.let { row ->
+        BudgetInputSheet(
+            catRow      = row,
+            monthLabel  = monthLabel,
+            accentColor = incomeColor,
+            amountLabel = "отримано",
+            onDismiss   = { incomeBudgetRow = null },
+            onConfirm   = { newBudget ->
+                viewModel.updateCategoryBudget(row.category, newBudget)
+                incomeBudgetRow = null
+            }
+        )
+    }
+
+    if (settingsVisible) {
         BudgetSettingsSheet(
             monthLabel          = monthLabel,
             currentExpensesMode = currentExpensesMode,
             onToggleMode        = { currentExpensesMode = it },
-            onDeleteBudget      = { viewModel.clearAllBudgets(); showSettingsSheet = false },
-            onDismiss           = { showSettingsSheet = false }
+            onDeleteBudget      = { viewModel.clearAllBudgets(); showSettingsSheet = false; onSettingsDismiss() },
+            onDismiss           = { showSettingsSheet = false; onSettingsDismiss() }
         )
     }
 }
@@ -398,20 +414,20 @@ private fun BudgetSectionCard(
     var expanded    by remember { mutableStateOf(false) }
     var editingRow  by remember { mutableStateOf<BudgetCatRow?>(null) }
 
-    // В режиме "Поточні витрати" — все чипами; иначе — с бюджетом=полные строки, остальные=чипы
-    val budgetedRows    = if (currentExpensesMode) emptyList()
-                         else data.rows.filter { it.category.budgetAmount > 0 }
-    val chipRows        = if (currentExpensesMode) data.rows.sortedByDescending { it.amount }
-                         else data.rows.filter { it.category.budgetAmount == 0.0 }
-    val visibleChips    = if (expanded) chipRows else chipRows.take(3)
-    val hasMoreChips    = chipRows.size > 3
-    val remaining       = data.totalBudget - data.totalAmount
+    val budgetedRows = if (currentExpensesMode) emptyList()
+                      else data.rows.filter { it.category.budgetAmount > 0 }
+    val chipRows     = if (currentExpensesMode) data.rows.filter { it.amount > 0 }.sortedByDescending { it.amount }
+                      else data.rows.filter { it.category.budgetAmount == 0.0 && it.amount > 0 }
+    val visibleChips = if (expanded) chipRows else chipRows.take(3)
+    val hasMoreChips = chipRows.size > 3
+    val remaining    = data.totalBudget - data.totalAmount
 
     editingRow?.let { row ->
         BudgetInputSheet(
             catRow      = row,
             monthLabel  = monthLabel,
             accentColor = accentColor,
+            amountLabel = amountLabel,
             onDismiss   = { editingRow = null },
             onConfirm   = { newBudget ->
                 onUpdateBudget(row.category, newBudget)
@@ -739,6 +755,7 @@ private fun BudgetInputSheet(
     catRow:      BudgetCatRow,
     monthLabel:  String,
     accentColor: Color,
+    amountLabel: String = "витрачено",
     onDismiss:   () -> Unit,
     onConfirm:   (Double) -> Unit
 ) {
@@ -791,15 +808,24 @@ private fun BudgetInputSheet(
                         Text(monthLabel,
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.9f))
-                        Text("витрачено ${formatMoney(catRow.amount)} ₴",
+                        Text("$amountLabel ${formatMoney(catRow.amount)} ₴",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.7f))
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("${formatMoney(calc.result())} ₴",
-                            style      = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color      = Color.White)
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color.White.copy(alpha = 0.22f)
+                        ) {
+                            Text(
+                                "${formatMoney(catRow.amount)} ₴",
+                                modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                style      = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color.White
+                            )
+                        }
+                        Spacer(Modifier.height(2.dp))
                         Text("в бюджеті ${formatMoney(catRow.category.budgetAmount)} ₴",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.7f))
@@ -942,13 +968,26 @@ private fun BudgetSettingsSheet(
     }
 }
 
-// ── Строка ожидаемого дохода (нижняя панель) ──────────────────────────────────
+// ── Нижня панель доходу (prompt → доступно в бюджеті) ────────────────────────
 
 @Composable
-private fun ExpectedIncomeBar() {
+private fun IncomeBudgetBar(
+    incomeSection: BudgetSectionData,
+    expenseTotal:  Double,
+    onClick:       () -> Unit
+) {
+    val hasBudget     = incomeSection.totalBudget > 0.0
+    val hasCategories = incomeSection.rows.isNotEmpty()
+    val overspend     = expenseTotal - incomeSection.totalBudget
+    val overspendColor = Color(0xFFD81B60)
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color    = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (!hasBudget && hasCategories) Modifier.clickable(onClick = onClick) else Modifier),
+        color = if (hasBudget && overspend > 0)
+                    overspendColor.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     ) {
         Box(
             modifier         = Modifier
@@ -956,13 +995,46 @@ private fun ExpectedIncomeBar() {
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "Введіть суму очікуваного доходу...",
-                style     = MaterialTheme.typography.bodyMedium,
-                fontStyle = FontStyle.Italic,
-                textAlign = TextAlign.Center,
-                color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
-            )
+            when {
+                hasBudget && overspend > 0 -> {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "перевитрата  ",
+                            style     = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color     = overspendColor
+                        )
+                        Text(
+                            "${formatMoney(overspend)} ₴",
+                            style      = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = overspendColor
+                        )
+                    }
+                }
+                hasBudget -> {
+                    val available = incomeSection.totalBudget - expenseTotal
+                    Text(
+                        "Доступно в бюджеті: ${formatMoney(available)} ₴",
+                        style      = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        textAlign  = TextAlign.Center,
+                        color      = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                else -> {
+                    Text(
+                        "Введіть суму очікуваного доходу...",
+                        style     = MaterialTheme.typography.bodyMedium,
+                        fontStyle = FontStyle.Italic,
+                        textAlign = TextAlign.Center,
+                        color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
+                    )
+                }
+            }
         }
     }
 }

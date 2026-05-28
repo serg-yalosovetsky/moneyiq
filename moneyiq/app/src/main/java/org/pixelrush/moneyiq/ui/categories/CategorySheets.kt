@@ -1,6 +1,7 @@
 package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,8 +33,8 @@ import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
-import org.pixelrush.moneyiq.ui.accounts.IconColorPickerScreen
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.util.suggestCategoryStyle
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -102,7 +103,7 @@ fun QuickExpenseSheet(
     var showRepeat      by remember { mutableStateOf(false) }
     var showReminder    by remember { mutableStateOf(false) }
     var showFullDate    by remember { mutableStateOf(false) }
-    var showAccPicker   by remember { mutableStateOf(false) }
+    var showAccSheet    by remember { mutableStateOf(false) }
     var repeatMode     by remember { mutableStateOf("NEVER") }
     var reminderMode   by remember { mutableStateOf("NEVER") }
 
@@ -139,7 +140,7 @@ fun QuickExpenseSheet(
                         .weight(1f)
                         .fillMaxHeight()
                         .background(accountColor)
-                        .clickable { if (accounts.size > 1) showAccPicker = !showAccPicker }
+                        .clickable { if (accounts.size > 1) showAccSheet = true }
                 ) {
                     // Іконка рахунку (вгорі праворуч)
                     Box(
@@ -168,15 +169,6 @@ fun QuickExpenseSheet(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    }
-                    // Вибір рахунку (dropdown)
-                    DropdownMenu(expanded = showAccPicker, onDismissRequest = { showAccPicker = false }) {
-                        accounts.forEach { acc ->
-                            DropdownMenuItem(
-                                text    = { Text(acc.name) },
-                                onClick = { selectedAccount = acc; showAccPicker = false }
-                            )
-                        }
                     }
                 }
 
@@ -323,6 +315,17 @@ fun QuickExpenseSheet(
             onDismiss = { showReminder = false }
         )
     }
+
+    // ── Вибір рахунку (аркуш) ────────────────────────────────────────────────
+    if (showAccSheet) {
+        AccountPickerSheet(
+            accounts       = accounts,
+            selectedId     = selectedAccount?.id,
+            label          = "З рахунку",
+            onSelect       = { acc -> selectedAccount = acc; showAccSheet = false },
+            onDismiss      = { showAccSheet = false }
+        )
+    }
 }
 
 // ── Клавіша калькулятора ──────────────────────────────────────────────────────
@@ -352,7 +355,118 @@ private fun QKey(
     }
 }
 
+// ── Вибір рахунку — аркуш ────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountPickerSheet(
+    accounts:   List<AccountEntity>,
+    selectedId: Long?,
+    label:      String = "З рахунку",
+    onSelect:   (AccountEntity) -> Unit,
+    onDismiss:  () -> Unit
+) {
+    val selected = accounts.firstOrNull { it.id == selectedId } ?: accounts.firstOrNull()
+    val selColor = selected?.let {
+        try { Color(android.graphics.Color.parseColor(it.colorHex)) }
+        catch (_: Exception) { Color(0xFF3949AB) }
+    } ?: Color(0xFF3949AB)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Кольорова картка вибраного рахунку
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(selColor)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+                Column(
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 10.dp)
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                    Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(
+                        "Баланс: ${formatMoney(selected?.balance ?: 0.0)} ₴",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Заголовок
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text("Рахунки", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${formatMoney(accounts.sumOf { it.balance })} ₴",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+
+            HorizontalDivider()
+
+            // Список рахунків
+            accounts.forEach { acc ->
+                val accColor = try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
+                               catch (_: Exception) { Color(0xFF3949AB) }
+                val isSelected = acc.id == selectedId
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent)
+                        .clickable { onSelect(acc) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(accColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(acc.name, fontWeight = FontWeight.Medium)
+                        Text(
+                            "${formatMoney(acc.balance)} ₴",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    }
+                    if (isSelected) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
 // ── Форматування дати для підпису ─────────────────────────────────────────────
+
+fun txDateLabelPublic(date: Long): String = txDateLabel(date)
 
 private fun txDateLabel(date: Long): String {
     val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale("uk"))
@@ -375,7 +489,7 @@ private fun sameDay(a: Calendar, b: Calendar) =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CalcDateSheet(
+fun CalcDateSheet(
     currentDate:     Long,
     repeatMode:      String,
     reminderMode:    String,
@@ -511,7 +625,7 @@ private fun CalcDateSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FullDatePickerDialog(
+fun FullDatePickerDialog(
     initial:       Long,
     onDateSelected: (Long) -> Unit,
     onDismiss:     () -> Unit
@@ -666,14 +780,24 @@ fun CategoryFormSheet(
     }
     var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
-    var showDeleteConfirm   by remember { mutableStateOf(false) }
-    var showBudgetCalc     by remember { mutableStateOf(false) }
-    var showIconColorPicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBudgetCalc   by remember { mutableStateOf(false) }
 
-    val catColor = remember(colorHex) {
+    // Авто-підказка іконки та кольору при введенні назви нової категорії
+    if (existing == null) {
+        LaunchedEffect(name) {
+            if (name.length >= 3 && iconKey == "category") {
+                val (sugIcon, sugColor) = suggestCategoryStyle(name, type)
+                iconKey  = sugIcon
+                colorHex = sugColor
+            }
+        }
+    }
+
+    val catColor by remember { derivedStateOf {
         try { Color(android.graphics.Color.parseColor(colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
-    }
+    } }
     val hasBudget = budget.isNotBlank() && (budget.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0
 
     Dialog(
@@ -696,7 +820,10 @@ fun CategoryFormSheet(
                         TextButton(
                             onClick = {
                                 val b = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
-                                if (name.isNotBlank()) onSave(name, type, colorHex, iconKey, b, period, archived)
+                                if (name.isNotBlank()) {
+                                    onSave(name, type, colorHex, iconKey, b, period, archived)
+                                    onDismiss()
+                                }
                             },
                             enabled = name.isNotBlank()
                         ) {
@@ -714,17 +841,75 @@ fun CategoryFormSheet(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Превʼю іконки (клік відкриває повноекранний пікер)
+                // Превʼю іконки
                 Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(catColor)
-                        .clickable { showIconColorPicker = true }
                         .align(Alignment.CenterHorizontally),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(categoryIconFor(iconKey), null, tint = Color.White, modifier = Modifier.size(38.dp))
+                }
+
+                // Вибір кольору
+                Text("Колір", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CATEGORY_FORM_COLORS.chunked(6).forEach { rowColors ->
+                        Row(
+                            modifier              = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            rowColors.forEach { hex ->
+                                val c    = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
+                                val isSel = hex == colorHex
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(c)
+                                        .then(if (isSel) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+                                        .clickable { colorHex = hex },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSel) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Вибір іконки
+                Text("Іконка", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CATEGORY_ICONS_LIST.chunked(4).forEach { rowIcons ->
+                        Row(
+                            modifier              = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            rowIcons.forEach { (key, icon) ->
+                                val isSel = key == iconKey
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSel) catColor else MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable { iconKey = key },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        icon, null,
+                                        tint     = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            repeat(4 - rowIcons.size) { Spacer(Modifier.size(44.dp)) }
+                        }
+                    }
                 }
 
                 // Назва
@@ -845,19 +1030,6 @@ fun CategoryFormSheet(
         )
     }
 
-    if (showIconColorPicker) {
-        IconColorPickerScreen(
-            initialIconKey  = iconKey,
-            initialColorHex = colorHex,
-            title           = "Значок категорії",
-            onResult        = { newIcon, newColor ->
-                iconKey  = newIcon
-                colorHex = newColor
-                showIconColorPicker = false
-            },
-            onDismiss = { showIconColorPicker = false }
-        )
-    }
 }
 
 // ── Edit Categories Screen (повноекранний діалог) ─────────────────────────────
@@ -1004,6 +1176,15 @@ class CalcStateHolder(initial: Double = 0.0) {
     fun onKey(key: String) {
         when (key) {
             "÷", "×", "−", "+" -> { pendingVal = result(); pendingOp = key; currentStr = "0" }
+            "=" -> if (pendingOp != null) {
+                val r = result()
+                currentStr = when {
+                    r == r.toLong().toDouble() -> r.toLong().toString()
+                    else -> r.toBigDecimal().stripTrailingZeros().toPlainString().replace(".", ",")
+                }
+                pendingOp  = null
+                pendingVal = 0.0
+            }
             "⌫" -> currentStr = if (currentStr.length <= 1) "0" else currentStr.dropLast(1)
             "," -> {
                 if ("," !in currentStr && "." !in currentStr)
@@ -1095,16 +1276,21 @@ fun SharedCalcKeypad(
                 QKey("3", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey("3") }
                 QKey(",", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey(",") }
             }
-            // Кнопка «=» — охоплює обидва рядки
+            // ✓ (підтвердити) або = (обчислити вираз)
+            val hasPendingOp = calc.pendingOp != null
             Box(
                 modifier = Modifier
                     .weight(1f).fillMaxHeight()
                     .clip(RoundedCornerShape(10.dp))
                     .background(confirmColor)
-                    .clickable { onConfirm() },
+                    .clickable { if (hasPendingOp) calc.onKey("=") else onConfirm() },
                 contentAlignment = Alignment.Center
             ) {
-                Text("=", fontSize = 32.sp, fontWeight = FontWeight.Normal, color = Color.White)
+                if (hasPendingOp) {
+                    Text("=", fontSize = 32.sp, fontWeight = FontWeight.Normal, color = Color.White)
+                } else {
+                    Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(34.dp))
+                }
             }
         }
     }

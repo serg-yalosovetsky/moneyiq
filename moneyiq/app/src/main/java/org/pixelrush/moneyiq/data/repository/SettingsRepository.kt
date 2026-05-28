@@ -42,7 +42,12 @@ data class AppSettings(
     // Google Drive auto-backup
     val driveBackupFolderUri: String = "",
     val driveBackupEnabled: Boolean = false,
-    val driveBackupLastDate: Long = 0L
+    val driveBackupLastDate: Long = 0L,
+    // MonoFlow sync
+    val monoflowUrl: String       = "",
+    val monoflowToken: String     = "",
+    val monoflowAutoSync: Boolean = false,
+    val monoflowLastSyncMs: Long  = 0L
 )
 
 @Singleton
@@ -68,6 +73,11 @@ class SettingsRepository @Inject constructor(
         val KEY_DRIVE_BACKUP_FOLDER_URI = stringPreferencesKey("drive_backup_folder_uri")
         val KEY_DRIVE_BACKUP_ENABLED    = booleanPreferencesKey("drive_backup_enabled")
         val KEY_DRIVE_BACKUP_LAST_DATE  = longPreferencesKey("drive_backup_last_date")
+        // MonoFlow
+        val KEY_MONOFLOW_URL        = stringPreferencesKey("monoflow_url")
+        val KEY_MONOFLOW_TOKEN      = stringPreferencesKey("monoflow_token")
+        val KEY_MONOFLOW_AUTO_SYNC  = booleanPreferencesKey("monoflow_auto_sync")
+        val KEY_MONOFLOW_LAST_SYNC  = longPreferencesKey("monoflow_last_sync")
     }
 
     val settings: Flow<AppSettings> = ds.data.map { p ->
@@ -87,7 +97,11 @@ class SettingsRepository @Inject constructor(
             language               = p[KEY_LANGUAGE] ?: "default",
             driveBackupFolderUri   = p[KEY_DRIVE_BACKUP_FOLDER_URI] ?: "",
             driveBackupEnabled     = p[KEY_DRIVE_BACKUP_ENABLED] ?: false,
-            driveBackupLastDate    = p[KEY_DRIVE_BACKUP_LAST_DATE] ?: 0L
+            driveBackupLastDate    = p[KEY_DRIVE_BACKUP_LAST_DATE] ?: 0L,
+            monoflowUrl            = p[KEY_MONOFLOW_URL] ?: "",
+            monoflowToken          = p[KEY_MONOFLOW_TOKEN] ?: "",
+            monoflowAutoSync       = p[KEY_MONOFLOW_AUTO_SYNC] ?: false,
+            monoflowLastSyncMs     = p[KEY_MONOFLOW_LAST_SYNC] ?: 0L
         )
     }
 

@@ -54,6 +54,9 @@ import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import org.pixelrush.moneyiq.ui.accounts.accountIconFromKey
 import org.pixelrush.moneyiq.ui.categories.QuickExpenseSheet
 import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import org.pixelrush.moneyiq.ui.main.SectionHeader
@@ -173,6 +176,8 @@ fun TransactionsListScreen(
     padding:           PaddingValues = PaddingValues(),
     onEditTransaction: (Long) -> Unit = {},
     embeddedMode:      Boolean        = false,
+    openSearch:        Boolean        = false,
+    onSearchDismissed: () -> Unit     = {},
     viewModel:         TransactionsListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -183,6 +188,13 @@ fun TransactionsListScreen(
     var filterAccountIds  by remember { mutableStateOf(setOf<Long>()) }
     var filterCategoryIds by remember { mutableStateOf(setOf<Long>()) }
     var showFilterSheet   by remember { mutableStateOf(false) }
+
+    LaunchedEffect(openSearch) {
+        if (openSearch) {
+            showFilterSheet = true
+            onSearchDismissed()
+        }
+    }
 
     // ── Швидке додавання ───────────────────────────────────────────────────
     var showCategoryPicker    by remember { mutableStateOf(false) }
@@ -230,13 +242,11 @@ fun TransactionsListScreen(
 
             // Пілюля-навігатор місяця
             SharedMonthNavPill(
-                appMonth      = state.appMonth,
-                daysInPeriod  = state.daysInMonth,
-                pillLabel     = state.pillLabel,
-                pillBadge     = state.pillBadge,
-                onPrev        = viewModel::prevMonth,
-                onNext        = viewModel::nextMonth,
-                onSelectMonth = viewModel::goToMonth
+                appMonth       = state.appMonth,
+                daysInPeriod   = state.daysInMonth,
+                onPrev         = viewModel::prevMonth,
+                onNext         = viewModel::nextMonth,
+                onSelectPeriod = viewModel::setPeriod
             )
 
             // Активні фільтр-чіпси
@@ -296,25 +306,26 @@ fun TransactionsListScreen(
 
     // ── Аркуш фільтрів ────────────────────────────────────────────────────
     if (showFilterSheet) {
-        TxFilterSheet(
-            query             = filterQuery,
-            filterTypes       = filterTypes,
-            filterAccountIds  = filterAccountIds,
-            filterCategoryIds = filterCategoryIds,
-            accounts          = state.accounts,
-            expenseCategories = state.expenseCategories,
-            incomeCategories  = state.incomeCategories,
-            onQueryChange     = { filterQuery = it },
-            onTypesChange     = { filterTypes = it },
-            onAccountsChange  = { filterAccountIds = it },
+        TxSearchScreen(
+            query              = filterQuery,
+            filterTypes        = filterTypes,
+            filterAccountIds   = filterAccountIds,
+            filterCategoryIds  = filterCategoryIds,
+            accounts           = state.accounts,
+            expenseCategories  = state.expenseCategories,
+            incomeCategories   = state.incomeCategories,
+            onQueryChange      = { filterQuery = it },
+            onTypesChange      = { filterTypes = it },
+            onAccountsChange   = { filterAccountIds = it },
             onCategoriesChange = { filterCategoryIds = it },
-            onReset           = {
-                filterQuery = ""
-                filterTypes = emptySet()
-                filterAccountIds = emptySet()
+            onReset = {
+                filterQuery       = ""
+                filterTypes       = emptySet()
+                filterAccountIds  = emptySet()
                 filterCategoryIds = emptySet()
+                showFilterSheet   = false
             },
-            onDismiss         = { showFilterSheet = false }
+            onDone = { showFilterSheet = false }
         )
     }
 
@@ -504,9 +515,8 @@ private fun FilterActiveChip(label: String, color: Color, onRemove: () -> Unit) 
 
 // ── Аркуш фільтрів ───────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TxFilterSheet(
+private fun TxSearchScreen(
     query:              String,
     filterTypes:        Set<String>,
     filterAccountIds:   Set<Long>,
@@ -519,137 +529,309 @@ private fun TxFilterSheet(
     onAccountsChange:   (Set<Long>) -> Unit,
     onCategoriesChange: (Set<Long>) -> Unit,
     onReset:            () -> Unit,
-    onDismiss:          () -> Unit
+    onDone:             () -> Unit
 ) {
-    val allCats = expenseCategories + incomeCategories
+    val expenseColor  = Color(0xFFE91E63)
+    val incomeColor   = Color(0xFF009688)
+    val transferColor = Color(0xFF607D8B)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor   = MaterialTheme.colorScheme.surface
+    Dialog(
+        onDismissRequest = onDone,
+        properties       = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Заголовок
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Text("Фільтри", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onReset) { Text("Скинути") }
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color    = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+
+            // ── Шапка ─────────────────────────────────────────────────────
+            Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.surface) {
+                Row(
+                    modifier          = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onReset) {
+                        Icon(Icons.Default.Close, "Скинути та закрити",
+                            tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text(
+                        "Пошук",
+                        modifier   = Modifier.weight(1f).padding(start = 4.dp),
+                        style      = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Button(
+                        onClick        = onDone,
+                        shape          = RoundedCornerShape(50),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                    ) {
+                        Icon(Icons.Default.FilterList, null,
+                            modifier = Modifier.size(18.dp).padding(end = 4.dp))
+                        Text("Готово", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
-            // ── Нотатки ───────────────────────────────────────────────────
-            OutlinedTextField(
-                value         = query,
-                onValueChange = onQueryChange,
-                label         = { Text("Нотатки, категорія, рахунок...") },
-                modifier      = Modifier.fillMaxWidth(),
-                singleLine    = true,
-                leadingIcon   = { Icon(Icons.Default.Search, null) },
-                trailingIcon  = if (query.isNotEmpty()) {{
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Default.Close, null)
-                    }
-                }} else null,
-                shape = RoundedCornerShape(12.dp)
-            )
+            // ── Контент ────────────────────────────────────────────────────
+            LazyColumn(
+                modifier       = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
 
-            // ── Тип операції ──────────────────────────────────────────────
-            FilterSection(title = "Тип операції") {
-                listOf(
-                    "EXPENSE"  to "Витрати",
-                    "INCOME"   to "Доходи",
-                    "TRANSFER" to "Перекази",
-                    "BORROW"   to "Борги"
-                ).forEach { (key, label) ->
-                    val selected = key in filterTypes
-                    FilterChip(
-                        selected  = selected,
-                        onClick   = {
-                            onTypesChange(if (selected) filterTypes - key else filterTypes + key)
+                // ── Нотатки ───────────────────────────────────────────────
+                item {
+                    SearchSectionHeader("Нотатки", MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value         = query,
+                        onValueChange = onQueryChange,
+                        placeholder   = { Text("Нотатки...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) },
+                        modifier      = Modifier.fillMaxWidth(),
+                        singleLine    = true,
+                        leadingIcon   = {
+                            Icon(Icons.Default.Notes, null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         },
-                        label     = { Text(label) }
+                        trailingIcon  = if (query.isNotEmpty()) {{
+                            IconButton(onClick = { onQueryChange("") }) {
+                                Icon(Icons.Default.Close, null)
+                            }
+                        }} else null,
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
-            }
 
-            // ── Рахунки ───────────────────────────────────────────────────
-            if (accounts.isNotEmpty()) {
-                FilterSection(title = "Рахунки") {
-                    accounts.forEach { acc ->
-                        val selected = acc.id in filterAccountIds
-                        val accColor = try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
-                                       catch (_: Exception) { Color(0xFF3949AB) }
-                        FilterChip(
-                            selected = selected,
-                            onClick  = {
-                                onAccountsChange(if (selected) filterAccountIds - acc.id else filterAccountIds + acc.id)
-                            },
-                            label = { Text(acc.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accColor.copy(alpha = 0.15f),
-                                selectedLabelColor     = accColor
+                // ── Тип операції ──────────────────────────────────────────
+                item {
+                    SearchSectionHeader("Тип операції", expenseColor)
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier              = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        listOf(
+                            Triple("EXPENSE",  "Витрата",  expenseColor),
+                            Triple("INCOME",   "Дохід",    incomeColor),
+                            Triple("TRANSFER", "Переказ",  transferColor)
+                        ).forEach { (key, label, color) ->
+                            val selected = key in filterTypes
+                            TypeFilterCard(
+                                label    = label,
+                                color    = color,
+                                selected = selected,
+                                icon     = when (key) {
+                                    "EXPENSE"  -> Icons.Default.ArrowUpward
+                                    "INCOME"   -> Icons.Default.ArrowDownward
+                                    else       -> Icons.Default.SwapHoriz
+                                },
+                                modifier = Modifier.weight(1f),
+                                onClick  = {
+                                    onTypesChange(if (selected) filterTypes - key else filterTypes + key)
+                                }
                             )
-                        )
+                        }
                     }
                 }
-            }
 
-            // ── Витрати та доходи (категорії) ─────────────────────────────
-            if (allCats.isNotEmpty()) {
-                FilterSection(title = "Витрати та доходи") {
-                    allCats.forEach { cat ->
-                        val selected  = cat.id in filterCategoryIds
-                        val catColor  = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
-                                        catch (_: Exception) { Color(0xFF607D8B) }
-                        FilterChip(
-                            selected = selected,
-                            onClick  = {
-                                onCategoriesChange(if (selected) filterCategoryIds - cat.id else filterCategoryIds + cat.id)
-                            },
-                            label  = { Text(cat.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = catColor.copy(alpha = 0.15f),
-                                selectedLabelColor     = catColor
-                            )
-                        )
+                // ── Рахунки ───────────────────────────────────────────────
+                if (accounts.isNotEmpty()) {
+                    item {
+                        SearchSectionHeader("Рахунки", MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(10.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement   = Arrangement.spacedBy(8.dp)
+                        ) {
+                            accounts.forEach { acc ->
+                                val selected = acc.id in filterAccountIds
+                                val accColor = try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
+                                               catch (_: Exception) { Color(0xFF3949AB) }
+                                ColoredFilterChip(
+                                    label    = acc.name,
+                                    subLabel = org.pixelrush.moneyiq.ui.main.formatMoney(acc.balance),
+                                    icon     = org.pixelrush.moneyiq.ui.accounts.accountIconFromKey(acc.icon),
+                                    color    = accColor,
+                                    selected = selected,
+                                    onClick  = {
+                                        onAccountsChange(if (selected) filterAccountIds - acc.id else filterAccountIds + acc.id)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            // ── Кнопка Закрити ────────────────────────────────────────────
-            Button(
-                onClick   = onDismiss,
-                modifier  = Modifier.fillMaxWidth(),
-                shape     = RoundedCornerShape(12.dp)
+                // ── Витрати ───────────────────────────────────────────────
+                if (expenseCategories.isNotEmpty()) {
+                    item {
+                        SearchSectionHeader("Витрати", expenseColor)
+                        Spacer(Modifier.height(10.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement   = Arrangement.spacedBy(8.dp)
+                        ) {
+                            expenseCategories.forEach { cat ->
+                                val selected = cat.id in filterCategoryIds
+                                val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                                               catch (_: Exception) { Color(0xFF607D8B) }
+                                ColoredFilterChip(
+                                    label    = cat.name,
+                                    icon     = categoryIconFor(cat.icon),
+                                    color    = catColor,
+                                    selected = selected,
+                                    onClick  = {
+                                        onCategoriesChange(if (selected) filterCategoryIds - cat.id else filterCategoryIds + cat.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ── Доходи ────────────────────────────────────────────────
+                if (incomeCategories.isNotEmpty()) {
+                    item {
+                        SearchSectionHeader("Доходи", incomeColor)
+                        Spacer(Modifier.height(10.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement   = Arrangement.spacedBy(8.dp)
+                        ) {
+                            incomeCategories.forEach { cat ->
+                                val selected = cat.id in filterCategoryIds
+                                val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                                               catch (_: Exception) { Color(0xFF607D8B) }
+                                ColoredFilterChip(
+                                    label    = cat.name,
+                                    icon     = categoryIconFor(cat.icon),
+                                    color    = catColor,
+                                    selected = selected,
+                                    onClick  = {
+                                        onCategoriesChange(if (selected) filterCategoryIds - cat.id else filterCategoryIds + cat.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+    }
+    } // Dialog
+}
+
+// ── Секционный заголовок ──────────────────────────────────────────────────────
+
+@Composable
+private fun SearchSectionHeader(title: String, color: Color) {
+    Text(
+        title,
+        style      = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color      = color
+    )
+}
+
+// ── Большая карточка типа операции ───────────────────────────────────────────
+
+@Composable
+private fun TypeFilterCard(
+    label:    String,
+    color:    Color,
+    icon:     androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick:  () -> Unit
+) {
+    Surface(
+        onClick      = onClick,
+        modifier     = modifier.height(80.dp),
+        shape        = RoundedCornerShape(16.dp),
+        color        = if (selected) color else MaterialTheme.colorScheme.surface,
+        border       = androidx.compose.foundation.BorderStroke(
+            width = 1.5.dp,
+            color = color
+        )
+    ) {
+        Column(
+            modifier            = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier         = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) Color.White.copy(alpha = 0.25f) else color.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Закрити")
+                Icon(
+                    icon, null,
+                    tint     = if (selected) Color.White else color,
+                    modifier = Modifier.size(20.dp)
+                )
             }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style      = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color      = if (selected) Color.White else color
+            )
         }
     }
 }
 
+// ── Кольоровий чіп фільтра ────────────────────────────────────────────────────
+
 @Composable
-private fun FilterSection(title: String, content: @Composable FlowRowScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            fontWeight = FontWeight.SemiBold
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement   = Arrangement.spacedBy(4.dp),
-            content               = content
-        )
+private fun ColoredFilterChip(
+    label:    String,
+    icon:     androidx.compose.ui.graphics.vector.ImageVector,
+    color:    Color,
+    selected: Boolean,
+    subLabel: String? = null,
+    onClick:  () -> Unit
+) {
+    Surface(
+        onClick  = onClick,
+        shape    = RoundedCornerShape(50),
+        color    = if (selected) color else MaterialTheme.colorScheme.surface,
+        border   = androidx.compose.foundation.BorderStroke(1.5.dp, color)
+    ) {
+        Row(
+            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                icon, null,
+                tint     = if (selected) Color.White else color,
+                modifier = Modifier.size(16.dp)
+            )
+            Column {
+                Text(
+                    label,
+                    style      = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = if (selected) Color.White else color
+                )
+                if (subLabel != null) {
+                    Text(
+                        subLabel,
+                        style  = MaterialTheme.typography.labelSmall,
+                        color  = if (selected) Color.White.copy(alpha = 0.8f)
+                                 else color.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -917,110 +1099,153 @@ private fun TransferQuickSheet(
     onSave:      (toAccountId: Long, amount: Double, date: Long) -> Unit,
     onDismiss:   () -> Unit
 ) {
-    val toAccounts = allAccounts.filter { it.id != fromAccount.id }
-    var selectedTo by remember { mutableStateOf(toAccounts.firstOrNull()) }
-    var amountStr  by remember { mutableStateOf("") }
-    val fromColor  = remember(fromAccount.colorHex) {
-        try { Color(android.graphics.Color.parseColor(fromAccount.colorHex)) }
+    var selectedFrom by remember { mutableStateOf(fromAccount) }
+    var selectedTo   by remember { mutableStateOf(allAccounts.firstOrNull { it.id != fromAccount.id }) }
+    var selectedDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var note         by remember { mutableStateOf("") }
+    var showDateSheet    by remember { mutableStateOf(false) }
+    var showFullDate     by remember { mutableStateOf(false) }
+    var showFromAccSheet by remember { mutableStateOf(false) }
+    var showToAccSheet   by remember { mutableStateOf(false) }
+
+    val calc = org.pixelrush.moneyiq.ui.categories.rememberCalcState()
+
+    val fromColor = remember(selectedFrom.colorHex) {
+        try { Color(android.graphics.Color.parseColor(selectedFrom.colorHex)) }
+        catch (_: Exception) { Color(0xFF26A69A) }
+    }
+    val toColor = remember(selectedTo?.colorHex) {
+        try { Color(android.graphics.Color.parseColor(selectedTo?.colorHex ?: "#3949AB")) }
         catch (_: Exception) { Color(0xFF3949AB) }
     }
+    val transferColor = Color(0xFF5C6BC0)
+    val keyBg = MaterialTheme.colorScheme.surfaceVariant
+    val screenH = LocalConfiguration.current.screenHeightDp.dp
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor   = MaterialTheme.colorScheme.surface
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                "Переказ з «${fromAccount.name}»",
-                style      = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+        Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.72f)) {
 
-            // Рахунок призначення
-            Text("Куди:", style = MaterialTheme.typography.labelMedium,
-                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-            toAccounts.forEach { acc ->
-                val accColor = remember(acc.colorHex) {
-                    try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
-                    catch (_: Exception) { Color(0xFF3949AB) }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (selectedTo?.id == acc.id)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else Color.Transparent
-                        )
-                        .clickable { selectedTo = acc }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // ── Панелі: З рахунку / На рахунок ──────────────────────────────
+            Row(modifier = Modifier.fillMaxWidth().height(80.dp)) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .background(fromColor).clickable { showFromAccSheet = true }
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(accColor),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                            .size(32.dp).clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            org.pixelrush.moneyiq.ui.accounts.accountTypeIcon(acc.type),
-                            null, tint = Color.White, modifier = Modifier.size(22.dp)
-                        )
+                    ) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+                    Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp)) {
+                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(selectedFrom.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(acc.name, fontWeight = FontWeight.Medium)
-                        Text(
-                            "${formatMoney(acc.balance)} ₴",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                        )
-                    }
-                    if (selectedTo?.id == acc.id) {
-                        Icon(Icons.Default.CheckCircle, null,
-                             tint = MaterialTheme.colorScheme.primary,
-                             modifier = Modifier.size(20.dp))
+                }
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .background(toColor).clickable { showToAccSheet = true }
+                ) {
+                    Box(
+                        modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
+                            .size(32.dp).clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+                    Column(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 8.dp), horizontalAlignment = Alignment.End) {
+                        Text("На рахунок", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(selectedTo?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
 
-            // Сума
+            // ── Назва + сума ──────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Переказ", style = MaterialTheme.typography.labelMedium, color = transferColor)
+                Text(calc.displayExpr("₴"), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = transferColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+
+            // ── Нотатка ───────────────────────────────────────────────────────
             OutlinedTextField(
-                value         = amountStr,
-                onValueChange = { v -> if (v.all { it.isDigit() || it == '.' }) amountStr = v },
-                label         = { Text("Сума") },
-                modifier      = Modifier.fillMaxWidth(),
-                singleLine    = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                ),
-                leadingIcon   = { Icon(Icons.Default.SwapHoriz, null) }
+                value = note, onValueChange = { note = it },
+                placeholder = { Text("Нотатки...") },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                singleLine = true, shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(Modifier.height(6.dp))
+
+            // ── Калькулятор ───────────────────────────────────────────────────
+            org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad(
+                calc         = calc,
+                modifier     = Modifier.weight(1f).fillMaxWidth(),
+                confirmColor = transferColor,
+                onConfirm    = {
+                    val amt   = calc.result()
+                    val toAcc = selectedTo ?: return@SharedCalcKeypad
+                    if (amt > 0) onSave(toAcc.id, amt, selectedDate)
+                },
+                row2ExtraKey = {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                            .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                            .clickable { showDateSheet = true },
+                        contentAlignment = Alignment.Center
+                    ) { Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(20.dp)) }
+                }
             )
 
-            // Кнопка Зберегти
-            Button(
-                onClick  = {
-                    val amount = amountStr.toDoubleOrNull() ?: return@Button
-                    val toAcc  = selectedTo ?: return@Button
-                    if (amount > 0) onSave(toAcc.id, amount, System.currentTimeMillis())
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled  = amountStr.toDoubleOrNull() != null &&
-                           (amountStr.toDoubleOrNull() ?: 0.0) > 0 &&
-                           selectedTo != null
-            ) {
-                Text("Зберегти переказ")
-            }
+            // ── Дата ──────────────────────────────────────────────────────────
+            Text(
+                org.pixelrush.moneyiq.ui.categories.txDateLabelPublic(selectedDate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)
+            )
         }
+    }
+
+    if (showDateSheet) {
+        org.pixelrush.moneyiq.ui.categories.CalcDateSheet(
+            currentDate = selectedDate, repeatMode = "NEVER", reminderMode = "NEVER",
+            onDateSelected  = { selectedDate = it; showDateSheet = false },
+            onRepeatClick   = { showDateSheet = false },
+            onReminderClick = { showDateSheet = false },
+            onPickDate      = { showDateSheet = false; showFullDate = true },
+            onDismiss       = { showDateSheet = false }
+        )
+    }
+    if (showFullDate) {
+        org.pixelrush.moneyiq.ui.categories.FullDatePickerDialog(
+            initial        = selectedDate,
+            onDateSelected = { selectedDate = it; showFullDate = false },
+            onDismiss      = { showFullDate = false }
+        )
+    }
+    if (showFromAccSheet) {
+        org.pixelrush.moneyiq.ui.categories.AccountPickerSheet(
+            accounts   = allAccounts.filter { it.id != selectedTo?.id },
+            selectedId = selectedFrom.id,
+            label      = "З рахунку",
+            onSelect   = { acc -> selectedFrom = acc; showFromAccSheet = false },
+            onDismiss  = { showFromAccSheet = false }
+        )
+    }
+    if (showToAccSheet) {
+        org.pixelrush.moneyiq.ui.categories.AccountPickerSheet(
+            accounts   = allAccounts.filter { it.id != selectedFrom.id },
+            selectedId = selectedTo?.id,
+            label      = "На рахунок",
+            onSelect   = { acc -> selectedTo = acc; showToAccSheet = false },
+            onDismiss  = { showToAccSheet = false }
+        )
     }
 }
 

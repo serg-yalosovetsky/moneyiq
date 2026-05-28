@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.main
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -108,9 +109,11 @@ fun MainScreen(
     val triggerEditCategories: () -> Unit = { showEditCategories = true }
     val categoriesState by categoriesViewModel.state.collectAsState()
 
-    // ── Екран Дані ───────────────────────────────────────────────────────────
-    var showDataScreen    by remember { mutableStateOf(false) }
+    // ── Екран Дані / Налаштування / Пошук ────────────────────────────────────
+    var showDataScreen     by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
+    var openTxSearch       by remember { mutableStateOf(false) }
+    var showBudgetSettings by remember { mutableStateOf(false) }
 
     if (showDataScreen) {
         DataScreen(onNavigateBack = { showDataScreen = false })
@@ -118,8 +121,17 @@ fun MainScreen(
     }
 
     if (showSettingsScreen) {
-        SettingsScreen(onNavigateBack = { showSettingsScreen = false })
+        SettingsScreen(
+            onNavigateBack = { showSettingsScreen = false },
+            onData         = { showSettingsScreen = false; showDataScreen = true }
+        )
         return
+    }
+
+    // Жест «назад» — повертаємося на вкладку «Операції» (індекс 2), звідти — виходимо з додатку
+    val txTabIndex = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
+    BackHandler(enabled = currentPage != txTabIndex) {
+        scope.launch { pagerState.animateScrollToPage(txTabIndex) }
     }
 
     ModalNavigationDrawer(
@@ -168,6 +180,8 @@ fun MainScreen(
             if (!budgetVisible && page >= 3) page + 1 else page
         }
 
+        val contentPage = if (!budgetVisible && currentPage >= 3) currentPage + 1 else currentPage
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -175,11 +189,13 @@ fun MainScreen(
         ) {
             SharedTopBar(
                 totalBalance      = totalBalance,
-                currentPage       = currentPage,
+                currentPage       = contentPage,
                 onAvatarClick     = { scope.launch { drawerState.open() } },
                 onPlusClick       = triggerNewAccount,
                 onEditCategories  = triggerEditCategories,
-                onSettings        = { showSettingsScreen = true }
+                onSettings        = { showSettingsScreen = true },
+                onSearchTx        = { openTxSearch = true },
+                onBudgetSettings  = { showBudgetSettings = true }
             )
 
             HorizontalPager(
@@ -199,11 +215,15 @@ fun MainScreen(
                     2 -> TransactionsListScreen(
                              padding           = bottomPadding,
                              onEditTransaction = onEditTransaction,
-                             embeddedMode      = true
+                             embeddedMode      = true,
+                             openSearch        = openTxSearch,
+                             onSearchDismissed = { openTxSearch = false }
                          )
                     3 -> BudgetScreen(
-                             padding      = bottomPadding,
-                             embeddedMode = true
+                             padding           = bottomPadding,
+                             embeddedMode      = true,
+                             showSettings      = showBudgetSettings,
+                             onSettingsDismiss = { showBudgetSettings = false }
                          )
                     4 -> OverviewScreen(
                              padding          = bottomPadding,
@@ -396,7 +416,9 @@ fun SharedTopBar(
     onAvatarClick:    () -> Unit = {},
     onPlusClick:      () -> Unit,
     onEditCategories: () -> Unit = {},
-    onSettings:       () -> Unit = {}
+    onSettings:       () -> Unit = {},
+    onSearchTx:       () -> Unit = {},
+    onBudgetSettings: () -> Unit = {}
 ) {
     Row(
         modifier          = Modifier
@@ -445,11 +467,13 @@ fun SharedTopBar(
 
         Spacer(Modifier.width(12.dp))
 
-        // Права кнопка: «+» (рахунки), олівець (категорії), шестерня (решта)
+        // Права кнопка
         val (icon, description, action) = when (currentPage) {
-            0    -> Triple(Icons.Default.Add,        "Новий рахунок",        onPlusClick)
-            1    -> Triple(Icons.Default.Edit,       "Редагувати категорії", onEditCategories)
-            else -> Triple(Icons.Outlined.Settings,  "Налаштування",         onSettings)
+            0    -> Triple(Icons.Default.Add,       "Новий рахунок",           onPlusClick)
+            1    -> Triple(Icons.Default.Edit,      "Редагувати категорії",    onEditCategories)
+            2    -> Triple(Icons.Default.Search,    "Пошук операцій",          onSearchTx)
+            3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету",    onBudgetSettings)
+            else -> Triple(Icons.Outlined.Settings, "Налаштування",            onSettings)
         }
 
         IconButton(

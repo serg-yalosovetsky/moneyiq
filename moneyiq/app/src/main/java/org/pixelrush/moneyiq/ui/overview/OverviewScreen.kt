@@ -42,6 +42,7 @@ import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.AccountRepository
+import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
@@ -120,6 +121,7 @@ data class OverviewUiState(
         val c = Calendar.getInstance()
         OverviewSelMonth(c.get(Calendar.YEAR), c.get(Calendar.MONTH))
     },
+    val appMonth:           AppMonth             = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:        Int                  = 31,
     val mode:               OverviewMode         = OverviewMode.EXPENSE,
     val totalBalance:       Double               = 0.0,
@@ -150,11 +152,12 @@ class OverviewViewModel @Inject constructor(
     private val _mode = MutableStateFlow(OverviewMode.EXPENSE)
 
     val state: StateFlow<OverviewUiState> =
-        combine(monthRepo.month, _mode) { appMonth, mode ->
-            OverviewSelMonth(appMonth.year, appMonth.month) to mode
+        combine(monthRepo.month, _mode) { am, mode ->
+            am to mode
         }
-        .flatMapLatest { (sel, mode) ->
-            val (from, to) = monthRange(sel)
+        .flatMapLatest { (am, mode) ->
+            val sel        = OverviewSelMonth(am.year, am.month)
+            val (from, to) = monthRepo.computeRange(am)
 
             val innerFlow = combine(
                 txRepo.getTransactionsByPeriod(from, to),
@@ -167,29 +170,19 @@ class OverviewViewModel @Inject constructor(
             }
 
             combine(innerFlow, accountRepo.getTotalBalance()) { data, bal ->
-                buildState(sel, mode, data, bal ?: 0.0)
+                buildState(am, sel, mode, data, bal ?: 0.0)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OverviewUiState())
 
-    /** Делегируем навигацию в общий репозиторий */
     fun prevMonth()                      = monthRepo.prevMonth()
     fun nextMonth()                      = monthRepo.nextMonth()
     fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
-
-    fun setMode(m: OverviewMode) { _mode.value = m }
-
-    private fun monthRange(sel: OverviewSelMonth): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        cal.set(sel.year, sel.month, 1, 0, 0, 0); cal.set(Calendar.MILLISECOND, 0)
-        val from = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59);      cal.set(Calendar.MILLISECOND, 999)
-        return from to cal.timeInMillis
-    }
+    fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
+    fun setMode(m: OverviewMode)         { _mode.value = m }
 
     private fun buildState(
+        am:      AppMonth,
         sel:     OverviewSelMonth,
         mode:    OverviewMode,
         data:    OvrRaw,
@@ -273,7 +266,8 @@ class OverviewViewModel @Inject constructor(
 
         return OverviewUiState(
             selectedMonth      = sel,
-            daysInMonth        = dim,
+            appMonth           = am,
+            daysInMonth        = monthRepo.daysInPeriod(am),
             mode               = mode,
             totalBalance       = balance,
             monthExpense       = monthExpense,
@@ -383,12 +377,11 @@ fun OverviewScreen(
         }
 
         SharedMonthNavPill(
-            year          = state.selectedMonth.year,
-            month         = state.selectedMonth.month,
-            daysInMonth   = state.daysInMonth,
-            onPrev        = viewModel::prevMonth,
-            onNext        = viewModel::nextMonth,
-            onSelectMonth = viewModel::goToMonth
+            appMonth       = state.appMonth,
+            daysInPeriod   = state.daysInMonth,
+            onPrev         = viewModel::prevMonth,
+            onNext         = viewModel::nextMonth,
+            onSelectPeriod = viewModel::setPeriod
         )
 
         LazyColumn(

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -46,8 +47,10 @@ import org.pixelrush.moneyiq.data.repository.SettingsRepository
 import org.pixelrush.moneyiq.util.BackupData
 import org.pixelrush.moneyiq.util.BackupSerializer
 import org.pixelrush.moneyiq.util.CsvExporter
+import org.pixelrush.moneyiq.util.suggestCategoryStyle
 import org.pixelrush.moneyiq.workers.DriveBackupEntry
 import org.pixelrush.moneyiq.workers.DriveBackupWorker
+import org.pixelrush.moneyiq.workers.MonoFlowSyncWorker
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -72,7 +75,13 @@ data class DataUiState(
     val isExporting: Boolean                  = false,
     val isImporting: Boolean                  = false,
     val isBacking: Boolean                    = false,
-    val message: String?                      = null
+    val message: String?                      = null,
+    // MonoFlow sync
+    val monoflowUrl: String                   = "",
+    val monoflowToken: String                 = "",
+    val monoflowAutoSync: Boolean             = false,
+    val monoflowLastSyncMs: Long              = 0L,
+    val isSyncing: Boolean                    = false
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -109,12 +118,16 @@ class DataViewModel @Inject constructor(
             } else emptyList()
 
             _state.value = _state.value.copy(
-                localBackups      = localBackups,
-                driveBackups      = driveBackups,
-                driveFolderUri    = driveUri,
-                driveFolderName   = driveName,
+                localBackups       = localBackups,
+                driveBackups       = driveBackups,
+                driveFolderUri     = driveUri,
+                driveFolderName    = driveName,
                 driveBackupEnabled = settings.driveBackupEnabled,
-                driveLastBackupMs  = settings.driveBackupLastDate
+                driveLastBackupMs  = settings.driveBackupLastDate,
+                monoflowUrl        = settings.monoflowUrl,
+                monoflowToken      = settings.monoflowToken,
+                monoflowAutoSync   = settings.monoflowAutoSync,
+                monoflowLastSyncMs = settings.monoflowLastSyncMs
             )
         }
     }
@@ -175,25 +188,26 @@ class DataViewModel @Inject constructor(
     }
 
     private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
+        val validIconKeys = setOf(
+            "category", "shopping", "restaurant", "car", "home", "work", "school",
+            "health", "flight", "music", "money", "coffee", "pets", "gift", "phone", "sports"
+        )
+        val sanitizedCategories = data.categories.map { cat ->
+            if (cat.icon !in validIconKeys) {
+                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+                cat.copy(icon = icon, colorHex = color)
+            } else cat
+        }
         // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
         txDao.deleteAllTransactions()
         accountDao.deleteAllAccounts()
         categoryDao.deleteAllCategories()
         accountDao.insertAccounts(data.accounts)
-        categoryDao.insertCategories(data.categories)
+        categoryDao.insertCategories(sanitizedCategories)
         txDao.insertTransactions(data.transactions)
     }
 
     // ── CSV Експорт ───────────────────────────────────────────────────────────
-
-    fun buildCsvShareIntent(context: Context): Intent? {
-        return try {
-            val all = runCatching { txDao.getAllTransactionsWithDetails() }.getOrNull()
-                ?: return null
-            // Синхронно на main thread — поганий патерн, але для intent побудови OK
-            CsvExporter.export(context, all)
-        } catch (e: Exception) { null }
-    }
 
     suspend fun buildCsvShareIntentSuspend(context: Context): Intent? = withContext(Dispatchers.IO) {
         try {
@@ -213,7 +227,7 @@ class DataViewModel @Inject constructor(
 
             val uriStr = treeUri.toString()
             settingsRepo.update {
-                it[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = uriStr
+                this[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = uriStr
             }
             loadState(context)
         }
@@ -222,8 +236,8 @@ class DataViewModel @Inject constructor(
     fun clearDriveFolder(context: Context) {
         viewModelScope.launch {
             settingsRepo.update {
-                it[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = ""
-                it[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED]    = false
+                this[SettingsRepository.KEY_DRIVE_BACKUP_FOLDER_URI] = ""
+                this[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED]    = false
             }
             DriveBackupWorker.cancel(context)
             _state.value = _state.value.copy(
@@ -238,7 +252,7 @@ class DataViewModel @Inject constructor(
     fun setDriveAutoBackup(context: Context, enabled: Boolean) {
         viewModelScope.launch {
             settingsRepo.update {
-                it[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED] = enabled
+                this[SettingsRepository.KEY_DRIVE_BACKUP_ENABLED] = enabled
             }
             if (enabled) DriveBackupWorker.schedule(context)
             else         DriveBackupWorker.cancel(context)
@@ -287,7 +301,7 @@ class DataViewModel @Inject constructor(
                 if (ok) {
                     val now = System.currentTimeMillis()
                     settingsRepo.update {
-                        it[SettingsRepository.KEY_DRIVE_BACKUP_LAST_DATE] = now
+                        this[SettingsRepository.KEY_DRIVE_BACKUP_LAST_DATE] = now
                     }
                     showMessage("Резервну копію збережено в Google Drive ✓")
                     loadState(context)
@@ -319,6 +333,115 @@ class DataViewModel @Inject constructor(
                 _state.value = _state.value.copy(isImporting = false)
             }
         }
+    }
+
+    // ── MonoFlow синхронізація ────────────────────────────────────────────────
+
+    fun saveMonoFlowConfig(context: Context, url: String, token: String) {
+        viewModelScope.launch {
+            settingsRepo.update {
+                this[SettingsRepository.KEY_MONOFLOW_URL]       = url.trimEnd('/')
+                this[SettingsRepository.KEY_MONOFLOW_TOKEN]     = token
+                this[SettingsRepository.KEY_MONOFLOW_LAST_SYNC] = 0L  // скидаємо → наступний синк = повний
+            }
+            _state.value = _state.value.copy(
+                monoflowUrl        = url.trimEnd('/'),
+                monoflowToken      = token,
+                monoflowLastSyncMs = 0L
+            )
+            // Одразу синхронізуємось
+            syncFromMonoFlowNow(context)
+        }
+    }
+
+    fun clearMonoFlowConfig(context: Context) {
+        viewModelScope.launch {
+            settingsRepo.update {
+                this[SettingsRepository.KEY_MONOFLOW_URL]       = ""
+                this[SettingsRepository.KEY_MONOFLOW_TOKEN]     = ""
+                this[SettingsRepository.KEY_MONOFLOW_AUTO_SYNC] = false
+                this[SettingsRepository.KEY_MONOFLOW_LAST_SYNC] = 0L
+            }
+            MonoFlowSyncWorker.cancel(context)
+            _state.value = _state.value.copy(
+                monoflowUrl        = "",
+                monoflowToken      = "",
+                monoflowAutoSync   = false,
+                monoflowLastSyncMs = 0L
+            )
+        }
+    }
+
+    fun setMonoFlowAutoSync(context: Context, enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.update {
+                this[SettingsRepository.KEY_MONOFLOW_AUTO_SYNC] = enabled
+            }
+            if (enabled) MonoFlowSyncWorker.schedule(context)
+            else         MonoFlowSyncWorker.cancel(context)
+            _state.value = _state.value.copy(monoflowAutoSync = enabled)
+        }
+    }
+
+    fun syncFromMonoFlowNow(context: Context) {
+        if (_state.value.isSyncing) return
+        val url   = _state.value.monoflowUrl
+        val token = _state.value.monoflowToken
+        if (url.isBlank() || token.isBlank()) {
+            showMessage("MonoFlow: налаштуйте URL та токен")
+            return
+        }
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isSyncing = true)
+            try {
+                val since = _state.value.monoflowLastSyncMs
+                val json  = withContext(Dispatchers.IO) {
+                    val conn = java.net.URL("$url/api/sync?since=$since")
+                        .openConnection() as java.net.HttpURLConnection
+                    conn.setRequestProperty("Authorization", "Bearer $token")
+                    conn.setRequestProperty("Accept", "application/json")
+                    conn.connectTimeout = 15_000
+                    conn.readTimeout    = 60_000
+                    val code = conn.responseCode
+                    if (code != 200) throw Exception("HTTP $code")
+                    conn.inputStream.bufferedReader(Charsets.UTF_8).readText()
+                }
+                val data = withContext(Dispatchers.IO) { BackupSerializer.deserialize(json) }
+                mergeBackupData(data)
+                val now = System.currentTimeMillis()
+                settingsRepo.update {
+                    this[SettingsRepository.KEY_MONOFLOW_LAST_SYNC] = now
+                }
+                _state.value = _state.value.copy(monoflowLastSyncMs = now)
+                showMessage(
+                    "MonoFlow синхронізовано ✓ " +
+                    "(${data.accounts.size} рахунків, ${data.transactions.size} операцій)"
+                )
+                loadState(context)
+            } catch (e: Exception) {
+                showMessage("MonoFlow: помилка — ${e.message}")
+            } finally {
+                _state.value = _state.value.copy(isSyncing = false)
+            }
+        }
+    }
+
+    /** MERGE-імпорт: вставляє/оновлює дані БЕЗ видалення існуючих (on conflict REPLACE by id) */
+    private suspend fun mergeBackupData(data: BackupData) = withContext(Dispatchers.IO) {
+        val validIconKeys = setOf(
+            "category", "shopping", "restaurant", "car", "home", "work", "school",
+            "health", "flight", "music", "money", "coffee", "pets", "gift", "phone", "sports"
+        )
+        val sanitizedCategories = data.categories.map { cat ->
+            if (cat.icon !in validIconKeys) {
+                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+                cat.copy(icon = icon, colorHex = color)
+            } else cat
+        }
+        // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
+        accountDao.insertAccounts(data.accounts)
+        categoryDao.insertCategories(sanitizedCategories)
+        txDao.insertTransactions(data.transactions)
     }
 
     // ── Локальний бекап ───────────────────────────────────────────────────────
@@ -413,6 +536,8 @@ fun DataScreen(
     onNavigateBack: () -> Unit,
     viewModel: DataViewModel = hiltViewModel()
 ) {
+    BackHandler(onBack = onNavigateBack)
+
     val context  = LocalContext.current
     val state    by viewModel.state.collectAsState()
     val scope    = rememberCoroutineScope()
@@ -723,6 +848,17 @@ fun DataScreen(
                 }
             }
 
+            // ── MonoFlow синхронізація ─────────────────────────────────────────
+            item { DataSectionHeader("MonoFlow — авто-синхронізація") }
+            item {
+                MonoFlowSyncCard(
+                    state       = state,
+                    context     = context,
+                    viewModel   = viewModel
+                )
+                HorizontalDivider()
+            }
+
             // ── Локальний бекап ────────────────────────────────────────────────
             item { DataSectionHeader("Локальний бекап") }
 
@@ -850,6 +986,168 @@ fun DataScreen(
                     CircularProgressIndicator(modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(16.dp))
                     Text("Імпорт даних…")
+                }
+            }
+        }
+    }
+}
+
+// ── MonoFlow Sync Card ────────────────────────────────────────────────────────
+
+@Composable
+private fun MonoFlowSyncCard(
+    state: DataUiState,
+    context: android.content.Context,
+    viewModel: DataViewModel
+) {
+    val scope = rememberCoroutineScope()
+    val fmt   = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale("uk")) }
+
+    // Локальні поля введення
+    var editUrl   by remember(state.monoflowUrl)   { mutableStateOf(state.monoflowUrl)   }
+    var editToken by remember(state.monoflowToken) { mutableStateOf(state.monoflowToken) }
+    var showToken by remember { mutableStateOf(false) }
+
+    val isConfigured = state.monoflowUrl.isNotBlank() && state.monoflowToken.isNotBlank()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isConfigured)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(Modifier.padding(16.dp)) {
+
+            // Заголовок
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Sync,
+                    contentDescription = null,
+                    tint = if (isConfigured) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (isConfigured) "MonoFlow підключено" else "Підключити MonoFlow",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (isConfigured) {
+                    IconButton(
+                        onClick = { viewModel.clearMonoFlowConfig(context) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Close, "Від'єднати",
+                            modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // URL
+            OutlinedTextField(
+                value = editUrl,
+                onValueChange = { editUrl = it },
+                label = { Text("URL сервісу") },
+                placeholder = { Text("https://monoflow.example.com") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isSyncing
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Токен
+            OutlinedTextField(
+                value = editToken,
+                onValueChange = { editToken = it },
+                label = { Text("Токен") },
+                placeholder = { Text("miq_xxxxxxxxxxxxxxxx") },
+                singleLine = true,
+                visualTransformation = if (showToken)
+                    androidx.compose.ui.text.input.VisualTransformation.None
+                else
+                    androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { showToken = !showToken }) {
+                        Icon(
+                            if (showToken) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isSyncing
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Кнопка Зберегти/Оновити
+            Button(
+                onClick = {
+                    if (editUrl.isNotBlank() && editToken.isNotBlank()) {
+                        viewModel.saveMonoFlowConfig(context, editUrl, editToken)
+                    }
+                },
+                enabled = editUrl.isNotBlank() && editToken.isNotBlank() && !state.isSyncing,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (state.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Синхронізація…")
+                } else {
+                    Icon(Icons.Default.Sync, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isConfigured) "Синхронізувати зараз" else "Підключити та синхронізувати")
+                }
+            }
+
+            // Статус і автосинк — тільки якщо налаштовано
+            if (isConfigured) {
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(4.dp))
+
+                // Автосинк
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Автосинк кожні 2 год",
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("Тільки при наявності інтернету",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = state.monoflowAutoSync,
+                        onCheckedChange = { viewModel.setMonoFlowAutoSync(context, it) }
+                    )
+                }
+
+                // Час останнього синку
+                if (state.monoflowLastSyncMs > 0L) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Останній синк: ${fmt.format(java.util.Date(state.monoflowLastSyncMs))}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

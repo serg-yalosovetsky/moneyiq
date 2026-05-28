@@ -33,18 +33,64 @@ private val PILL_ACCENT = Color(0xFFD81B60)
  * Єдина малинова пілюля навігації.
  * При кліку — відкривається [PeriodSelectorSheet].
  */
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+internal fun pillLabelFor(a: AppMonth): String {
+    val today = Calendar.getInstance()
+    return when (a.mode) {
+        PeriodMode.MONTH -> "${MONTH_NAMES_UA[a.month]} ${a.year}"
+        PeriodMode.TODAY -> {
+            val d = today.get(Calendar.DAY_OF_MONTH)
+            val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)].uppercase()
+            "$d $m"
+        }
+        PeriodMode.WEEK -> {
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+            val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
+            cal.add(Calendar.DAY_OF_MONTH, 6)
+            val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
+            "$s — $e"
+        }
+        PeriodMode.YEAR  -> "${a.year}"
+        PeriodMode.ALL   -> "ВІД ПОЧАТКУ"
+        PeriodMode.DAY   -> {
+            val cal = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
+            val d = cal.get(Calendar.DAY_OF_MONTH)
+            val m = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()
+            "$d $m ${cal.get(Calendar.YEAR)}"
+        }
+        PeriodMode.RANGE -> {
+            val s = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
+            val e = Calendar.getInstance().apply { timeInMillis = a.toMillis }
+            val fmt = { c: Calendar -> "${c.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)].uppercase()}" }
+            "${fmt(s)} — ${fmt(e)}"
+        }
+    }
+}
+
+internal fun pillBadgeFor(a: AppMonth, daysInPeriod: Int): String = when (a.mode) {
+    PeriodMode.ALL   -> "∞"
+    PeriodMode.TODAY -> "1"
+    PeriodMode.WEEK  -> "7"
+    else             -> "$daysInPeriod"
+}
+
+// ── Загальна пілюля навігації по місяцю ──────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SharedMonthNavPill(
-    appMonth:        AppMonth,
-    daysInPeriod:    Int,
-    pillLabel:       String,
-    pillBadge:       String,
-    onPrev:          () -> Unit,
-    onNext:          () -> Unit,
-    onSelectPeriod:  (AppMonth) -> Unit = {}
+    appMonth:       AppMonth,
+    daysInPeriod:   Int,
+    onPrev:         () -> Unit,
+    onNext:         () -> Unit,
+    onSelectPeriod: (AppMonth) -> Unit = {}
 ) {
     var showSheet by remember { mutableStateOf(false) }
+
+    val pillLabel = pillLabelFor(appMonth)
+    val pillBadge = pillBadgeFor(appMonth, daysInPeriod)
 
     if (showSheet) {
         PeriodSelectorSheet(

@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ val ACCENT_COLORS: List<Color> = listOf(
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onData:         () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -54,13 +56,16 @@ fun SettingsScreen(
         if (page == SettingsPage.MAIN) onNavigateBack() else page = SettingsPage.MAIN
     }
 
+    BackHandler(onBack = onBack)
+
     when (page) {
         SettingsPage.MAIN     -> MainSettingsContent(
-            settings  = settings,
-            vm        = viewModel,
-            onTheme   = { page = SettingsPage.THEME },
+            settings   = settings,
+            vm         = viewModel,
+            onTheme    = { page = SettingsPage.THEME },
             onCurrency = { page = SettingsPage.CURRENCY },
-            onBack    = onBack
+            onData     = onData,
+            onBack     = onBack
         )
         SettingsPage.THEME    -> ThemePageContent(
             settings = settings,
@@ -83,6 +88,7 @@ private fun MainSettingsContent(
     vm:         SettingsViewModel,
     onTheme:    () -> Unit,
     onCurrency: () -> Unit,
+    onData:     () -> Unit,
     onBack:     () -> Unit
 ) {
     var showHomeDialog       by remember { mutableStateOf(false) }
@@ -125,6 +131,13 @@ private fun MainSettingsContent(
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     showCrown   = true,
                     onClick     = onTheme
+                )
+            }
+            item {
+                SettingsRow(
+                    icon    = Icons.Default.Storage,
+                    title   = "Дані",
+                    onClick = onData
                 )
             }
             item { SettingsDivider() }
