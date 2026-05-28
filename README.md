@@ -85,48 +85,75 @@ gradle app:assembleDebug
 
 ## Testing
 
-### Run unit tests
+The project has 166 unit tests and a set of instrumented DAO tests. The test suite covers repositories, ViewModels, utilities, and the calculator component.
 
-```powershell
+### Running with gradlew (recommended)
+
+`gradlew` and `gradlew.bat` are present in `moneyiq/`. They require `gradle/wrapper/gradle-wrapper.jar` which is not committed. Generate it once:
+
+```bash
+# inside moneyiq/
+gradle wrapper --gradle-version 8.11.1
+```
+
+After that, use `./gradlew` (Linux/macOS) or `gradlew.bat` (Windows) for all commands.
+
+### Unit tests
+
+```bash
 cd moneyiq
-gradle :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest
 ```
 
-Or with the locally cached Gradle binary:
-
-```powershell
-$env:JAVA_HOME='C:\Program Files\Android\Android Studio2\jbr'
-$gradle = "$env:USERPROFILE\.gradle\wrapper\dists\gradle-8.11.1-bin\bpt9gzteqjrbo1mjrsomdt32c\gradle-8.11.1\bin\gradle.bat"
-& $gradle :app:testDebugUnitTest --no-daemon
-```
-
-HTML report is written to:
+HTML report:
 
 ```
 moneyiq/app/build/reports/tests/testDebugUnitTest/index.html
 ```
 
-### Run instrumented tests (requires emulator or device)
+### Instrumented tests (requires emulator or device)
 
-```powershell
-gradle :app:connectedDebugAndroidTest
+```bash
+./gradlew :app:connectedDebugAndroidTest
 ```
 
-### Code coverage report
+### Code coverage
 
-Coverage is collected via JaCoCo, which is built into the Android Gradle Plugin. The `debug` build type has `enableUnitTestCoverage = true` already configured.
+Coverage is collected via JaCoCo (built into AGP). The `debug` build type has `enableUnitTestCoverage = true` configured.
 
-```powershell
-gradle :app:createDebugUnitTestCoverageReport
+```bash
+./gradlew :app:createDebugUnitTestCoverageReport
 ```
 
-HTML report is written to:
+HTML report:
 
 ```
 moneyiq/app/build/reports/coverage/test/debug/index.html
 ```
 
-Open `index.html` in a browser to see per-class and per-package coverage percentages. The current suite covers repositories, utilities, ViewModels, and calculator logic — roughly the business-logic layer.
+Open `index.html` in a browser to see line and branch coverage per class and package.
+
+### Using cached Gradle binary (Windows, no gradlew yet)
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio2\jbr'
+$gradle = "$env:USERPROFILE\.gradle\wrapper\dists\gradle-8.11.1-bin\bpt9gzteqjrbo1mjrsomdt32c\gradle-8.11.1\bin\gradle.bat"
+& $gradle :app:testDebugUnitTest --no-daemon
+```
+
+## CI / GitHub Actions
+
+`.github/workflows/ci.yml` defines three jobs that run automatically on every push and pull request to `main`:
+
+| Job | Trigger | What it does |
+| --- | --- | --- |
+| **Unit Tests** | push + PR | Runs `testDebugUnitTest`, uploads HTML report as artifact |
+| **Coverage** | push to main only | Runs `createDebugUnitTestCoverageReport`, uploads report as artifact |
+| **Build Debug APK** | push to main only | Runs `assembleDebug`, uploads `app-debug.apk` as artifact |
+
+**Coverage** and **Build** only start after **Unit Tests** passes (`needs: test`).
+
+Artifacts are retained for 14–30 days and can be downloaded from the workflow run page on GitHub.
 
 ## Current Verification
 

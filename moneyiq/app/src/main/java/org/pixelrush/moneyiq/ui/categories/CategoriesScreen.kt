@@ -145,12 +145,15 @@ fun CategoriesScreen(
 
     // ── Category action sheet (long press) ───────────────────────────────────
     actionCategory?.let { cat ->
-        val catSpending = (if (cat.type == TransactionType.EXPENSE) state.monthSpending else state.monthIncome)[cat.id] ?: 0.0
+        val catSpending = effectiveSpending[cat.id] ?: 0.0
         val catTotal    = if (cat.type == TransactionType.EXPENSE) state.totalExpense else state.totalIncome
+        val catTxCount  = allCategoriesForTab
+            .filter { it.id == cat.id || it.parentId == cat.id }
+            .sumOf { state.monthTxCounts[it.id] ?: 0 }
         CategoryActionSheet(
             category      = cat,
             spending      = catSpending,
-            txCount       = state.monthTxCounts[cat.id] ?: 0,
+            txCount       = catTxCount,
             totalInPeriod = catTotal,
             pillLabel     = state.pillLabel,
             onEdit        = { actionCategory = null; editCategory = cat },
@@ -312,7 +315,7 @@ internal fun CategoriesGridContent(
                         .fillMaxWidth()
                         .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
                         .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
                     repeat(4) { i ->
@@ -722,7 +725,7 @@ private fun CategoryChip(
     }
 }
 
-// ── Полоса підкатегорій (замість орбітального overlayу) ──────────────────────
+// ── Полоса підкатегорій ───────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -738,10 +741,9 @@ private fun ExpandedCategoryStrip(
         try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
-    val parentIconKey = if (parent.icon == "category")
-        suggestCategoryStyle(parent.name, parent.type).first else parent.icon
-    val parentSpend   = spending[parent.id] ?: 0.0
-    val sortedKids    = children.sortedByDescending { spending[it.id] ?: 0.0 }
+    val sortedKids = children
+        .filter { (spending[it.id] ?: 0.0) > 0.0 }
+        .sortedByDescending { spending[it.id] ?: 0.0 }
 
     Card(
         modifier  = Modifier
@@ -752,101 +754,59 @@ private fun ExpandedCategoryStrip(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier              = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 12.dp)
         ) {
-            // Батьківський чип
-            Column(
-                modifier            = Modifier.clickable { onClickParent() }.width(64.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier         = Modifier.size(44.dp).clip(CircleShape).background(parentColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(categoryIconFor(parentIconKey), null, tint = Color.White, modifier = Modifier.size(24.dp))
+            sortedKids.take(4).forEach { child ->
+                val childColor = remember(child.colorHex) {
+                    try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                    catch (_: Exception) { Color(0xFFFF5722) }
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    parent.name,
-                    style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                    maxLines  = 1,
-                    overflow  = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier  = Modifier.fillMaxWidth()
-                )
-                Text(
-                    formatMoney(parentSpend) + " ₴",
-                    style      = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color      = if (parentSpend > 0) parentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                    maxLines   = 1,
-                    textAlign  = TextAlign.Center,
-                    modifier   = Modifier.fillMaxWidth()
-                )
-            }
+                val childIconKey = if (child.icon == "category")
+                    suggestCategoryStyle(child.name, child.type).first else child.icon
+                val childSpend = spending[child.id] ?: 0.0
 
-            Icon(
-                Icons.Default.ChevronRight, null,
-                modifier = Modifier.size(14.dp),
-                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-            )
-
-            // Дочірні чипи
-            Row(
-                modifier              = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                sortedKids.forEach { child ->
-                    val childColor = remember(child.colorHex) {
-                        try { Color(android.graphics.Color.parseColor(child.colorHex)) }
-                        catch (_: Exception) { Color(0xFFFF5722) }
-                    }
-                    val childIconKey = if (child.icon == "category")
-                        suggestCategoryStyle(child.name, child.type).first else child.icon
-                    val childSpend   = spending[child.id] ?: 0.0
-
-                    Column(
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .combinedClickable(
+                            onClick     = { onClickChild(child) },
+                            onLongClick = { onLongClickChild(child) }
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
                         modifier = Modifier
-                            .width(56.dp)
-                            .combinedClickable(
-                                onClick     = { onClickChild(child) },
-                                onLongClick = { onLongClickChild(child) }
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(if (childSpend > 0) childColor else childColor.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (childSpend > 0) childColor else childColor.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                categoryIconFor(childIconKey), null,
-                                tint     = if (childSpend > 0) Color.White else childColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Text(
-                            child.name,
-                            style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            maxLines  = 1,
-                            overflow  = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier  = Modifier.fillMaxWidth()
-                        )
-                        Text(
-                            formatMoney(childSpend) + " ₴",
-                            style      = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            fontWeight = FontWeight.SemiBold,
-                            color      = if (childSpend > 0) childColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                            maxLines   = 1,
-                            textAlign  = TextAlign.Center,
-                            modifier   = Modifier.fillMaxWidth()
+                        Icon(
+                            categoryIconFor(childIconKey), null,
+                            tint     = if (childSpend > 0) Color.White else childColor,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        child.name,
+                        style     = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        maxLines  = 1,
+                        overflow  = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier  = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        formatMoney(childSpend) + " ₴",
+                        style      = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color      = if (childSpend > 0) childColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                        maxLines   = 1,
+                        textAlign  = TextAlign.Center,
+                        modifier   = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
