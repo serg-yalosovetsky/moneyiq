@@ -46,7 +46,9 @@ import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 import java.util.*
 import org.pixelrush.moneyiq.ui.categories.CalcStateHolder
 import org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad
+import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import org.pixelrush.moneyiq.ui.categories.rememberCalcState
+import org.pixelrush.moneyiq.util.suggestCategoryStyle
 import javax.inject.Inject
 
 // ── Data classes ──────────────────────────────────────────────────────────────
@@ -382,32 +384,12 @@ private fun BudgetMonthNavPill(
     }
 }
 
-// ── Маппинг иконок категорий ──────────────────────────────────────────────────
+// ── Іконка категорії з авто-підказкою ────────────────────────────────────────
 
-private fun budgetIconFor(iconName: String): androidx.compose.ui.graphics.vector.ImageVector = when (iconName) {
-    "restaurant"      -> Icons.Default.Restaurant
-    "directions_car"  -> Icons.Default.DirectionsCar
-    "shopping_cart"   -> Icons.Default.ShoppingCart
-    "local_grocery_store", "grocery" -> Icons.Default.ShoppingBasket
-    "home"            -> Icons.Default.Home
-    "movie"           -> Icons.Default.Movie
-    "local_hospital"  -> Icons.Default.LocalHospital
-    "checkroom"       -> Icons.Default.Checkroom
-    "phone"           -> Icons.Default.Phone
-    "school"          -> Icons.Default.School
-    "work"            -> Icons.Default.Work
-    "laptop"          -> Icons.Default.Laptop
-    "card_giftcard"   -> Icons.Default.CardGiftcard
-    "directions_bus"  -> Icons.Default.DirectionsBus
-    "sports_esports", "leisure" -> Icons.Default.SportsEsports
-    "local_cafe"      -> Icons.Default.LocalCafe
-    "sports"          -> Icons.Default.FitnessCenter
-    "flight"          -> Icons.Default.Flight
-    "pets"            -> Icons.Default.Pets
-    "music_note"      -> Icons.Default.MusicNote
-    "trending_up"     -> Icons.AutoMirrored.Filled.TrendingUp
-    else              -> Icons.Default.Category
-}
+private fun resolvedCatIcon(iconName: String, catName: String, type: TransactionType) =
+    categoryIconFor(
+        if (iconName == "category") suggestCategoryStyle(catName, type).first else iconName
+    )
 
 // ── Секция бюджета (Расходы / Доходы) ────────────────────────────────────────
 
@@ -579,7 +561,7 @@ private fun BudgetCatFullRow(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                budgetIconFor(row.category.icon), null,
+                resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
                 tint     = Color.White,
                 modifier = Modifier.size(26.dp)
             )
@@ -650,7 +632,7 @@ private fun BudgetCatChip(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                budgetIconFor(row.category.icon), null,
+                resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
                 tint     = if (hasAmount) Color.White else color,
                 modifier = Modifier.size(26.dp)
             )
@@ -910,7 +892,7 @@ private fun BudgetInputSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    budgetIconFor(catRow.category.icon), null,
+                    resolvedCatIcon(catRow.category.icon, catRow.category.name, catRow.category.type), null,
                     modifier = Modifier.size(28.dp),
                     tint     = Color.White
                 )

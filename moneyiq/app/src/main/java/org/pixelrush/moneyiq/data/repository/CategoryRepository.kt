@@ -23,28 +23,55 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
     suspend fun delete(category: CategoryEntity) = dao.deleteCategory(category)
 
     suspend fun seedDefaults() {
-        // Посев только при первом запуске
         if (dao.count() > 0) return
 
-        val defaults = listOf(
-            // Расходы
-            CategoryEntity(name = "Еда и рестораны",   type = TransactionType.EXPENSE, colorHex = "#FF5722", icon = "restaurant", isDefault = true, sortOrder = 1),
-            CategoryEntity(name = "Транспорт",          type = TransactionType.EXPENSE, colorHex = "#2196F3", icon = "car",        isDefault = true, sortOrder = 2),
-            CategoryEntity(name = "Продукты",           type = TransactionType.EXPENSE, colorHex = "#4CAF50", icon = "shopping",   isDefault = true, sortOrder = 3),
-            CategoryEntity(name = "Жильё",              type = TransactionType.EXPENSE, colorHex = "#9C27B0", icon = "home",       isDefault = true, sortOrder = 4),
-            CategoryEntity(name = "Развлечения",        type = TransactionType.EXPENSE, colorHex = "#673AB7", icon = "music",      isDefault = true, sortOrder = 5),
-            CategoryEntity(name = "Здоровье",           type = TransactionType.EXPENSE, colorHex = "#E91E63", icon = "health",     isDefault = true, sortOrder = 6),
-            CategoryEntity(name = "Одежда",             type = TransactionType.EXPENSE, colorHex = "#009688", icon = "shopping",   isDefault = true, sortOrder = 7),
-            CategoryEntity(name = "Связь",              type = TransactionType.EXPENSE, colorHex = "#3F51B5", icon = "phone",      isDefault = true, sortOrder = 8),
-            CategoryEntity(name = "Образование",        type = TransactionType.EXPENSE, colorHex = "#FF9800", icon = "school",     isDefault = true, sortOrder = 9),
-            CategoryEntity(name = "Прочие расходы",     type = TransactionType.EXPENSE, colorHex = "#9E9E9E", icon = "category",   isDefault = true, sortOrder = 10),
-            // Доходы
-            CategoryEntity(name = "Зарплата",           type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "work",       isDefault = true, sortOrder = 1),
-            CategoryEntity(name = "Фриланс",            type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "work",       isDefault = true, sortOrder = 2),
-            CategoryEntity(name = "Инвестиции",         type = TransactionType.INCOME,  colorHex = "#FF8F00", icon = "money",      isDefault = true, sortOrder = 3),
-            CategoryEntity(name = "Подарок",            type = TransactionType.INCOME,  colorHex = "#E91E63", icon = "gift",       isDefault = true, sortOrder = 4),
-            CategoryEntity(name = "Прочие доходы",      type = TransactionType.INCOME,  colorHex = "#4CAF50", icon = "category",   isDefault = true, sortOrder = 5),
-        )
-        dao.insertCategories(defaults)
+        val E = TransactionType.EXPENSE
+        val I = TransactionType.INCOME
+
+        // ── Витрати: кореневі категорії (order matches 1Money reference) ─────
+        val prodId   = dao.insertCategory(CategoryEntity(name = "Продукти",   type = E, colorHex = "#03A9F4", icon = "shopping",   isDefault = true, sortOrder = 1))
+        val restId   = dao.insertCategory(CategoryEntity(name = "Ресторація", type = E, colorHex = "#5C6BC0", icon = "restaurant", isDefault = true, sortOrder = 2))
+        val dozId    = dao.insertCategory(CategoryEntity(name = "Дозвілля",   type = E, colorHex = "#E91E63", icon = "music",      isDefault = true, sortOrder = 3))
+        val transId  = dao.insertCategory(CategoryEntity(name = "Транспорт",  type = E, colorHex = "#FF9800", icon = "car",        isDefault = true, sortOrder = 4))
+        val healthId = dao.insertCategory(CategoryEntity(name = "Здоров'я",   type = E, colorHex = "#4CAF50", icon = "health",     isDefault = true, sortOrder = 5))
+        val giftId   = dao.insertCategory(CategoryEntity(name = "Подарунки",  type = E, colorHex = "#F44336", icon = "gift",       isDefault = true, sortOrder = 6))
+        val familyId = dao.insertCategory(CategoryEntity(name = "Сім'я",      type = E, colorHex = "#673AB7", icon = "family",     isDefault = true, sortOrder = 7))
+        val shopId   = dao.insertCategory(CategoryEntity(name = "Покупки",    type = E, colorHex = "#795548", icon = "shopping",   isDefault = true, sortOrder = 8))
+        /* Робота — додаткова категорія */
+        dao.insertCategory(CategoryEntity(name = "Робота",     type = E, colorHex = "#1565C0", icon = "work",       isDefault = true, sortOrder = 9))
+
+        // ── Витрати: підкатегорії ────────────────────────────────────────────
+        dao.insertCategories(listOf(
+            // Ресторація
+            CategoryEntity(name = "Glovo",        type = E, colorHex = "#FF6F00", icon = "delivery",   parentId = restId,   sortOrder = 1),
+            CategoryEntity(name = "Кафе",         type = E, colorHex = "#795548", icon = "coffee",     parentId = restId,   sortOrder = 2),
+            // Дозвілля
+            CategoryEntity(name = "Кіно",         type = E, colorHex = "#9C27B0", icon = "music",      parentId = dozId,    sortOrder = 1),
+            CategoryEntity(name = "Gaming",        type = E, colorHex = "#607D8B", icon = "devices",    parentId = dozId,    sortOrder = 2),
+            CategoryEntity(name = "Хобі",         type = E, colorHex = "#5C6BC0", icon = "school",     parentId = dozId,    sortOrder = 3),
+            CategoryEntity(name = "Спорт",        type = E, colorHex = "#F44336", icon = "sports",     parentId = dozId,    sortOrder = 4),
+            // Транспорт
+            CategoryEntity(name = "Таксі",        type = E, colorHex = "#1E88E5", icon = "car",        parentId = transId,  sortOrder = 1),
+            CategoryEntity(name = "Паркінг",      type = E, colorHex = "#78909C", icon = "car",        parentId = transId,  sortOrder = 2),
+            CategoryEntity(name = "Пальне",       type = E, colorHex = "#FF8F00", icon = "car",        parentId = transId,  sortOrder = 3),
+            // Здоров'я
+            CategoryEntity(name = "Аптека",       type = E, colorHex = "#43A047", icon = "health",     parentId = healthId, sortOrder = 1),
+            CategoryEntity(name = "Лікар",        type = E, colorHex = "#D81B60", icon = "health",     parentId = healthId, sortOrder = 2),
+            // Сім'я
+            CategoryEntity(name = "Комуналка",    type = E, colorHex = "#546E7A", icon = "receipt",    parentId = familyId, sortOrder = 1),
+            CategoryEntity(name = "Оренда",       type = E, colorHex = "#9C27B0", icon = "home",       parentId = familyId, sortOrder = 2),
+            // Покупки
+            CategoryEntity(name = "AliExpress",   type = E, colorHex = "#FF6D00", icon = "aliexpress", parentId = shopId,   sortOrder = 1),
+            CategoryEntity(name = "Одяг",         type = E, colorHex = "#00838F", icon = "clothes",    parentId = shopId,   sortOrder = 2),
+            CategoryEntity(name = "Електроніка",  type = E, colorHex = "#607D8B", icon = "devices",    parentId = shopId,   sortOrder = 3),
+            CategoryEntity(name = "Краса",        type = E, colorHex = "#AD1457", icon = "beauty",     parentId = shopId,   sortOrder = 4),
+        ))
+
+        // ── Доходи ───────────────────────────────────────────────────────────
+        dao.insertCategories(listOf(
+            CategoryEntity(name = "Зарплата", type = I, colorHex = "#4CAF50", icon = "work",     isDefault = true, sortOrder = 1),
+            CategoryEntity(name = "Фриланс",  type = I, colorHex = "#26A69A", icon = "work",     isDefault = true, sortOrder = 2),
+            CategoryEntity(name = "Інше",     type = I, colorHex = "#78909C", icon = "category", isDefault = true, sortOrder = 3),
+        ))
     }
 }

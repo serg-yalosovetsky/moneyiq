@@ -112,11 +112,12 @@ fun MainScreen(
     val categoriesState by categoriesViewModel.state.collectAsState()
 
     // ── Екран Дані / Налаштування / Пошук / Фільтр за категорією ─────────────
-    var showDataScreen       by remember { mutableStateOf(false) }
-    var showSettingsScreen   by remember { mutableStateOf(false) }
-    var openTxSearch         by remember { mutableStateOf(false) }
-    var showBudgetSettings   by remember { mutableStateOf(false) }
-    var filterByCategoryId   by remember { mutableStateOf<Long?>(null) }
+    var showDataScreen         by remember { mutableStateOf(false) }
+    var showSettingsScreen     by remember { mutableStateOf(false) }
+    var openTxSearch           by remember { mutableStateOf(false) }
+    var showBudgetSettings     by remember { mutableStateOf(false) }
+    var filterByCategoryId     by remember { mutableStateOf<Long?>(null) }
+    var categoriesCompact      by remember { mutableStateOf(false) }
 
     if (showDataScreen) {
         DataScreen(onNavigateBack = { showDataScreen = false })
@@ -198,14 +199,15 @@ fun MainScreen(
                 )
         ) {
             SharedTopBar(
-                totalBalance      = totalBalance,
-                currentPage       = contentPage,
-                onAvatarClick     = { scope.launch { drawerState.open() } },
-                onPlusClick       = triggerNewAccount,
-                onEditCategories  = triggerEditCategories,
-                onSettings        = { showSettingsScreen = true },
-                onSearchTx        = { openTxSearch = true },
-                onBudgetSettings  = { showBudgetSettings = true }
+                totalBalance        = totalBalance,
+                currentPage         = contentPage,
+                onAvatarClick       = { scope.launch { drawerState.open() } },
+                onPlusClick         = triggerNewAccount,
+                onToggleCatCompact  = { categoriesCompact = !categoriesCompact },
+                categoriesCompact   = categoriesCompact,
+                onSettings          = { showSettingsScreen = true },
+                onSearchTx          = { openTxSearch = true },
+                onBudgetSettings    = { showBudgetSettings = true }
             )
 
             HorizontalPager(
@@ -222,6 +224,7 @@ fun MainScreen(
                     1 -> CategoriesScreen(
                              padding          = bottomPadding,
                              embeddedMode     = true,
+                             isCompact        = categoriesCompact,
                              onViewCategoryTx = { cat ->
                                  filterByCategoryId = cat.id
                                  scope.launch { pagerState.animateScrollToPage(txTabIndex) }
@@ -431,14 +434,15 @@ private fun DrawerMenuItem(
 
 @Composable
 fun SharedTopBar(
-    totalBalance:     Double,
-    currentPage:      Int,
-    onAvatarClick:    () -> Unit = {},
-    onPlusClick:      () -> Unit,
-    onEditCategories: () -> Unit = {},
-    onSettings:       () -> Unit = {},
-    onSearchTx:       () -> Unit = {},
-    onBudgetSettings: () -> Unit = {}
+    totalBalance:       Double,
+    currentPage:        Int,
+    onAvatarClick:      () -> Unit = {},
+    onPlusClick:        () -> Unit,
+    onToggleCatCompact: () -> Unit = {},
+    categoriesCompact:  Boolean    = false,
+    onSettings:         () -> Unit = {},
+    onSearchTx:         () -> Unit = {},
+    onBudgetSettings:   () -> Unit = {}
 ) {
     Row(
         modifier          = Modifier
@@ -488,12 +492,13 @@ fun SharedTopBar(
         Spacer(Modifier.width(12.dp))
 
         // Права кнопка
+        val catIcon = if (categoriesCompact) Icons.Default.UnfoldMore else Icons.Default.UnfoldLess
         val (icon, description, action) = when (currentPage) {
-            0    -> Triple(Icons.Default.Add,       "Новий рахунок",           onPlusClick)
-            1    -> Triple(Icons.Default.Edit,      "Редагувати категорії",    onEditCategories)
-            2    -> Triple(Icons.Default.Search,    "Пошук операцій",          onSearchTx)
-            3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету",    onBudgetSettings)
-            else -> Triple(Icons.Outlined.Settings, "Налаштування",            onSettings)
+            0    -> Triple(Icons.Default.Add,       "Новий рахунок",        onPlusClick)
+            1    -> Triple(catIcon,                 "Вигляд категорій",     onToggleCatCompact)
+            2    -> Triple(Icons.Default.Search,    "Пошук операцій",       onSearchTx)
+            3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету", onBudgetSettings)
+            else -> Triple(Icons.Outlined.Settings, "Налаштування",         onSettings)
         }
 
         IconButton(

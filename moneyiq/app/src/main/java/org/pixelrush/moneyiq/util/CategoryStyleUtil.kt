@@ -130,22 +130,22 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "wifi"       to "#00BCD4",  // cyan          — Інтернет
         "phone"      to "#3F51B5",  // indigo        — Зв'язок
         "coffee"     to "#795548",  // brown         — Кафе
-        "restaurant" to "#FF5722",  // deep-orange   — Ресторани
-        "shopping"   to "#43A047",  // green         — Продукти
-        "car"        to "#2196F3",  // blue          — Таксі/Авто
+        "restaurant" to "#5C6BC0",  // indigo        — Ресторація
+        "shopping"   to "#03A9F4",  // light-blue    — Продукти
+        "car"        to "#FF9800",  // orange        — Транспорт
         "home"       to "#9C27B0",  // purple        — Комунальні
-        "work"       to "#1565C0",  // dark-blue     — Зарплата
+        "work"       to "#1565C0",  // dark-blue     — Зарплата/Робота
         "school"     to "#FF9800",  // orange        — Освіта
-        "health"     to "#E91E63",  // pink          — Медицина
+        "health"     to "#4CAF50",  // green         — Здоров'я
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
-        "music"      to "#673AB7",  // deep-purple   — Розваги
+        "music"      to "#E91E63",  // pink          — Дозвілля
         "money"      to "#F9A825",  // amber-dark    — Інвестиції
         "pets"       to "#8D6E63",  // brown-light   — Тварини
-        "gift"       to "#EC407A",  // pink-light    — Подарунки
+        "gift"       to "#F44336",  // red           — Подарунки
         "sports"     to "#F44336",  // red           — Спорт
         "beauty"     to "#AD1457",  // dark-pink     — Краса
         "clothes"    to "#00838F",  // dark-cyan     — Одяг
-        "family"     to "#7B1FA2",  // purple        — Сім'я
+        "family"     to "#673AB7",  // purple        — Сім'я
         "receipt"    to "#546E7A"   // blue-grey     — Рахунки
     )
 
