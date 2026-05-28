@@ -1,5 +1,12 @@
 package org.pixelrush.moneyiq.ui.main
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,6 +33,8 @@ import org.pixelrush.moneyiq.data.repository.PeriodMode
 import java.util.*
 
 private val PILL_ACCENT = Color(0xFFD81B60)
+
+private class Ref<T>(var value: T)
 
 // ── Загальна пілюля навігації по місяцю ──────────────────────────────────────
 
@@ -92,6 +101,19 @@ fun SharedMonthNavPill(
     val pillLabel = pillLabelFor(appMonth)
     val pillBadge = pillBadgeFor(appMonth, daysInPeriod)
 
+    // Track swipe direction without extra recompositions (plain Ref, not MutableState)
+    val prevRef    = remember { Ref(appMonth) }
+    val forwardRef = remember { Ref(true) }
+    remember(appMonth) {
+        forwardRef.value = when {
+            appMonth.year  > prevRef.value.year  -> true
+            appMonth.year  < prevRef.value.year  -> false
+            appMonth.month > prevRef.value.month -> true
+            else                                 -> false
+        }
+        prevRef.value = appMonth
+    }
+
     if (showSheet) {
         PeriodSelectorSheet(
             appMonth       = appMonth,
@@ -123,31 +145,45 @@ fun SharedMonthNavPill(
             color    = PILL_ACCENT.copy(alpha = 0.12f),
             modifier = Modifier.clickable { showSheet = true }
         ) {
-            Row(
-                modifier              = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(shape = CircleShape, color = PILL_ACCENT) {
+            // Animate only the inner content; the pill capsule shape stays static
+            AnimatedContent(
+                targetState   = pillLabel to pillBadge,
+                transitionSpec = {
+                    val fwd = forwardRef.value
+                    val enter = slideInHorizontally(tween(220)) { if (fwd)  it else -it } +
+                                fadeIn(tween(180))
+                    val exit  = slideOutHorizontally(tween(180)) { if (fwd) -it else  it } +
+                                fadeOut(tween(120))
+                    enter togetherWith exit
+                },
+                label    = "month_pill",
+                modifier = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
+            ) { (label, badge) ->
+                Row(
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(shape = CircleShape, color = PILL_ACCENT) {
+                        Text(
+                            badge,
+                            modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                            style      = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White
+                        )
+                    }
                     Text(
-                        pillBadge,
-                        modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                        style      = MaterialTheme.typography.labelMedium,
+                        label,
+                        style      = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color      = Color.White
+                        color      = PILL_ACCENT
+                    )
+                    Icon(
+                        Icons.Default.ArrowDropDown, null,
+                        tint     = PILL_ACCENT,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                Text(
-                    pillLabel,
-                    style      = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = PILL_ACCENT
-                )
-                Icon(
-                    Icons.Default.ArrowDropDown, null,
-                    tint     = PILL_ACCENT,
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
 

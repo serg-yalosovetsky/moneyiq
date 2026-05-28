@@ -612,10 +612,11 @@ fun formatMoney(amount: Double, currency: String = ""): String {
 
 // ── Swipe gesture helpers ─────────────────────────────────────────────────────
 
-private const val SWIPE_THRESHOLD = 60f
+private const val SWIPE_THRESHOLD = 130f  // підвищено: випадкові свайпи не перемикають місяць
 private const val EDGE_DP         = 80
 
-/** Центральний свайп — ігнорує крайкові зони (їх обробляє edgeSwipe). */
+/** Центральний свайп — ігнорує крайкові зони (їх обробляє edgeSwipe).
+ *  Спрацьовує лише коли горизонтальний рух домінує над вертикальним (1.7:1). */
 fun Modifier.horizontalSwipe(
     onSwipeLeft:  () -> Unit,
     onSwipeRight: () -> Unit,
@@ -624,19 +625,24 @@ fun Modifier.horizontalSwipe(
     awaitEachGesture {
         val down   = awaitFirstDown(requireUnconsumed = false)
         val startX = down.position.x
-        // Крайкові зони — пропускаємо; вони обробляються edgeSwipe на рівні MainScreen
+        val startY = down.position.y
         if (startX < edgePx || startX > size.width - edgePx) return@awaitEachGesture
         var endX = startX
+        var endY = startY
         while (true) {
             val event  = awaitPointerEvent()
             val change = event.changes.lastOrNull() ?: break
             endX = change.position.x
+            endY = change.position.y
             if (!change.pressed) break
         }
-        val delta = endX - startX
-        when {
-            delta < -SWIPE_THRESHOLD -> onSwipeLeft()
-            delta >  SWIPE_THRESHOLD -> onSwipeRight()
+        val deltaX = endX - startX
+        val deltaY = endY - startY
+        if (kotlin.math.abs(deltaX) > kotlin.math.abs(deltaY) * 1.7f) {
+            when {
+                deltaX < -SWIPE_THRESHOLD -> onSwipeLeft()
+                deltaX >  SWIPE_THRESHOLD -> onSwipeRight()
+            }
         }
     }
 }
