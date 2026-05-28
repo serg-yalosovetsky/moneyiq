@@ -63,6 +63,7 @@ object BackupSerializer {
                 put("isDefault",    c.isDefault)
                 put("sortOrder",    c.sortOrder)
                 put("archived",     c.archived)
+                put("parentId",     c.parentId ?: JSONObject.NULL)
             })
         }
         root.put("categories", catsArr)
@@ -128,7 +129,8 @@ object BackupSerializer {
                 budgetPeriod = c.getString("budgetPeriod"),
                 isDefault    = c.getBoolean("isDefault"),
                 sortOrder    = c.getInt("sortOrder"),
-                archived     = c.optBoolean("archived", false)
+                archived     = c.optBoolean("archived", false),
+                parentId     = if (c.has("parentId") && !c.isNull("parentId")) c.getLong("parentId") else null
             )
         }
 

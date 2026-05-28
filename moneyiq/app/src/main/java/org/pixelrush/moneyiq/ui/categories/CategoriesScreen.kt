@@ -1,12 +1,16 @@
 package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -37,8 +41,8 @@ import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
-private val CHIP_WIDTH          = 82.dp
-private val CHIP_CIRCLE_SIZE    = 50.dp
+private val CHIP_WIDTH          = 68.dp
+private val CHIP_CIRCLE_SIZE    = 44.dp
 private val DONUT_SECTION_HEIGHT = 248.dp
 
 // ── Головний екран ────────────────────────────────────────────────────────────
@@ -58,8 +62,19 @@ fun CategoriesScreen(
     var quickCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showAddSheet  by remember { mutableStateOf(false) }
 
-    val categories = (if (selectedTab == 0) state.expenseCategories else state.incomeCategories)
+    val allCategoriesForTab = (if (selectedTab == 0) state.expenseCategories else state.incomeCategories)
         .filter { !it.archived }
+    // childCounts: скільки підкатегорій має кожна коренева категорія
+    val childCounts = allCategoriesForTab
+        .filter { it.parentId != null }
+        .groupBy { it.parentId!! }
+        .mapValues { it.value.size }
+    // Якщо згорнуто — показуємо лише кореневі (parentId == null)
+    val categories = if (!state.showSubcategories) {
+        allCategoriesForTab.filter { it.parentId == null }
+    } else {
+        allCategoriesForTab
+    }
     val spending   = if (selectedTab == 0) state.monthSpending else state.monthIncome
 
     Column(
@@ -82,15 +97,18 @@ fun CategoriesScreen(
 
         // Сітка категорій (без TabRow — donut є перемикачем)
         CategoriesGridContent(
-            categories    = categories,
-            spending      = spending,
-            totalExpense  = state.totalExpense,
-            totalIncome   = state.totalIncome,
-            selectedTab   = selectedTab,
-            onToggleTab   = { selectedTab = if (selectedTab == 0) 1 else 0 },
-            bottomPadding = padding.calculateBottomPadding(),
-            onChipClick   = { cat -> quickCategory = cat },
-            onAdd         = { showAddSheet = true }
+            categories            = categories,
+            spending              = spending,
+            totalExpense          = state.totalExpense,
+            totalIncome           = state.totalIncome,
+            selectedTab           = selectedTab,
+            onToggleTab           = { selectedTab = if (selectedTab == 0) 1 else 0 },
+            bottomPadding         = padding.calculateBottomPadding(),
+            onChipClick           = { cat -> quickCategory = cat },
+            onAdd                 = { showAddSheet = true },
+            showSubcategories     = state.showSubcategories,
+            onToggleSubcategories = viewModel::toggleSubcategories,
+            childCounts           = childCounts
         )
     }
 
@@ -126,21 +144,24 @@ fun CategoriesScreen(
 
 @Composable
 internal fun CategoriesGridContent(
-    categories:    List<CategoryEntity>,
-    spending:      Map<Long, Double>,
-    totalExpense:  Double,
-    totalIncome:   Double,
-    selectedTab:   Int,
-    onToggleTab:   () -> Unit,
-    bottomPadding: Dp,
-    onChipClick:   (CategoryEntity) -> Unit,
-    onAdd:         () -> Unit
+    categories:            List<CategoryEntity>,
+    spending:              Map<Long, Double>,
+    totalExpense:          Double,
+    totalIncome:           Double,
+    selectedTab:           Int,
+    onToggleTab:           () -> Unit,
+    bottomPadding:         Dp,
+    onChipClick:           (CategoryEntity) -> Unit,
+    onAdd:                 () -> Unit,
+    showSubcategories:     Boolean          = false,
+    onToggleSubcategories: () -> Unit       = {},
+    childCounts:           Map<Long, Int>   = emptyMap()
 ) {
     // Розклад по позиціях:
-    //   Рядок top  (0..3): перші 4 категорії
+    //   Рядок top  (0..4): перші 5 категорій
     //   Рядок mid         : 2 зліва | donut | 2 справа
-    //   Рядок bot         : «+» + наступні 3
-    //   Рядки ext (11+)   : по 4 у рядку
+    //   Рядки ext (9+)    : по 5 у рядку
+    //   «+»               : окремий рядок в самому низу
 
     val sorted   = categories.sortedByDescending { spending[it.id] ?: 0.0 }
     val active   = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
@@ -149,11 +170,10 @@ internal fun CategoriesGridContent(
     val display  = if (active.isNotEmpty()) active else sorted
     var showInactive by remember { mutableStateOf(false) }
 
-    val topRow   = display.take(4)
-    val midLeft  = display.drop(4).take(2)
-    val midRight = display.drop(6).take(2)
-    val botFirst = display.drop(8).take(3)
-    val extCats  = display.drop(11)
+    val topRow   = display.take(5)
+    val midLeft  = display.drop(5).take(2)
+    val midRight = display.drop(7).take(2)
+    val extCats  = display.drop(9)
 
     LazyColumn(
         modifier       = Modifier.fillMaxSize(),
@@ -189,22 +209,22 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Верхній рядок: 4 чипи ────────────────────────────────────────
+        // ── Верхній рядок: 5 чипів ───────────────────────────────────────
         item {
-            Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                for (i in 0 until 4) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                repeat(5) { i ->
                     val cat = topRow.getOrNull(i)
-                    if (cat != null) {
-                        CategoryChip(
-                            category = cat,
-                            spending = spending[cat.id] ?: 0.0,
-                            onClick  = { onChipClick(cat) }
-                        )
-                    } else {
-                        Spacer(Modifier.width(CHIP_WIDTH))
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (cat != null) {
+                            CategoryChip(
+                                category       = cat,
+                                spending       = spending[cat.id] ?: 0.0,
+                                onClick        = { onChipClick(cat) },
+                                childCount     = childCounts[cat.id] ?: 0,
+                                onLongPress    = onToggleSubcategories,
+                                showChildBadge = !showSubcategories
+                            )
+                        }
                     }
                 }
             }
@@ -219,17 +239,20 @@ internal fun CategoriesGridContent(
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ліва колонка
+                // Ліва колонка — притиснута до лівого краю екрану
                 Column(
-                    modifier              = Modifier.width(CHIP_WIDTH + 4.dp).fillMaxHeight(),
+                    modifier              = Modifier.width(88.dp).fillMaxHeight(),
                     verticalArrangement   = Arrangement.SpaceEvenly,
-                    horizontalAlignment   = Alignment.CenterHorizontally
+                    horizontalAlignment   = Alignment.Start
                 ) {
                     midLeft.forEach { cat ->
                         CategoryChip(
-                            category = cat,
-                            spending = spending[cat.id] ?: 0.0,
-                            onClick  = { onChipClick(cat) }
+                            category       = cat,
+                            spending       = spending[cat.id] ?: 0.0,
+                            onClick        = { onChipClick(cat) },
+                            childCount     = childCounts[cat.id] ?: 0,
+                            onLongPress    = onToggleSubcategories,
+                            showChildBadge = !showSubcategories
                         )
                     }
                 }
@@ -245,60 +268,85 @@ internal fun CategoriesGridContent(
                     modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
                 )
 
-                // Права колонка
+                // Права колонка — притиснута до правого краю екрану
                 Column(
-                    modifier              = Modifier.width(CHIP_WIDTH + 4.dp).fillMaxHeight(),
+                    modifier              = Modifier.width(88.dp).fillMaxHeight(),
                     verticalArrangement   = Arrangement.SpaceEvenly,
-                    horizontalAlignment   = Alignment.CenterHorizontally
+                    horizontalAlignment   = Alignment.End
                 ) {
                     midRight.forEach { cat ->
                         CategoryChip(
-                            category = cat,
-                            spending = spending[cat.id] ?: 0.0,
-                            onClick  = { onChipClick(cat) }
+                            category       = cat,
+                            spending       = spending[cat.id] ?: 0.0,
+                            onClick        = { onChipClick(cat) },
+                            childCount     = childCounts[cat.id] ?: 0,
+                            onLongPress    = onToggleSubcategories,
+                            showChildBadge = !showSubcategories
                         )
                     }
                 }
             }
         }
 
-        // ── Нижній рядок: «+» + 3 категорії ─────────────────────────────
+        // ── Розширені рядки: по 5 ────────────────────────────────────────
+        if (extCats.isNotEmpty()) {
+            items(extCats.chunked(5)) { rowCats ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    rowCats.forEach { cat ->
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            CategoryChip(
+                                category       = cat,
+                                spending       = spending[cat.id] ?: 0.0,
+                                onClick        = { onChipClick(cat) },
+                                childCount     = childCounts[cat.id] ?: 0,
+                                onLongPress    = onToggleSubcategories,
+                                showChildBadge = !showSubcategories
+                            )
+                        }
+                    }
+                    repeat(5 - rowCats.size) { Box(Modifier.weight(1f)) {} }
+                }
+            }
+        }
+
+        // ── Кнопка «+» — в самому низу списку категорій ──────────────────
         item {
             Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.Start
             ) {
                 AddCategoryChip(onClick = onAdd)
-                for (i in 0 until 3) {
-                    val cat = botFirst.getOrNull(i)
-                    if (cat != null) {
-                        CategoryChip(
-                            category = cat,
-                            spending = spending[cat.id] ?: 0.0,
-                            onClick  = { onChipClick(cat) }
-                        )
-                    } else {
-                        Spacer(Modifier.width(CHIP_WIDTH))
-                    }
-                }
             }
         }
 
-        // ── Розширені рядки: по 4 ────────────────────────────────────────
-        if (extCats.isNotEmpty()) {
-            items(extCats.chunked(4)) { rowCats ->
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+        // ── Кнопка розгортання/згортання підкатегорій ────────────────────
+        if (childCounts.isNotEmpty()) {
+            item {
+                val interactionSource = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication        = null
+                        ) { onToggleSubcategories() }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    rowCats.forEach { cat ->
-                        CategoryChip(
-                            category = cat,
-                            spending = spending[cat.id] ?: 0.0,
-                            onClick  = { onChipClick(cat) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            if (showSubcategories) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint     = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            if (showSubcategories) "Згорнути підкатегорії" else "Розгорнути підкатегорії",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                         )
                     }
-                    repeat(4 - rowCats.size) { Spacer(Modifier.width(CHIP_WIDTH)) }
                 }
             }
         }
@@ -329,19 +377,21 @@ internal fun CategoriesGridContent(
                 }
             }
             if (showInactive) {
-                items(inactive.chunked(4)) { rowCats ->
-                    Row(
-                        modifier              = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+                items(inactive.chunked(5)) { rowCats ->
+                    Row(modifier = Modifier.fillMaxWidth()) {
                         rowCats.forEach { cat ->
-                            CategoryChip(
-                                category = cat,
-                                spending = 0.0,
-                                onClick  = { onChipClick(cat) }
-                            )
+                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                CategoryChip(
+                                    category       = cat,
+                                    spending       = 0.0,
+                                    onClick        = { onChipClick(cat) },
+                                    childCount     = childCounts[cat.id] ?: 0,
+                                    onLongPress    = onToggleSubcategories,
+                                    showChildBadge = !showSubcategories
+                                )
+                            }
                         }
-                        repeat(4 - rowCats.size) { Spacer(Modifier.width(CHIP_WIDTH)) }
+                        repeat(5 - rowCats.size) { Box(Modifier.weight(1f)) {} }
                     }
                 }
             }
@@ -351,11 +401,15 @@ internal fun CategoriesGridContent(
 
 // ── Чип категорії: назва / бюджет / коло / витрачено ─────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CategoryChip(
-    category: CategoryEntity,
-    spending: Double,
-    onClick:  () -> Unit
+    category:       CategoryEntity,
+    spending:       Double,
+    onClick:        () -> Unit,
+    childCount:     Int     = 0,
+    onLongPress:    () -> Unit = {},
+    showChildBadge: Boolean = false
 ) {
     val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
@@ -365,7 +419,7 @@ private fun CategoryChip(
     Column(
         modifier = Modifier
             .width(CHIP_WIDTH)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(vertical = 4.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -390,19 +444,38 @@ private fun CategoryChip(
             modifier  = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(3.dp))
-        // 3. Кругла іконка
-        Box(
-            modifier = Modifier
-                .size(CHIP_CIRCLE_SIZE)
-                .clip(CircleShape)
-                .background(color),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                categoryIconFor(category.icon), null,
-                tint     = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+        // 3. Кругла іконка з опціональним бейджем підкатегорій
+        Box(modifier = Modifier.size(CHIP_CIRCLE_SIZE)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(color),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    categoryIconFor(category.icon), null,
+                    tint     = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            if (showChildBadge && childCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "+$childCount",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(3.dp))
         // 4. Витрачено цього місяця

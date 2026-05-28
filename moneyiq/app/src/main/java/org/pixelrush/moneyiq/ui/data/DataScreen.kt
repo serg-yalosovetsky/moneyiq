@@ -189,8 +189,10 @@ class DataViewModel @Inject constructor(
 
     private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
         val sanitizedCategories = data.categories.map { cat ->
-            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-            cat.copy(icon = icon, colorHex = color)
+            if (cat.icon == "category") {
+                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+                cat.copy(icon = icon, colorHex = color)
+            } else cat
         }
         // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
         txDao.deleteAllTransactions()
@@ -390,7 +392,8 @@ class DataViewModel @Inject constructor(
             try {
                 val since = _state.value.monoflowLastSyncMs
                 val json  = withContext(Dispatchers.IO) {
-                    val conn = java.net.URL("$url/api/sync?since=$since")
+                    val base = if (url.endsWith("/api/sync")) url else "$url/api/sync"
+                    val conn = java.net.URL("$base?since=$since")
                         .openConnection() as java.net.HttpURLConnection
                     conn.setRequestProperty("Authorization", "Bearer $token")
                     conn.setRequestProperty("Accept", "application/json")
@@ -423,8 +426,10 @@ class DataViewModel @Inject constructor(
     /** MERGE-імпорт: вставляє/оновлює дані БЕЗ видалення існуючих (on conflict REPLACE by id) */
     private suspend fun mergeBackupData(data: BackupData) = withContext(Dispatchers.IO) {
         val sanitizedCategories = data.categories.map { cat ->
-            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-            cat.copy(icon = icon, colorHex = color)
+            if (cat.icon == "category") {
+                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+                cat.copy(icon = icon, colorHex = color)
+            } else cat
         }
         // Порядок: спочатку рахунки і категорії, потім транзакції (FK)
         accountDao.insertAccounts(data.accounts)
@@ -1045,7 +1050,7 @@ private fun MonoFlowSyncCard(
                 value = editUrl,
                 onValueChange = { editUrl = it },
                 label = { Text("URL сервісу") },
-                placeholder = { Text("https://monoflow.example.com") },
+                placeholder = { Text("https://monoflow.ibotz.fun/api/sync") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isSyncing

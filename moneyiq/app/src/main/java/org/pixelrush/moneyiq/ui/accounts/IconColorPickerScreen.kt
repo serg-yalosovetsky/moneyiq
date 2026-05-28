@@ -39,6 +39,9 @@ val ACCOUNT_ICONS: List<AccountIconInfo> = listOf(
     AccountIconInfo("gift",         Icons.Outlined.CardGiftcard),
     AccountIconInfo("sports",       Icons.Outlined.FitnessCenter),
     AccountIconInfo("phone",        Icons.Outlined.PhoneAndroid),
+    AccountIconInfo("cloud",        Icons.Outlined.Cloud),
+    AccountIconInfo("ai",           Icons.Outlined.SmartToy),
+    AccountIconInfo("aliexpress",   Icons.Outlined.Language),
     // Finance
     AccountIconInfo("account_balance_wallet", Icons.Outlined.AccountBalanceWallet),
     AccountIconInfo("credit_card",            Icons.Outlined.CreditCard),

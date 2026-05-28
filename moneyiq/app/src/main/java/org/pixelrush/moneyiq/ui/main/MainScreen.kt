@@ -30,8 +30,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
@@ -135,13 +133,15 @@ fun MainScreen(
 
     // Жест «назад» — повертаємося на вкладку «Операції» (індекс 2), звідти — виходимо з додатку
     val txTabIndex = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
-    BackHandler(enabled = currentPage != txTabIndex) {
-        scope.launch { pagerState.animateScrollToPage(txTabIndex) }
+    val goBack: () -> Unit = {
+        if (currentPage != txTabIndex) scope.launch { pagerState.animateScrollToPage(txTabIndex) }
     }
+    BackHandler(enabled = currentPage != txTabIndex) { goBack() }
 
     ModalNavigationDrawer(
-        drawerState   = drawerState,
-        drawerContent = {
+        drawerState     = drawerState,
+        gesturesEnabled = false,
+        drawerContent   = {
             AppDrawerContent(
                 onClose         = { scope.launch { drawerState.close() } },
                 onDataClick     = { scope.launch { drawerState.close() }; showDataScreen = true },
@@ -191,6 +191,10 @@ fun MainScreen(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .edgeSwipe(
+                    onLeftEdge  = { scope.launch { drawerState.open() } },
+                    onRightEdge = goBack
+                )
         ) {
             SharedTopBar(
                 totalBalance      = totalBalance,
@@ -204,8 +208,9 @@ fun MainScreen(
             )
 
             HorizontalPager(
-                state    = pagerState,
-                modifier = Modifier.weight(1f)
+                state             = pagerState,
+                modifier          = Modifier.weight(1f),
+                userScrollEnabled = false
             ) { page ->
                 when (pageToContent(page)) {
                     0 -> AccountsScreen(
@@ -590,18 +595,23 @@ fun formatMoney(amount: Double, currency: String = ""): String {
     return if (currency.isNotBlank()) "${nf.format(amount)} $currency" else nf.format(amount)
 }
 
-// ── Swipe gesture helper ──────────────────────────────────────────────────────
+// ── Swipe gesture helpers ─────────────────────────────────────────────────────
 
 private const val SWIPE_THRESHOLD = 60f
+private const val EDGE_DP         = 80
 
+/** Центральний свайп — ігнорує крайкові зони (їх обробляє edgeSwipe). */
 fun Modifier.horizontalSwipe(
     onSwipeLeft:  () -> Unit,
-    onSwipeRight: () -> Unit
+    onSwipeRight: () -> Unit,
 ): Modifier = pointerInput(onSwipeLeft, onSwipeRight) {
+    val edgePx = EDGE_DP.dp.roundToPx().toFloat()
     awaitEachGesture {
         val down   = awaitFirstDown(requireUnconsumed = false)
         val startX = down.position.x
-        var endX   = startX
+        // Крайкові зони — пропускаємо; вони обробляються edgeSwipe на рівні MainScreen
+        if (startX < edgePx || startX > size.width - edgePx) return@awaitEachGesture
+        var endX = startX
         while (true) {
             val event  = awaitPointerEvent()
             val change = event.changes.lastOrNull() ?: break
@@ -612,6 +622,33 @@ fun Modifier.horizontalSwipe(
         when {
             delta < -SWIPE_THRESHOLD -> onSwipeLeft()
             delta >  SWIPE_THRESHOLD -> onSwipeRight()
+        }
+    }
+}
+
+/** Крайковий свайп: ліва крайка→вправо = відкрити drawer; права крайка→вліво = назад. */
+fun Modifier.edgeSwipe(
+    onLeftEdge:  () -> Unit = {},
+    onRightEdge: () -> Unit = {},
+): Modifier = pointerInput(onLeftEdge, onRightEdge) {
+    val edgePx = EDGE_DP.dp.roundToPx().toFloat()
+    awaitEachGesture {
+        val down   = awaitFirstDown(requireUnconsumed = false)
+        val startX = down.position.x
+        // Центральна зона — ігноруємо; її обробляє horizontalSwipe всередині екрану
+        if (startX in edgePx..(size.width - edgePx)) return@awaitEachGesture
+        var endX = startX
+        while (true) {
+            val event  = awaitPointerEvent()
+            val change = event.changes.lastOrNull() ?: break
+            endX = change.position.x
+            if (!change.pressed) break
+        }
+        val delta = endX - startX
+        if (kotlin.math.abs(delta) < SWIPE_THRESHOLD) return@awaitEachGesture
+        when {
+            startX < edgePx && delta > 0               -> onLeftEdge()
+            startX > size.width - edgePx && delta < 0  -> onRightEdge()
         }
     }
 }
