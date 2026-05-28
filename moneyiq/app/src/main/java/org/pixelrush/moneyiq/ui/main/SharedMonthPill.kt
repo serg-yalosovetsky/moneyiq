@@ -133,11 +133,16 @@ fun SharedMonthNavPill(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = onPrev) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
-                Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(20.dp))
-            }
+        Row(
+            modifier          = Modifier
+                .clickable(onClick = onPrev)
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            val arrowTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+            Icon(Icons.Default.KeyboardArrowLeft, null, tint = arrowTint, modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.KeyboardArrowLeft, null, tint = arrowTint, modifier = Modifier.size(22.dp))
         }
 
         Surface(
@@ -187,11 +192,16 @@ fun SharedMonthNavPill(
             }
         }
 
-        IconButton(onClick = onNext) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
-                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp))
-            }
+        Row(
+            modifier          = Modifier
+                .clickable(onClick = onNext)
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            val arrowTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+            Icon(Icons.Default.KeyboardArrowRight, null, tint = arrowTint, modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.KeyboardArrowRight, null, tint = arrowTint, modifier = Modifier.size(22.dp))
         }
     }
 }
