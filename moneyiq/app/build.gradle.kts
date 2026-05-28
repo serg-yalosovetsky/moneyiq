@@ -1,9 +1,13 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.sentry)
 }
 
 android {
@@ -39,6 +43,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
@@ -97,6 +102,9 @@ dependencies {
     // Biometric
     implementation(libs.biometric)
 
+    // Sentry
+    implementation(libs.sentry.android)
+
     // Testing — unit
     testImplementation(libs.junit)
     testImplementation("org.json:json:20231013")
@@ -114,4 +122,17 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.coroutines.test)
+}
+
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) localProps.load(FileInputStream(localPropsFile))
+val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")
+    ?: localProps.getProperty("sentry.auth.token", "")
+
+sentry {
+    includeSourceContext = true
+    org = "serg-yalosovetsky"
+    projectName = "one_money"
+    authToken = sentryToken
 }

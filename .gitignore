@@ -7,3 +7,4 @@ jadx_out/*
 moneyiq/app/build/*
 moneyiq/import/__pycache__/*
 moneyiq/.gradle/configuration-cache/*
+moneyiq/local.properties
