@@ -43,6 +43,9 @@ import org.pixelrush.moneyiq.data.repository.TransactionRepository
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.util.*
+import org.pixelrush.moneyiq.ui.categories.CalcStateHolder
+import org.pixelrush.moneyiq.ui.categories.SharedCalcKeypad
+import org.pixelrush.moneyiq.ui.categories.rememberCalcState
 import javax.inject.Inject
 
 // ── Data classes ──────────────────────────────────────────────────────────────
@@ -677,16 +680,9 @@ private fun BudgetInputSheet(
         catch (_: Exception) { accentColor }
     }
 
-    var inputStr by remember {
-        mutableStateOf(
-            if (catRow.category.budgetAmount > 0)
-                catRow.category.budgetAmount.toBigDecimal().stripTrailingZeros().toPlainString().replace(".", ",")
-            else ""
-        )
-    }
-
-    val displayStr   = if (inputStr.isEmpty()) "0" else inputStr
-    val parsedAmount = inputStr.replace(",", ".").toDoubleOrNull() ?: 0.0
+    // ── Стан калькулятора ─────────────────────────────────────────────────
+    val calc        = rememberCalcState(catRow.category.budgetAmount)
+    val displayText = calc.displayExpr("₴")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -733,7 +729,7 @@ private fun BudgetInputSheet(
                             color = Color.White.copy(alpha = 0.7f))
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("${formatMoney(parsedAmount)} ₴",
+                        Text("${formatMoney(calc.result())} ₴",
                             style      = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color      = Color.White)
@@ -758,27 +754,19 @@ private fun BudgetInputSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "$displayStr ₴",
+                        text       = displayText,
                         style      = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color      = catColor
+                        color      = catColor,
+                        maxLines   = 1,
+                        overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(8.dp))
-                    BudgetCalcKeypad(
-                        catColor = catColor,
-                        catIcon  = budgetIconFor(catRow.category.icon),
-                        onKey    = { key ->
-                            inputStr = when {
-                                key == "⌫" -> if (inputStr.isEmpty()) "" else inputStr.dropLast(1)
-                                key == "," -> if ("," in inputStr) inputStr
-                                              else if (inputStr.isEmpty()) "0," else "$inputStr,"
-                                key in listOf("÷", "×", "−", "+") -> inputStr // TODO: калькулятор
-                                inputStr.isEmpty() || inputStr == "0" -> key
-                                inputStr.length >= 10 -> inputStr
-                                else -> inputStr + key
-                            }
-                        },
-                        onConfirm = { onConfirm(parsedAmount) }
+                    SharedCalcKeypad(
+                        calc         = calc,
+                        modifier     = Modifier.fillMaxWidth().height(252.dp),
+                        confirmColor = catColor,
+                        onConfirm    = { onConfirm(calc.result()) }
                     )
                     Spacer(Modifier.height(24.dp))
                 }
@@ -799,105 +787,6 @@ private fun BudgetInputSheet(
                     modifier = Modifier.size(28.dp),
                     tint     = Color.White
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BudgetCalcKeypad(
-    catColor:  Color,
-    catIcon:   androidx.compose.ui.graphics.vector.ImageVector,
-    onKey:     (String) -> Unit,
-    onConfirm: () -> Unit
-) {
-    val keyH  = 62.dp
-    val keyBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-
-    @Composable
-    fun Key(
-        label:   String,
-        mod:     Modifier = Modifier,
-        bg:      Color    = keyBg,
-        fgColor: Color    = MaterialTheme.colorScheme.onSurface,
-        onClick: () -> Unit = { onKey(label) }
-    ) {
-        Box(
-            modifier = mod
-                .padding(2.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(bg)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            if (label == "⌫") {
-                Icon(Icons.Default.Backspace, null, tint = fgColor, modifier = Modifier.size(22.dp))
-            } else {
-                Text(label,
-                    style      = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color      = fgColor)
-            }
-        }
-    }
-
-    Column(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
-        // Строка 1: ÷ 7 8 9 ⌫
-        Row(Modifier.fillMaxWidth().height(keyH)) {
-            Key("÷", Modifier.weight(1f), fgColor = catColor)
-            Key("7", Modifier.weight(1f))
-            Key("8", Modifier.weight(1f))
-            Key("9", Modifier.weight(1f))
-            Key("⌫", Modifier.weight(1f))
-        }
-        // Строка 2: × 4 5 6 [icon]
-        Row(Modifier.fillMaxWidth().height(keyH)) {
-            Key("×", Modifier.weight(1f), fgColor = catColor)
-            Key("4", Modifier.weight(1f))
-            Key("5", Modifier.weight(1f))
-            Key("6", Modifier.weight(1f))
-            // Иконка категории
-            Box(
-                modifier = Modifier.weight(1f).padding(2.dp)
-                    .clip(RoundedCornerShape(10.dp)).background(keyBg)
-                    .clickable { /* навигация к категории */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(catIcon, null, tint = catColor, modifier = Modifier.size(24.dp))
-            }
-        }
-        // Строки 3–4: операторы + цифры + tall-кнопка подтверждения
-        Row(Modifier.fillMaxWidth().height(keyH * 2)) {
-            // Левые 4 столбца (строки 3 и 4 объединены)
-            Column(Modifier.weight(4f)) {
-                Row(Modifier.fillMaxWidth().weight(1f)) {
-                    Key("−", mod = Modifier.weight(1f), fgColor = catColor)
-                    Key("1", mod = Modifier.weight(1f))
-                    Key("2", mod = Modifier.weight(1f))
-                    Key("3", mod = Modifier.weight(1f))
-                }
-                Row(Modifier.fillMaxWidth().weight(1f)) {
-                    Key("+", mod = Modifier.weight(1f), fgColor = catColor)
-                    // "0" — двойная ширина
-                    Box(
-                        modifier = Modifier.weight(2f).padding(2.dp)
-                            .clip(RoundedCornerShape(10.dp)).background(keyBg)
-                            .clickable { onKey("0") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("0", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    }
-                    Key(",", mod = Modifier.weight(1f))
-                }
-            }
-            // Tall-кнопка подтверждения (занимает 2 строки)
-            Box(
-                modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp)
-                    .clip(RoundedCornerShape(10.dp)).background(catColor)
-                    .clickable { onConfirm() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(30.dp))
             }
         }
     }

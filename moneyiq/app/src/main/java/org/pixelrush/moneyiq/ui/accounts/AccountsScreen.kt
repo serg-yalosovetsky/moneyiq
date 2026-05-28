@@ -419,11 +419,17 @@ private fun MyFinancesTab(
     bottomPadding: Dp
 ) {
     val totalAssets = state.accounts
-        .filter { it.type != AccountType.DEBT && it.includeInTotal }
+        .filter { it.type != AccountType.DEBT && it.includeInTotal && it.balance > 0 }
         .sumOf { it.balance }
-    val totalDebts  = state.accounts
-        .filter { it.type == AccountType.DEBT && it.includeInTotal }
-        .sumOf { it.balance }
+    val totalDebts = state.accounts
+        .filter { it.includeInTotal }
+        .sumOf { acc ->
+            when {
+                acc.type == AccountType.DEBT -> acc.balance
+                acc.balance < 0             -> -acc.balance
+                else                        -> 0.0
+            }
+        }
     val net = totalAssets - totalDebts
 
     LazyColumn(
@@ -484,7 +490,7 @@ private fun MyFinancesTab(
                         }
                         FinanceValueCell(totalAssets, Modifier.weight(1f))
                         VerticalDividerLine()
-                        FinanceValueCell(totalDebts, Modifier.weight(1f))
+                        FinanceValueCell(totalDebts, Modifier.weight(1f), isDebt = true)
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -526,7 +532,7 @@ private fun FinanceHeaderCell(text: String, modifier: Modifier) {
 }
 
 @Composable
-private fun FinanceValueCell(amount: Double, modifier: Modifier) {
+private fun FinanceValueCell(amount: Double, modifier: Modifier, isDebt: Boolean = false) {
     Box(
         modifier         = modifier.padding(vertical = 16.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
@@ -535,8 +541,11 @@ private fun FinanceValueCell(amount: Double, modifier: Modifier) {
             formatMoney(amount),
             style      = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
-            color      = if (amount == 0.0) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                         else MaterialTheme.colorScheme.onSurface
+            color      = when {
+                amount == 0.0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                isDebt        -> MaterialTheme.colorScheme.error
+                else          -> MaterialTheme.colorScheme.onSurface
+            }
         )
     }
 }

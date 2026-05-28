@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountType
+import org.pixelrush.moneyiq.ui.categories.AmountCalculatorSheet
 
 // ── Currency data ─────────────────────────────────────────────────────────────
 
@@ -412,11 +413,15 @@ fun AccountFormSheet(
     }
 
     if (showBalanceInput) {
-        BalanceInputDialog(
-            initial   = balanceStr,
-            symbol    = sym,
-            onSave    = { balanceStr = it; showBalanceInput = false },
-            onDismiss = { showBalanceInput = false }
+        AmountCalculatorSheet(
+            initial        = balanceStr.replace(",", ".").toDoubleOrNull() ?: 0.0,
+            currencySymbol = sym,
+            title          = "Баланс рахунку",
+            onResult       = { v ->
+                balanceStr = if (v == 0.0) "" else v.toBigDecimal().stripTrailingZeros().toPlainString()
+                showBalanceInput = false
+            },
+            onDismiss      = { showBalanceInput = false }
         )
     }
 }

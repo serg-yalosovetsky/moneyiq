@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.transactions
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,6 +14,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.categories.AmountCalculatorSheet
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,6 +26,7 @@ fun AddTransactionScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showAmountCalc   by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.saved) {
         if (state.saved) onNavigateBack()
@@ -107,17 +110,31 @@ fun AddTransactionScreen(
                 }
             }
 
-            // Сумма
-            OutlinedTextField(
-                value = state.amount,
-                onValueChange = viewModel::setAmount,
-                label = { Text("Сумма") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                leadingIcon = { Icon(Icons.Default.AttachMoney, null) },
-                singleLine = true,
-                isError = state.error?.contains("сумму") == true
-            )
+            // Сума (відкриває калькулятор)
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value         = if (state.amount.isEmpty()) "0 ₴" else "${state.amount} ₴",
+                    onValueChange = {},
+                    label         = { Text("Сума") },
+                    modifier      = Modifier.fillMaxWidth(),
+                    readOnly      = true,
+                    enabled       = false,
+                    leadingIcon   = { Icon(Icons.Default.AttachMoney, null) },
+                    singleLine    = true,
+                    isError       = state.error?.contains("сумму") == true,
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor        = if (state.error?.contains("сумму") == true)
+                                                       MaterialTheme.colorScheme.error
+                                                   else MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor      = if (state.error?.contains("сумму") == true)
+                                                       MaterialTheme.colorScheme.error
+                                                   else MaterialTheme.colorScheme.outline,
+                        disabledLabelColor       = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                Box(Modifier.matchParentSize().clickable { showAmountCalc = true })
+            }
 
             // Счёт
             ExposedDropdownMenuBox(
@@ -186,6 +203,19 @@ fun AddTransactionScreen(
                 }
             }
         }
+    }
+
+    // Калькулятор для суми
+    if (showAmountCalc) {
+        AmountCalculatorSheet(
+            initial   = state.amount.replace(",", ".").toDoubleOrNull() ?: 0.0,
+            title     = "Сума транзакції",
+            onResult  = { v ->
+                viewModel.setAmount(v.toBigDecimal().stripTrailingZeros().toPlainString())
+                showAmountCalc = false
+            },
+            onDismiss = { showAmountCalc = false }
+        )
     }
 
     // Диалог подтверждения удаления

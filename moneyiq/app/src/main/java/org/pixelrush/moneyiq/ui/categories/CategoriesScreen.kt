@@ -95,8 +95,8 @@ fun CategoriesScreen(
         QuickExpenseSheet(
             category  = cat,
             accounts  = state.accounts,
-            onSave    = { accountId, amount, note ->
-                viewModel.recordTransaction(accountId, cat, amount, note)
+            onSave    = { accountId, amount, note, date ->
+                viewModel.recordTransaction(accountId, cat, amount, note, date)
                 quickCategory = null
             },
             onDismiss = { quickCategory = null }
@@ -121,7 +121,7 @@ fun CategoriesScreen(
 // ── Сітка: доnat-чарт + чипи ─────────────────────────────────────────────────
 
 @Composable
-private fun CategoriesGridContent(
+internal fun CategoriesGridContent(
     categories:    List<CategoryEntity>,
     spending:      Map<Long, Double>,
     totalExpense:  Double,

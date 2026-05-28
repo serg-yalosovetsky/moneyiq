@@ -3,6 +3,8 @@ package org.pixelrush.moneyiq.ui.overview
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlin.math.abs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import org.pixelrush.moneyiq.data.db.dao.CategorySpending
@@ -86,10 +90,8 @@ enum class OverviewMode { EXPENSE, INCOME }
 
 data class OverviewSelMonth(val year: Int, val month: Int)
 
-data class WeekBar(
-    val startDay: Int,
-    val endDay:   Int,
-    val label:    String,
+data class DayBar(
+    val day:      Int,
     val amount:   Double,
     val isFuture: Boolean
 )
@@ -127,7 +129,7 @@ data class OverviewUiState(
     val dailyAvg:           Double               = 0.0,
     val todayAmount:        Double               = 0.0,
     val weekAmount:         Double               = 0.0,
-    val weekBars:           List<WeekBar>        = emptyList(),
+    val dayBars:            List<DayBar>         = emptyList(),
     val categories:         List<OverviewCatRow> = emptyList(),
     /** Суммы для секции «Бюджет» внизу экрана */
     val totalExpenseBudget: Double               = 0.0,
@@ -226,20 +228,15 @@ class OverviewViewModel @Inject constructor(
             return fr..c.timeInMillis
         }
 
-        val weekBars = weekRanges.mapIndexed { idx, (start, end) ->
-            val endClamped = end.coerceAtMost(dim)
-            val rng    = rangeMs(start, endClamped)
-            val label  = when (idx) {
-                0                   -> "1 $monShort"
-                weekRanges.size - 1 -> "$endClamped $monShort"
-                else                -> start.toString()
-            }
-            WeekBar(
-                startDay = start,
-                endDay   = endClamped,
-                label    = label,
+        val isFutureMonth = sel.year > today.get(Calendar.YEAR) ||
+            (sel.year == today.get(Calendar.YEAR) && sel.month > today.get(Calendar.MONTH))
+
+        val dayBars = (1..dim).map { day ->
+            val rng = rangeMs(day, day)
+            DayBar(
+                day      = day,
                 amount   = monoTx.filter { it.date in rng }.sumOf { it.amount },
-                isFuture = start > todayDay
+                isFuture = isFutureMonth || day > todayDay
             )
         }
 
@@ -285,7 +282,7 @@ class OverviewViewModel @Inject constructor(
             dailyAvg           = dailyAvg,
             todayAmount        = todayAmount,
             weekAmount         = weekAmount,
-            weekBars           = weekBars,
+            dayBars            = dayBars,
             categories         = catRows,
             totalExpenseBudget = totalExpenseBudget,
             totalIncomeBudget  = totalIncomeBudget
@@ -348,6 +345,38 @@ fun OverviewScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var dx = 0f
+                    var dy = 0f
+                    var horizontalConfirmed = false
+                    var evt = awaitPointerEvent()
+                    while (evt.changes.any { it.pressed }) {
+                        val ch = evt.changes.firstOrNull() ?: break
+                        val delta = ch.position - ch.previousPosition
+                        dx += delta.x
+                        dy += delta.y
+                        if (!horizontalConfirmed) {
+                            val threshold = 14.dp.toPx()
+                            if (abs(dx) > threshold || abs(dy) > threshold) {
+                                if (abs(dx) > abs(dy) * 1.5f) {
+                                    horizontalConfirmed = true
+                                    ch.consume()
+                                } else {
+                                    break
+                                }
+                            }
+                        } else {
+                            ch.consume()
+                        }
+                        evt = awaitPointerEvent()
+                    }
+                    if (horizontalConfirmed) {
+                        if (dx < 0) viewModel.nextMonth() else viewModel.prevMonth()
+                    }
+                }
+            }
     ) {
         if (!embeddedMode) {
             OverviewTopBar(totalBalance = state.totalBalance)
@@ -386,10 +415,11 @@ fun OverviewScreen(
                 )
             }
 
-            // Weekly spending chart
+            // Daily spending chart
             item {
                 SpendingChart(
-                    bars        = state.weekBars,
+                    dayBars     = state.dayBars,
+                    daysInMonth = state.daysInMonth,
                     accentColor = accentColor,
                     monthShort  = OVR_MONTH_SHORT[state.selectedMonth.month]
                 )
@@ -666,121 +696,151 @@ private fun ExpenseIncomeToggle(
     }
 }
 
-// ── Weekly spending chart ─────────────────────────────────────────────────────
+// ── Daily spending chart ──────────────────────────────────────────────────────
 
 @Composable
 private fun SpendingChart(
-    bars:        List<WeekBar>,
+    dayBars:     List<DayBar>,
+    daysInMonth: Int,
     accentColor: Color,
     monthShort:  String
 ) {
-    if (bars.isEmpty()) {
-        Spacer(Modifier.height(200.dp))
+    if (dayBars.isEmpty()) {
+        Spacer(Modifier.height(180.dp))
         return
     }
 
-    val maxAmt      = bars.maxOf { it.amount }.coerceAtLeast(1.0)
-    val gridColor   = MaterialTheme.colorScheme.outlineVariant
-    val hatchColor  = accentColor.copy(alpha = 0.28f)
-    val labelStyle  = MaterialTheme.typography.labelSmall
-    val labelColor  = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+    val maxAmt     = dayBars.maxOf { it.amount }.coerceAtLeast(1.0)
+    val gridColor  = MaterialTheme.colorScheme.outlineVariant
+    val hatchColor = accentColor.copy(alpha = 0.25f)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-        ) {
-            val w        = size.width
-            val h        = size.height
-            val barCount = bars.size
-            val secW     = w / barCount          // width of each section
-            val barPad   = 8.dp.toPx()
-            val dashPE   = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
-            val hatchStep = 10.dp.toPx()
+    // Y-axis label values
+    val yMax = maxAmt
+    val yMid = maxAmt / 2.0
 
-            // Horizontal dashed grid lines at 25 / 50 / 75 %
-            listOf(0.25f, 0.5f, 0.75f).forEach { frac ->
-                drawLine(
-                    color       = gridColor,
-                    start       = Offset(0f, h * (1f - frac)),
-                    end         = Offset(w, h * (1f - frac)),
-                    strokeWidth = 1.dp.toPx(),
-                    pathEffect  = dashPE
-                )
-            }
+    Box(modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp)) {
+        // Chart canvas + X-axis labels
+        Column(modifier = Modifier.fillMaxWidth().padding(end = 36.dp)) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+            ) {
+                val w         = size.width
+                val h         = size.height
+                val count     = dayBars.size.coerceAtLeast(1)
+                val slotW     = w / count
+                val gap       = (slotW * 0.15f).coerceIn(0.5f, 3.dp.toPx())
+                val barW      = (slotW - gap).coerceAtLeast(1f)
+                val dashPE    = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                val hatchStep = 9.dp.toPx()
 
-            // Bars
-            bars.forEachIndexed { idx, bar ->
-                val secL = idx * secW
-                val secR = secL + secW
-                val barL = secL + barPad
-                val barR = secR - barPad
-
-                // Vertical section divider (skip the very first)
-                if (idx > 0) {
+                // Dashed grid lines at 50% and 100%
+                listOf(0.5f, 1.0f).forEach { frac ->
                     drawLine(
-                        color       = gridColor.copy(alpha = 0.5f),
-                        start       = Offset(secL, 0f),
-                        end         = Offset(secL, h),
-                        strokeWidth = 0.5.dp.toPx()
+                        color       = gridColor,
+                        start       = Offset(0f, h * (1f - frac)),
+                        end         = Offset(w, h * (1f - frac)),
+                        strokeWidth = 0.8.dp.toPx(),
+                        pathEffect  = if (frac < 1f) dashPE else null
                     )
                 }
 
-                val barFrac = (bar.amount / maxAmt).toFloat().coerceIn(0f, 1f)
-                val barTop  = h * (1f - barFrac)
+                // Bars
+                dayBars.forEachIndexed { idx, bar ->
+                    val slotL = idx * slotW
+                    val barL  = slotL + gap / 2f
+                    val barR  = barL + barW
 
-                when {
-                    bar.isFuture -> {
-                        // Diagonal hatching for the future section
-                        withTransform({ clipRect(barL, 0f, barR, h) }) {
-                            var sx = barL - h
-                            while (sx < barR + h) {
-                                drawLine(
-                                    color       = hatchColor,
-                                    start       = Offset(sx, h),
-                                    end         = Offset(sx + h, 0f),
-                                    strokeWidth = 1.5.dp.toPx()
-                                )
-                                sx += hatchStep
+                    val barFrac = (bar.amount / maxAmt).toFloat().coerceIn(0f, 1f)
+                    val barTop  = h * (1f - barFrac)
+
+                    when {
+                        bar.isFuture -> {
+                            withTransform({ clipRect(barL, 0f, barR, h) }) {
+                                var sx = barL - h
+                                while (sx < barR + h) {
+                                    drawLine(
+                                        color       = hatchColor,
+                                        start       = Offset(sx, h),
+                                        end         = Offset(sx + h, 0f),
+                                        strokeWidth = 1.5.dp.toPx()
+                                    )
+                                    sx += hatchStep
+                                }
                             }
                         }
+                        bar.amount > 0 -> {
+                            drawRect(
+                                color   = accentColor,
+                                topLeft = Offset(barL, barTop),
+                                size    = Size(barW, h - barTop)
+                            )
+                        }
                     }
-                    bar.amount > 0 -> {
-                        drawRect(
-                            color    = accentColor,
-                            topLeft  = Offset(barL, barTop),
-                            size     = Size(barR - barL, h - barTop)
+                }
+
+                // Bottom border
+                drawLine(
+                    color       = gridColor,
+                    start       = Offset(0f, h),
+                    end         = Offset(w, h),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+
+            // X-axis milestone labels: 1, 11, 18, last day
+            val milestones = listOf(1, 11, 18, daysInMonth)
+            Row(modifier = Modifier.fillMaxWidth()) {
+                milestones.forEachIndexed { i, day ->
+                    val weight = when (i) {
+                        0 -> (11 - 1).toFloat()
+                        1 -> (18 - 11).toFloat()
+                        2 -> (daysInMonth - 18).toFloat().coerceAtLeast(1f)
+                        else -> 0f
+                    }
+                    if (weight > 0f) {
+                        Box(modifier = Modifier.weight(weight)) {
+                            Text(
+                                text  = if (day == daysInMonth) "$day $monthShort" else "$day",
+                                style = labelStyle,
+                                color = labelColor
+                            )
+                        }
+                    } else {
+                        Text(
+                            text  = "$day $monthShort",
+                            style = labelStyle,
+                            color = labelColor
                         )
                     }
                 }
             }
-
-            // Bottom border
-            drawLine(
-                color       = gridColor,
-                start       = Offset(0f, h),
-                end         = Offset(w, h),
-                strokeWidth = 1.dp.toPx()
-            )
         }
 
-        // X-axis labels: start of each bar + end of the last bar
-        Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 0.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+        // Y-axis labels pinned to right edge
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .width(34.dp)
+                .height(150.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            bars.forEach { bar ->
-                Text(bar.label, style = labelStyle, color = labelColor)
-            }
-            // End-of-month label for last bar
             Text(
-                "${bars.last().endDay} $monthShort",
-                style = labelStyle,
-                color = labelColor
+                text     = formatMoney(yMax).let { if (it.length > 6) it.take(6) else it },
+                style    = labelStyle,
+                color    = labelColor,
+                modifier = Modifier.align(Alignment.End)
             )
+            Text(
+                text     = formatMoney(yMid).let { if (it.length > 6) it.take(6) else it },
+                style    = labelStyle,
+                color    = labelColor,
+                modifier = Modifier.align(Alignment.End)
+            )
+            Spacer(Modifier.height(0.dp))
         }
     }
 }

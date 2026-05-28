@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -125,13 +126,43 @@ private val DarkColors = darkColorScheme(
     outlineVariant      = md_dark_outlineVariant,
 )
 
+private fun Color.lighten(factor: Float) = Color(
+    red   = (red   + (1f - red)   * factor).coerceIn(0f, 1f),
+    green = (green + (1f - green) * factor).coerceIn(0f, 1f),
+    blue  = (blue  + (1f - blue)  * factor).coerceIn(0f, 1f),
+    alpha = alpha
+)
+
+private fun Color.darken(factor: Float) = Color(
+    red   = (red   * (1f - factor)).coerceIn(0f, 1f),
+    green = (green * (1f - factor)).coerceIn(0f, 1f),
+    blue  = (blue  * (1f - factor)).coerceIn(0f, 1f),
+    alpha = alpha
+)
+
+private fun onColorFor(bg: Color): Color =
+    if (bg.luminance() > 0.4f) Color.Black else Color.White
+
+private fun applyAccent(base: ColorScheme, accent: Color, dark: Boolean): ColorScheme {
+    val container   = if (dark) accent.darken(0.35f) else accent.lighten(0.72f)
+    val onContainer = onColorFor(container)
+    return base.copy(
+        primary            = accent,
+        onPrimary          = onColorFor(accent),
+        primaryContainer   = container,
+        onPrimaryContainer = onContainer,
+        inversePrimary     = if (dark) accent.lighten(0.4f) else accent.darken(0.3f)
+    )
+}
+
 @Composable
 fun MoneyIQTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,   // отключён — используем точную палитру 1Money
+    darkTheme:    Boolean = isSystemInDarkTheme(),
+    accentColor:  Color?  = null,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    val base = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -139,6 +170,8 @@ fun MoneyIQTheme(
         darkTheme -> DarkColors
         else      -> LightColors
     }
+
+    val colorScheme = if (accentColor != null) applyAccent(base, accentColor, darkTheme) else base
 
     val view = LocalView.current
     if (!view.isInEditMode) {

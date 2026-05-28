@@ -19,16 +19,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.data.repository.HomeScreenTab
 import org.pixelrush.moneyiq.ui.accounts.AccountFormSheet
 import org.pixelrush.moneyiq.ui.accounts.AccountsScreen
 import org.pixelrush.moneyiq.ui.accounts.AccountsViewModel
@@ -37,7 +40,10 @@ import org.pixelrush.moneyiq.ui.budget.BudgetScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesViewModel
 import org.pixelrush.moneyiq.ui.categories.EditCategoriesScreen
+import org.pixelrush.moneyiq.ui.data.DataScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
+import org.pixelrush.moneyiq.ui.settings.SettingsScreen
+import org.pixelrush.moneyiq.ui.settings.SettingsViewModel
 import org.pixelrush.moneyiq.ui.theme.DebtOrange
 import org.pixelrush.moneyiq.ui.theme.ExpenseRed
 import org.pixelrush.moneyiq.ui.theme.IncomeGreen
@@ -68,17 +74,32 @@ private val TABS = listOf(
 
 @Composable
 fun MainScreen(
-    onAddTransaction:   () -> Unit,
-    onEditTransaction:  (Long) -> Unit   = {},
-    mainViewModel:      MainViewModel    = hiltViewModel(),
-    accountsViewModel:  AccountsViewModel    = hiltViewModel(),
-    categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    onAddTransaction:    () -> Unit,
+    onEditTransaction:   (Long) -> Unit     = {},
+    mainViewModel:       MainViewModel      = hiltViewModel(),
+    accountsViewModel:   AccountsViewModel  = hiltViewModel(),
+    categoriesViewModel: CategoriesViewModel = hiltViewModel(),
+    settingsViewModel:   SettingsViewModel  = hiltViewModel()
 ) {
-    val pagerState  = rememberPagerState(pageCount = { TABS.size })
+    val settings       by settingsViewModel.settings.collectAsState()
+    val budgetVisible   = settings.budgetVisible
+    val initialPage     = settings.homeScreen.index
+
+    val activeTabs = if (budgetVisible) TABS else TABS.filterIndexed { i, _ -> i != 3 }
+    val pagerState  = rememberPagerState(initialPage = initialPage.coerceIn(0, activeTabs.lastIndex),
+                                        pageCount    = { activeTabs.size })
     val scope       = rememberCoroutineScope()
     val currentPage = pagerState.currentPage
     val mainState  by mainViewModel.state.collectAsState()
     val totalBalance = mainState.totalBalance
+    val drawerState  = rememberDrawerState(DrawerValue.Closed)
+
+    LaunchedEffect(settings.homeScreen, budgetVisible) {
+        val target = if (!budgetVisible && settings.homeScreen == HomeScreenTab.BUDGET)
+            HomeScreenTab.CATEGORIES.index
+        else settings.homeScreen.index.coerceIn(0, activeTabs.lastIndex)
+        pagerState.scrollToPage(target)
+    }
 
     // ── Новий рахунок ────────────────────────────────────────────────────────
     var showAccTypeSheet by remember { mutableStateOf(false) }
@@ -90,6 +111,30 @@ fun MainScreen(
     val triggerEditCategories: () -> Unit = { showEditCategories = true }
     val categoriesState by categoriesViewModel.state.collectAsState()
 
+    // ── Екран Дані ───────────────────────────────────────────────────────────
+    var showDataScreen    by remember { mutableStateOf(false) }
+    var showSettingsScreen by remember { mutableStateOf(false) }
+
+    if (showDataScreen) {
+        DataScreen(onNavigateBack = { showDataScreen = false })
+        return
+    }
+
+    if (showSettingsScreen) {
+        SettingsScreen(onNavigateBack = { showSettingsScreen = false })
+        return
+    }
+
+    ModalNavigationDrawer(
+        drawerState   = drawerState,
+        drawerContent = {
+            AppDrawerContent(
+                onClose         = { scope.launch { drawerState.close() } },
+                onDataClick     = { scope.launch { drawerState.close() }; showDataScreen = true },
+                onSettingsClick = { scope.launch { drawerState.close() }; showSettingsScreen = true }
+            )
+        }
+    ) {
     Scaffold(
         floatingActionButton = {
             if (currentPage == 2) {
@@ -107,7 +152,7 @@ fun MainScreen(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 3.dp
             ) {
-                TABS.forEachIndexed { index, tab ->
+                activeTabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
                         selected = currentPage == index,
                         onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
@@ -132,6 +177,11 @@ fun MainScreen(
     ) { padding ->
         val bottomPadding = PaddingValues(bottom = padding.calculateBottomPadding())
 
+        // Logical tab index → content page (accounting for hidden Budget tab)
+        val pageToContent: (Int) -> Int = { page ->
+            if (!budgetVisible && page >= 3) page + 1 else page
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -140,15 +190,17 @@ fun MainScreen(
             SharedTopBar(
                 totalBalance      = totalBalance,
                 currentPage       = currentPage,
+                onAvatarClick     = { scope.launch { drawerState.open() } },
                 onPlusClick       = triggerNewAccount,
-                onEditCategories  = triggerEditCategories
+                onEditCategories  = triggerEditCategories,
+                onSettings        = { showSettingsScreen = true }
             )
 
             HorizontalPager(
                 state    = pagerState,
                 modifier = Modifier.weight(1f)
             ) { page ->
-                when (page) {
+                when (pageToContent(page)) {
                     0 -> AccountsScreen(
                              padding      = bottomPadding,
                              embeddedMode = true,
@@ -207,6 +259,10 @@ fun MainScreen(
         EditCategoriesScreen(
             expenseCategories = categoriesState.expenseCategories,
             incomeCategories  = categoriesState.incomeCategories,
+            monthSpending     = categoriesState.monthSpending,
+            monthIncome       = categoriesState.monthIncome,
+            totalExpense      = categoriesState.totalExpense,
+            totalIncome       = categoriesState.totalIncome,
             onSave = { name, type, color, icon, budget, period, archived, existing ->
                 if (existing != null) {
                     categoriesViewModel.update(
@@ -228,6 +284,121 @@ fun MainScreen(
             onDismiss = { showEditCategories = false }
         )
     }
+    } // end ModalNavigationDrawer
+}
+
+// ── App drawer ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun AppDrawerContent(
+    onClose:         () -> Unit,
+    onDataClick:     () -> Unit = {},
+    onSettingsClick: () -> Unit = {}
+) {
+    ModalDrawerSheet(drawerContainerColor = MaterialTheme.colorScheme.surface) {
+        // Header
+        Row(
+            modifier          = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // App icon
+            Box(
+                modifier         = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xFF4361EE), Color(0xFF7B2FBE)))
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("1", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "1Money",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.CloudOff, null,
+                        modifier = Modifier.size(14.dp),
+                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Синхронізацію вимкнено…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
+            IconButton(onClick = {}) {
+                Icon(Icons.Outlined.Search, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.KeyboardDoubleArrowRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(12.dp))
+
+        // Premium button
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(50))
+                .background(
+                    Brush.horizontalGradient(listOf(Color(0xFFE53935), Color(0xFFFF7043)))
+                )
+                .clickable {}
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.WorkspacePremium, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "Преміум-версія",
+                    color      = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style      = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Menu items
+        DrawerMenuItem(Icons.Outlined.Person,     "Увійти")
+        DrawerMenuItem(Icons.Outlined.Settings,   "Налаштування")
+        DrawerMenuItem(Icons.Outlined.Storage,    "Дані",         onClick = onDataClick)
+        DrawerMenuItem(Icons.Outlined.StarBorder, "Оцініть нас")
+        DrawerMenuItem(Icons.Outlined.Headset,    "Підтримка")
+        DrawerMenuItem(Icons.Outlined.Info,       "Про застосунок")
+    }
+}
+
+@Composable
+private fun DrawerMenuItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit = {}
+) {
+    ListItem(
+        modifier          = Modifier.clickable(onClick = onClick),
+        leadingContent    = {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        },
+        headlineContent   = {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+        }
+    )
 }
 
 // ── Shared top bar ────────────────────────────────────────────────────────────
@@ -236,8 +407,10 @@ fun MainScreen(
 fun SharedTopBar(
     totalBalance:     Double,
     currentPage:      Int,
+    onAvatarClick:    () -> Unit = {},
     onPlusClick:      () -> Unit,
-    onEditCategories: () -> Unit = {}
+    onEditCategories: () -> Unit = {},
+    onSettings:       () -> Unit = {}
 ) {
     Row(
         modifier          = Modifier
@@ -251,7 +424,8 @@ fun SharedTopBar(
             modifier         = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClick = onAvatarClick),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -285,11 +459,11 @@ fun SharedTopBar(
 
         Spacer(Modifier.width(12.dp))
 
-        // Права кнопка: «+» (рахунки), олівець (категорії), порожньо (інші)
+        // Права кнопка: «+» (рахунки), олівець (категорії), шестерня (решта)
         val (icon, description, action) = when (currentPage) {
-            0    -> Triple(Icons.Default.Add,  "Новий рахунок",          onPlusClick)
-            1    -> Triple(Icons.Default.Edit, "Редагувати категорії",   onEditCategories)
-            else -> Triple(Icons.Outlined.Settings, "Налаштування",      {})
+            0    -> Triple(Icons.Default.Add,        "Новий рахунок",        onPlusClick)
+            1    -> Triple(Icons.Default.Edit,       "Редагувати категорії", onEditCategories)
+            else -> Triple(Icons.Outlined.Settings,  "Налаштування",         onSettings)
         }
 
         IconButton(

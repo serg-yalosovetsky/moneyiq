@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +35,9 @@ import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 // ── Кольорова палітра ─────────────────────────────────────────────────────────
 
@@ -46,70 +50,353 @@ internal val CATEGORY_FORM_COLORS = listOf(
 // ── Іконки категорій ──────────────────────────────────────────────────────────
 
 internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
-    "category"      to Icons.Outlined.Category,
-    "shopping"      to Icons.Outlined.ShoppingCart,
-    "restaurant"    to Icons.Outlined.Restaurant,
-    "car"           to Icons.Outlined.DirectionsCar,
-    "home"          to Icons.Outlined.Home,
-    "work"          to Icons.Outlined.Work,
-    "school"        to Icons.Outlined.School,
-    "health"        to Icons.Outlined.LocalHospital,
-    "flight"        to Icons.Outlined.Flight,
-    "music"         to Icons.Outlined.MusicNote,
-    "money"         to Icons.Outlined.AttachMoney,
-    "coffee"        to Icons.Outlined.LocalCafe,
-    "pets"          to Icons.Outlined.Pets,
-    "gift"          to Icons.Outlined.CardGiftcard,
-    "phone"         to Icons.Outlined.PhoneAndroid,
-    "sports"        to Icons.Outlined.FitnessCenter,
+    "category"   to Icons.Outlined.Category,
+    "shopping"   to Icons.Outlined.ShoppingCart,
+    "restaurant" to Icons.Outlined.Restaurant,
+    "car"        to Icons.Outlined.DirectionsCar,
+    "home"       to Icons.Outlined.Home,
+    "work"       to Icons.Outlined.Work,
+    "school"     to Icons.Outlined.School,
+    "health"     to Icons.Outlined.LocalHospital,
+    "flight"     to Icons.Outlined.Flight,
+    "music"      to Icons.Outlined.MusicNote,
+    "money"      to Icons.Outlined.AttachMoney,
+    "coffee"     to Icons.Outlined.LocalCafe,
+    "pets"       to Icons.Outlined.Pets,
+    "gift"       to Icons.Outlined.CardGiftcard,
+    "phone"      to Icons.Outlined.PhoneAndroid,
+    "sports"     to Icons.Outlined.FitnessCenter,
 )
 
 internal fun categoryIconFor(iconName: String): ImageVector =
     CATEGORY_ICONS_LIST.firstOrNull { it.first == iconName }?.second ?: Icons.Outlined.Category
 
 // ── Quick Expense / Income Sheet ──────────────────────────────────────────────
+// Лейаут: 2 кольорові панелі (рахунок / категорія) + сума + нотатка +
+//         5×4 калькулятор (оператори зліва, ✓ праворуч на 2 рядки) + дата.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickExpenseSheet(
     category:  CategoryEntity,
     accounts:  List<AccountEntity>,
-    onSave:    (accountId: Long, amount: Double, note: String) -> Unit,
+    onSave:    (accountId: Long, amount: Double, note: String, date: Long) -> Unit,
     onDismiss: () -> Unit
 ) {
     val catColor = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
-    val isIncome = category.type == TransactionType.INCOME
+    val accountColor = Color(0xFF3949AB)  // indigo — колір панелі рахунку
+    val isIncome     = category.type == TransactionType.INCOME
 
-    var amountStr       by remember { mutableStateOf("0") }
+    // ── Стан калькулятора ──────────────────────────────────────────────────
+    val calc = rememberCalcState()
+
+    // ── Інший стан ────────────────────────────────────────────────────────
     var note            by remember { mutableStateOf("") }
     var selectedAccount by remember {
         mutableStateOf(accounts.firstOrNull { it.isDefault } ?: accounts.firstOrNull())
     }
+    var selectedDate    by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDateSheet   by remember { mutableStateOf(false) }
+    var showRepeat      by remember { mutableStateOf(false) }
+    var showReminder    by remember { mutableStateOf(false) }
+    var showFullDate    by remember { mutableStateOf(false) }
+    var showAccPicker   by remember { mutableStateOf(false) }
+    var repeatMode     by remember { mutableStateOf("NEVER") }
+    var reminderMode   by remember { mutableStateOf("NEVER") }
 
-    fun onKey(key: String) {
-        amountStr = when (key) {
-            "⌫" -> if (amountStr.length <= 1) "0" else amountStr.dropLast(1)
-            "," -> {
-                when {
-                    "," in amountStr || "." in amountStr -> amountStr
-                    amountStr == "0"                     -> "0,"
-                    else                                  -> "$amountStr,"
-                }
-            }
-            else -> {
-                val dotIdx = amountStr.indexOfFirst { it == ',' || it == '.' }
-                if (dotIdx >= 0 && amountStr.length - dotIdx > 2) amountStr
-                else if (amountStr == "0") key
-                else if (amountStr.length < 12) "$amountStr$key"
-                else amountStr
-            }
+    // ── Логіка ────────────────────────────────────────────────────────────
+    fun onConfirm() {
+        val amt   = calc.result()
+        val accId = selectedAccount?.id ?: return
+        if (amt > 0.0) {
+            onSave(accId, amt, note.trim(), selectedDate)
         }
     }
 
-    val parsedAmount = amountStr.replace(",", ".").toDoubleOrNull() ?: 0.0
+    // ── Висота аркуша ≈ 2/3 екрана ────────────────────────────────────────
+    val screenH  = LocalConfiguration.current.screenHeightDp.dp
+    val sheetH   = screenH * 0.67f
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface,
+        dragHandle       = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(sheetH)
+        ) {
+            // ── 1. Панелі рахунку / категорії ─────────────────────────────
+            Row(modifier = Modifier.fillMaxWidth().height(80.dp)) {
+
+                // Ліва панель — рахунок (темно-синя)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(accountColor)
+                        .clickable { if (accounts.size > 1) showAccPicker = !showAccPicker }
+                ) {
+                    // Іконка рахунку (вгорі праворуч)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    // Текст: «З рахунку» + назва
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 12.dp, bottom = 8.dp)
+                    ) {
+                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(
+                            selectedAccount?.name ?: "—",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    // Вибір рахунку (dropdown)
+                    DropdownMenu(expanded = showAccPicker, onDismissRequest = { showAccPicker = false }) {
+                        accounts.forEach { acc ->
+                            DropdownMenuItem(
+                                text    = { Text(acc.name) },
+                                onClick = { selectedAccount = acc; showAccPicker = false }
+                            )
+                        }
+                    }
+                }
+
+                // Права панель — категорія (колір категорії)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(catColor)
+                ) {
+                    // Іконка категорії (вгорі зліва)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 8.dp, start = 8.dp)
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.25f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(categoryIconFor(category.icon), null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    // Текст: «До категорії» + назва
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 12.dp, bottom = 8.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text("До категорії", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(
+                            category.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // ── 2. Відображення виразу / суми ─────────────────────────────
+            val displayText = calc.displayExpr("₴")
+
+            Column(
+                modifier            = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    if (isIncome) "Дохід" else "Витрата",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = catColor
+                )
+                Text(
+                    text       = displayText,
+                    fontSize   = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = catColor,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+            }
+
+            // ── 3. Нотатка ────────────────────────────────────────────────
+            OutlinedTextField(
+                value         = note,
+                onValueChange = { note = it },
+                placeholder   = { Text("Нотатки...") },
+                modifier      = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                singleLine    = true,
+                shape         = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            // ── 4. Клавіатура-калькулятор ─────────────────────────────────
+            val keyBg = MaterialTheme.colorScheme.surfaceVariant
+            SharedCalcKeypad(
+                calc         = calc,
+                modifier     = Modifier.weight(1f).fillMaxWidth(),
+                onConfirm    = { onConfirm() },
+                row2ExtraKey = {
+                    // Кнопка календаря у правому куті 2-го рядка
+                    Box(
+                        modifier         = Modifier.weight(1f).fillMaxHeight()
+                            .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                            .clickable { showDateSheet = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(20.dp))
+                    }
+                }
+            )
+
+            // ── 5. Дата внизу ─────────────────────────────────────────────
+            Text(
+                text      = txDateLabel(selectedDate),
+                style     = MaterialTheme.typography.bodySmall,
+                color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                textAlign = TextAlign.Center,
+                modifier  = Modifier.fillMaxWidth().padding(vertical = 5.dp)
+            )
+        }
+    }
+
+    // ── Вибір дати (аркуш) ────────────────────────────────────────────────────
+    if (showDateSheet) {
+        CalcDateSheet(
+            currentDate  = selectedDate,
+            repeatMode   = repeatMode,
+            reminderMode = reminderMode,
+            onDateSelected  = { selectedDate = it; showDateSheet = false },
+            onRepeatClick   = { showDateSheet = false; showRepeat = true },
+            onReminderClick = { showDateSheet = false; showReminder = true },
+            onPickDate      = { showDateSheet = false; showFullDate = true },
+            onDismiss       = { showDateSheet = false }
+        )
+    }
+
+    // ── Повний DatePicker ─────────────────────────────────────────────────────
+    if (showFullDate) {
+        FullDatePickerDialog(
+            initial        = selectedDate,
+            onDateSelected = { selectedDate = it; showFullDate = false },
+            onDismiss      = { showFullDate = false }
+        )
+    }
+
+    // ── Діалог повторення ─────────────────────────────────────────────────────
+    if (showRepeat) {
+        RepeatDialog(
+            current   = repeatMode,
+            onSelect  = { repeatMode = it; showRepeat = false },
+            onDismiss = { showRepeat = false }
+        )
+    }
+
+    // ── Діалог нагадування ────────────────────────────────────────────────────
+    if (showReminder) {
+        ReminderDialog(
+            current   = reminderMode,
+            onSelect  = { reminderMode = it; showReminder = false },
+            onDismiss = { showReminder = false }
+        )
+    }
+}
+
+// ── Клавіша калькулятора ──────────────────────────────────────────────────────
+
+@Composable
+private fun QKey(
+    label:   String,
+    modifier: Modifier = Modifier,
+    isOp:    Boolean   = false,
+    bg:      Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text       = label,
+            fontSize   = 20.sp,
+            fontWeight = if (isOp) FontWeight.Normal else FontWeight.Medium,
+            color      = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+// ── Форматування дати для підпису ─────────────────────────────────────────────
+
+private fun txDateLabel(date: Long): String {
+    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale("uk"))
+    val cal  = Calendar.getInstance().apply { timeInMillis = date }
+    val now  = Calendar.getInstance()
+    val yest = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+    val short = fmt.format(Date(date))
+    return when {
+        sameDay(cal, now)  -> "Сьогодні, $short"
+        sameDay(cal, yest) -> "Вчора, $short"
+        else               -> short
+    }
+}
+
+private fun sameDay(a: Calendar, b: Calendar) =
+    a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
+    a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+
+// ── Аркуш вибору дати (Image #14) ────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CalcDateSheet(
+    currentDate:     Long,
+    repeatMode:      String,
+    reminderMode:    String,
+    onDateSelected:  (Long) -> Unit,
+    onRepeatClick:   () -> Unit,
+    onReminderClick: () -> Unit,
+    onPickDate:      () -> Unit,
+    onDismiss:       () -> Unit
+) {
+    val todayMs     = System.currentTimeMillis()
+    val yesterdayMs = todayMs - 86_400_000L
+    val isToday     = sameDay(
+        Calendar.getInstance().apply { timeInMillis = currentDate },
+        Calendar.getInstance()
+    )
+    val isYesterday = sameDay(
+        Calendar.getInstance().apply { timeInMillis = currentDate },
+        Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+    )
+    val dFmt = SimpleDateFormat("d MMMM", Locale("uk"))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -117,153 +404,244 @@ fun QuickExpenseSheet(
         containerColor   = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp)
+            modifier            = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Заголовок: іконка + назва + закрити
-            Row(
-                modifier          = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Text("Дата", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+            // «Виберіть день» картка
+            Surface(
+                onClick   = onPickDate,
+                shape     = RoundedCornerShape(14.dp),
+                color     = MaterialTheme.colorScheme.surfaceVariant,
+                modifier  = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier         = Modifier.size(42.dp).clip(CircleShape).background(catColor),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier              = Modifier.padding(16.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Icon(categoryIconFor(category.icon), null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Виберіть день", style = MaterialTheme.typography.bodyLarge)
                 }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(category.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (isIncome) "Дохід" else "Витрата",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "Закрити") }
             }
 
-            // Відображення суми
-            Box(
-                modifier         = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text      = quickAmountDisplay(amountStr) + " ₴",
-                    fontSize  = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = if (isIncome) Color(0xFF26A69A) else MaterialTheme.colorScheme.error,
-                    maxLines  = 1,
-                    overflow  = TextOverflow.Ellipsis
-                )
-            }
-
-            // Вибір рахунку (горизонтальний скрол)
-            if (accounts.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier              = Modifier.padding(vertical = 8.dp)
+            // Вчора / Сьогодні
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    onClick  = { onDateSelected(yesterdayMs) },
+                    shape    = RoundedCornerShape(14.dp),
+                    color    = if (isYesterday) MaterialTheme.colorScheme.primaryContainer
+                               else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    items(accounts) { acc ->
-                        val selected = selectedAccount?.id == acc.id
-                        FilterChip(
-                            selected    = selected,
-                            onClick     = { selectedAccount = acc },
-                            label       = { Text(acc.name, style = MaterialTheme.typography.labelMedium) },
-                            leadingIcon = if (selected) {
-                                { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
-                            } else null
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    "Спочатку додайте рахунок",
-                    style    = MaterialTheme.typography.bodySmall,
-                    color    = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            // Нотатка
-            OutlinedTextField(
-                value         = note,
-                onValueChange = { note = it },
-                placeholder   = { Text("Нотатка...") },
-                modifier      = Modifier.fillMaxWidth(),
-                singleLine    = true,
-                shape         = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            // Клавіатура (3 колонки, телефонний стиль)
-            val keyRows = listOf(
-                listOf("1", "2", "3"),
-                listOf("4", "5", "6"),
-                listOf("7", "8", "9"),
-                listOf(",", "0", "⌫")
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier            = Modifier.fillMaxWidth()
-            ) {
-                keyRows.forEach { row ->
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Column(
+                        modifier            = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        row.forEach { key ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(2f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { onKey(key) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (key == "⌫") {
-                                    Icon(Icons.AutoMirrored.Filled.Backspace, null, modifier = Modifier.size(22.dp))
-                                } else {
-                                    Text(
-                                        key,
-                                        style      = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
+                        Icon(Icons.Outlined.DarkMode, null, modifier = Modifier.size(26.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("Вчора", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(dFmt.format(Date(yesterdayMs)), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                }
+                Surface(
+                    onClick  = { onDateSelected(todayMs) },
+                    shape    = RoundedCornerShape(14.dp),
+                    color    = if (isToday) MaterialTheme.colorScheme.primaryContainer
+                               else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier            = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Outlined.WbSunny, null, modifier = Modifier.size(26.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("Сьогодні", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(dFmt.format(Date(todayMs)), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-
-            // Кнопка «Зберегти»
-            Button(
-                onClick = {
-                    val amt   = amountStr.replace(",", ".").toDoubleOrNull() ?: 0.0
-                    val accId = selectedAccount?.id ?: return@Button
-                    if (amt > 0.0) onSave(accId, amt, note.trim())
-                },
-                enabled  = parsedAmount > 0.0 && selectedAccount != null,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = catColor),
-                shape    = RoundedCornerShape(14.dp)
-            ) {
-                Text("Зберегти", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            // Повторення / Нагадування
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    onClick  = onRepeatClick,
+                    shape    = RoundedCornerShape(14.dp),
+                    color    = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier            = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Repeat, null, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("Повторення", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(repeatLabelFor(repeatMode), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                }
+                Surface(
+                    onClick  = onReminderClick,
+                    shape    = RoundedCornerShape(14.dp),
+                    color    = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier            = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Outlined.Notifications, null, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("Нагадування", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(reminderLabelFor(reminderMode), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                }
             }
         }
     }
 }
 
-private fun quickAmountDisplay(s: String): String {
-    if (s.endsWith(",") || s.endsWith(".")) return s
-    val d = s.replace(",", ".").toDoubleOrNull() ?: return s
-    return formatMoney(d)
+// ── Повний DatePicker (Material3) ─────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FullDatePickerDialog(
+    initial:       Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss:     () -> Unit
+) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = initial)
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton    = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let(onDateSelected)
+                onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton    = {
+            TextButton(onClick = onDismiss) { Text("Скасувати") }
+        }
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+// ── Діалог «Повторення» (Image #15) ──────────────────────────────────────────
+
+private val REPEAT_OPTIONS = listOf(
+    "NEVER"          to "Ніколи",
+    "DAILY"          to "Щодня",
+    "EVERY_2_DAYS"   to "Кожні 2 дні",
+    "WEEKDAYS"       to "Будні",
+    "WEEKENDS"       to "Вихідні дні",
+    "WEEKLY"         to "Щотижня",
+    "EVERY_2_WEEKS"  to "Кожні 2 тижні",
+    "EVERY_4_WEEKS"  to "Кожні 4 тижні",
+    "MONTHLY"        to "Щомісяця",
+    "EVERY_2_MONTHS" to "Кожні 2 місяці",
+    "EVERY_3_MONTHS" to "Кожні 3 місяці",
+    "EVERY_6_MONTHS" to "Кожні 6 місяців",
+    "YEARLY"         to "Щорічно"
+)
+
+private fun repeatLabelFor(mode: String) =
+    REPEAT_OPTIONS.firstOrNull { it.first == mode }?.second ?: "Ніколи"
+
+@Composable
+private fun RepeatDialog(
+    current:  String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var sel by remember { mutableStateOf(current) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Repeat, null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Повторення", style = MaterialTheme.typography.titleLarge)
+            }
+        },
+        text = {
+            LazyColumn {
+                items(REPEAT_OPTIONS) { (key, label) ->
+                    Row(
+                        modifier          = Modifier.fillMaxWidth().clickable { sel = key }.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = sel == key, onClick = { sel = key })
+                        Spacer(Modifier.width(6.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
+        confirmButton   = { TextButton(onClick = { onSelect(sel) }) { Text("OK") } },
+        dismissButton   = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
+}
+
+// ── Діалог «Нагадування» (Image #16) ─────────────────────────────────────────
+
+private val REMINDER_OPTIONS = listOf(
+    "NEVER"    to "Ніколи",
+    "SAME_DAY" to "Того ж дня",
+    "1_DAY"    to "за 1 день до",
+    "2_DAYS"   to "за 2 дні до",
+    "3_DAYS"   to "за 3 дні до",
+    "4_DAYS"   to "за 4 дні до",
+    "5_DAYS"   to "за 5 дні до",
+    "6_DAYS"   to "за 6 дні до",
+    "7_DAYS"   to "за 7 дні до"
+)
+
+private fun reminderLabelFor(mode: String) =
+    REMINDER_OPTIONS.firstOrNull { it.first == mode }?.second ?: "Ніколи"
+
+@Composable
+private fun ReminderDialog(
+    current:  String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var sel by remember { mutableStateOf(current) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Notifications, null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Нагадування", style = MaterialTheme.typography.titleLarge)
+            }
+        },
+        text = {
+            LazyColumn {
+                items(REMINDER_OPTIONS) { (key, label) ->
+                    Row(
+                        modifier          = Modifier.fillMaxWidth().clickable { sel = key }.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = sel == key, onClick = { sel = key })
+                        Spacer(Modifier.width(6.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
+        confirmButton   = { TextButton(onClick = { onSelect(sel) }) { Text("OK") } },
+        dismissButton   = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
 }
 
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
@@ -281,13 +659,16 @@ fun CategoryFormSheet(
     var type     by remember { mutableStateOf(existing?.type     ?: defaultType) }
     var colorHex by remember { mutableStateOf(existing?.colorHex ?: CATEGORY_FORM_COLORS.first()) }
     var iconKey  by remember { mutableStateOf(existing?.icon     ?: "category") }
-    var budget   by remember { mutableStateOf(existing?.budgetAmount?.takeIf { it > 0.0 }?.let {
-        val s = it.toBigDecimal().stripTrailingZeros().toPlainString()
-        s
-    } ?: "") }
+    var budget   by remember {
+        mutableStateOf(
+            existing?.budgetAmount?.takeIf { it > 0.0 }
+                ?.let { it.toBigDecimal().stripTrailingZeros().toPlainString() } ?: ""
+        )
+    }
     var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBudgetCalc   by remember { mutableStateOf(false) }
 
     val catColor = remember(colorHex) {
         try { Color(android.graphics.Color.parseColor(colorHex)) }
@@ -355,21 +736,19 @@ fun CategoryFormSheet(
                     leadingIcon   = { Icon(Icons.Outlined.Category, null) }
                 )
 
-                // Тип: Витрати / Доходи
+                // Тип
                 Text("Тип", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    listOf(
-                        TransactionType.EXPENSE to "Витрати",
-                        TransactionType.INCOME  to "Доходи"
-                    ).forEachIndexed { i, (t, label) ->
-                        SegmentedButton(
-                            selected = type == t,
-                            onClick  = { type = t },
-                            shape    = SegmentedButtonDefaults.itemShape(i, 2),
-                            label    = { Text(label) }
-                        )
-                    }
+                    listOf(TransactionType.EXPENSE to "Витрати", TransactionType.INCOME to "Доходи")
+                        .forEachIndexed { i, (t, label) ->
+                            SegmentedButton(
+                                selected = type == t,
+                                onClick  = { type = t },
+                                shape    = SegmentedButtonDefaults.itemShape(i, 2),
+                                label    = { Text(label) }
+                            )
+                        }
                 }
 
                 // Колір
@@ -378,20 +757,14 @@ fun CategoryFormSheet(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(CATEGORY_FORM_COLORS) { hex ->
                         val c = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
-                        val selected = colorHex == hex
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(c)
-                                .then(
-                                    if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                    else Modifier
-                                )
+                                .size(40.dp).clip(CircleShape).background(c)
+                                .then(if (colorHex == hex) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
                                 .clickable { colorHex = hex },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (selected) Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            if (colorHex == hex) Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp), tint = Color.White)
                         }
                     }
                 }
@@ -401,39 +774,44 @@ fun CategoryFormSheet(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(CATEGORY_ICONS_LIST) { (key, icon) ->
-                        val selected = iconKey == key
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(if (selected) catColor else MaterialTheme.colorScheme.surfaceVariant)
-                                .then(
-                                    if (selected) Modifier.border(2.dp, catColor, CircleShape)
-                                    else Modifier
-                                )
+                                .size(44.dp).clip(CircleShape)
+                                .background(if (iconKey == key) catColor else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { iconKey = key },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 icon, null,
-                                tint     = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint     = if (iconKey == key) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
                     }
                 }
 
-                // Бюджет
-                OutlinedTextField(
-                    value         = budget,
-                    onValueChange = { budget = it },
-                    label         = { Text("Бюджет (0 = без ліміту)") },
-                    modifier      = Modifier.fillMaxWidth(),
-                    singleLine    = true,
-                    leadingIcon   = { Icon(Icons.Outlined.AttachMoney, null) }
-                )
+                // Бюджет (відкриває калькулятор)
+                val budgetNum = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
+                Box(Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value         = if (budgetNum > 0.0) "$budget ₴" else "0 (без ліміту)",
+                        onValueChange = {},
+                        label         = { Text("Бюджет") },
+                        modifier      = Modifier.fillMaxWidth(),
+                        readOnly      = true,
+                        enabled       = false,
+                        leadingIcon   = { Icon(Icons.Outlined.AttachMoney, null) },
+                        colors        = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor        = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor      = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor       = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                    Box(Modifier.matchParentSize().clickable { showBudgetCalc = true })
+                }
 
-                // Період бюджету (тільки якщо бюджет > 0)
+                // Період бюджету
                 if (hasBudget) {
                     Text("Період бюджету", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
@@ -452,32 +830,22 @@ fun CategoryFormSheet(
                 // Архів + видалення (тільки для редагування)
                 if (existing != null) {
                     HorizontalDivider()
-
-                    Row(
-                        modifier          = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("В архів", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "Категорія не відображатиметься в сітці",
+                            Text("Категорія не відображатиметься в сітці",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                            )
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
                         }
                         Switch(checked = archived, onCheckedChange = { archived = it })
                     }
-
                     HorizontalDivider()
-
                     if (onDelete != null) {
                         OutlinedButton(
                             onClick  = { showDeleteConfirm = true },
                             modifier = Modifier.fillMaxWidth(),
-                            colors   = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            shape = RoundedCornerShape(12.dp)
+                            colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            shape    = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -489,21 +857,29 @@ fun CategoryFormSheet(
         }
     }
 
-    // Підтвердження видалення
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title   = { Text("Видалити категорію?") },
             text    = { Text("Транзакції залишаться, але без категорії.") },
             confirmButton = {
-                Button(
-                    onClick = { showDeleteConfirm = false; onDelete?.invoke() },
-                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                Button(onClick = { showDeleteConfirm = false; onDelete?.invoke() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text("Видалити") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Скасувати") }
-            }
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Скасувати") } }
+        )
+    }
+
+    if (showBudgetCalc) {
+        AmountCalculatorSheet(
+            initial   = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
+            title     = "Бюджет",
+            onResult  = { v ->
+                budget = if (v <= 0.0) "" else v.toBigDecimal().stripTrailingZeros().toPlainString()
+                showBudgetCalc = false
+            },
+            onDismiss = { showBudgetCalc = false }
         )
     }
 }
@@ -515,6 +891,10 @@ fun CategoryFormSheet(
 fun EditCategoriesScreen(
     expenseCategories: List<CategoryEntity>,
     incomeCategories:  List<CategoryEntity>,
+    monthSpending:     Map<Long, Double>    = emptyMap(),
+    monthIncome:       Map<Long, Double>    = emptyMap(),
+    totalExpense:      Double               = 0.0,
+    totalIncome:       Double               = 0.0,
     onSave:   (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, existing: CategoryEntity?) -> Unit,
     onDelete: (CategoryEntity) -> Unit,
     onDismiss: () -> Unit
@@ -523,7 +903,9 @@ fun EditCategoriesScreen(
     var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
 
-    val categories  = if (selectedTab == 0) expenseCategories else incomeCategories
+    val categories  = if (selectedTab == 0) expenseCategories.filter { !it.archived }
+                      else incomeCategories.filter { !it.archived }
+    val spending    = if (selectedTab == 0) monthSpending else monthIncome
     val defaultType = if (selectedTab == 0) TransactionType.EXPENSE else TransactionType.INCOME
 
     Dialog(
@@ -539,95 +921,45 @@ fun EditCategoriesScreen(
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = { showAddSheet = true }) {
-                            Icon(Icons.Default.Add, "Нова категорія")
-                        }
                     }
                 )
             }
         ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                // Вкладки
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor   = MaterialTheme.colorScheme.surface,
                     contentColor     = MaterialTheme.colorScheme.primary
                 ) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                        Text(
-                            "Витрати",
-                            modifier   = Modifier.padding(vertical = 14.dp),
-                            fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                        Text(
-                            "Доходи",
-                            modifier   = Modifier.padding(vertical = 14.dp),
-                            fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick  = { selectedTab = 0 },
+                        icon     = { Icon(Icons.Outlined.ArrowCircleDown, null, modifier = Modifier.size(20.dp)) },
+                        text     = { Text("Витрати", fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal) }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick  = { selectedTab = 1 },
+                        icon     = { Icon(Icons.Outlined.ArrowCircleUp, null, modifier = Modifier.size(20.dp)) },
+                        text     = { Text("Доходи", fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal) }
+                    )
                 }
 
-                // Список
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    if (categories.isEmpty()) {
-                        item {
-                            Box(
-                                modifier         = Modifier.fillMaxWidth().padding(top = 60.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Немає категорій. Натисніть + щоб додати.",
-                                    color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                    items(categories) { cat ->
-                        val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) } catch (_: Exception) { Color(0xFFFF5722) }
-                        ListItem(
-                            modifier = Modifier.clickable { editCategory = cat },
-                            leadingContent = {
-                                Box(
-                                    modifier         = Modifier.size(42.dp).clip(CircleShape).background(catColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(22.dp))
-                                }
-                            },
-                            headlineContent = {
-                                Text(cat.name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            },
-                            supportingContent = if (cat.budgetAmount > 0) {
-                                { Text("Бюджет: ${formatMoney(cat.budgetAmount)} ₴", style = MaterialTheme.typography.bodySmall) }
-                            } else null,
-                            trailingContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (cat.archived) {
-                                        Text(
-                                            "Архів",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                    }
-                                    Icon(Icons.Default.ChevronRight, null,
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-                                }
-                            }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(start = 72.dp))
-                    }
-                }
+                CategoriesGridContent(
+                    categories    = categories,
+                    spending      = spending,
+                    totalExpense  = totalExpense,
+                    totalIncome   = totalIncome,
+                    selectedTab   = selectedTab,
+                    onToggleTab   = { selectedTab = if (selectedTab == 0) 1 else 0 },
+                    bottomPadding = 0.dp,
+                    onChipClick   = { cat -> editCategory = cat },
+                    onAdd         = { showAddSheet = true }
+                )
             }
         }
     }
 
-    // Редагувати існуючу категорію
     editCategory?.let { cat ->
         CategoryFormSheet(
             existing    = cat,
@@ -641,7 +973,6 @@ fun EditCategoriesScreen(
         )
     }
 
-    // Додати нову категорію
     if (showAddSheet) {
         CategoryFormSheet(
             existing    = null,
@@ -652,5 +983,201 @@ fun EditCategoriesScreen(
             },
             onDismiss   = { showAddSheet = false }
         )
+    }
+}
+
+// ── Загальний стан калькулятора ───────────────────────────────────────────────
+
+@Stable
+class CalcStateHolder(initial: Double = 0.0) {
+
+    var currentStr by mutableStateOf(
+        when {
+            initial <= 0.0                         -> "0"
+            initial == initial.toLong().toDouble() -> initial.toLong().toString()
+            else -> initial.toBigDecimal().stripTrailingZeros().toPlainString().replace(".", ",")
+        }
+    )
+    var pendingVal by mutableStateOf(0.0)
+    var pendingOp  by mutableStateOf<String?>(null)
+
+    /** Обчислює поточний результат виразу */
+    fun result(): Double {
+        val c = currentStr.replace(",", ".").toDoubleOrNull() ?: 0.0
+        return when (pendingOp) {
+            "+"  -> pendingVal + c
+            "−"  -> pendingVal - c
+            "×"  -> pendingVal * c
+            "÷"  -> if (c != 0.0) pendingVal / c else pendingVal
+            else -> c
+        }
+    }
+
+    /** Рядок виразу для дисплею: «154 × 789 ₴» або просто «789 ₴» */
+    fun displayExpr(symbol: String = "₴"): String {
+        val nf = NumberFormat.getNumberInstance(Locale.getDefault())
+        nf.minimumFractionDigits = 0
+        nf.maximumFractionDigits = 2
+        return if (pendingOp != null)
+            "${nf.format(pendingVal)} $pendingOp $currentStr $symbol"
+        else
+            "$currentStr $symbol"
+    }
+
+    /** Обробляє натискання клавіші */
+    fun onKey(key: String) {
+        when (key) {
+            "÷", "×", "−", "+" -> { pendingVal = result(); pendingOp = key; currentStr = "0" }
+            "⌫" -> currentStr = if (currentStr.length <= 1) "0" else currentStr.dropLast(1)
+            "," -> {
+                if ("," !in currentStr && "." !in currentStr)
+                    currentStr = if (currentStr == "0") "0," else "$currentStr,"
+            }
+            else -> {
+                val dotIdx = currentStr.indexOfFirst { it == ',' || it == '.' }
+                currentStr = when {
+                    dotIdx >= 0 && currentStr.length - dotIdx > 2 -> currentStr
+                    currentStr == "0"      -> key
+                    currentStr.length < 12 -> "$currentStr$key"
+                    else                   -> currentStr
+                }
+            }
+        }
+    }
+}
+
+/** Фабрика, що зберігає стан калькулятора у Composition */
+@Composable
+fun rememberCalcState(initial: Double = 0.0): CalcStateHolder =
+    remember { CalcStateHolder(initial) }
+
+// ── Загальна клавіатура-калькулятор 5×4 ──────────────────────────────────────
+/**
+ * @param calc           стан калькулятора
+ * @param modifier       модифікатор для всього блоку (задайте weight або height)
+ * @param currencySymbol символ валюти (нижня ліва клавіша відображення)
+ * @param confirmColor   колір кнопки «=»
+ * @param onConfirm      виклик при натисканні «=»
+ * @param row2ExtraKey   composable для правої клавіші 2-го рядка (null = порожньо)
+ */
+@Composable
+fun SharedCalcKeypad(
+    calc:           CalcStateHolder,
+    modifier:       Modifier = Modifier,
+    currencySymbol: String   = "₴",
+    confirmColor:   Color    = Color(0xFF4CAF50),
+    onConfirm:      () -> Unit,
+    row2ExtraKey:   (@Composable RowScope.() -> Unit)? = null
+) {
+    val gap   = 3.dp
+    val keyBg = MaterialTheme.colorScheme.surfaceVariant
+    val opBg  = MaterialTheme.colorScheme.surfaceVariant
+
+    Column(
+        modifier            = modifier.padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(gap)
+    ) {
+        // Рядок 1: ÷ 7 8 9 ⌫
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+            QKey("÷", Modifier.weight(1f), isOp = true, bg = opBg) { calc.onKey("÷") }
+            QKey("7", Modifier.weight(1f), bg = keyBg) { calc.onKey("7") }
+            QKey("8", Modifier.weight(1f), bg = keyBg) { calc.onKey("8") }
+            QKey("9", Modifier.weight(1f), bg = keyBg) { calc.onKey("9") }
+            Box(
+                modifier         = Modifier.weight(1f).fillMaxHeight()
+                    .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                    .clickable { calc.onKey("⌫") },
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.AutoMirrored.Filled.Backspace, null, modifier = Modifier.size(20.dp)) }
+        }
+        // Рядок 2: × 4 5 6 [extraKey або Spacer]
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+            QKey("×", Modifier.weight(1f), isOp = true, bg = opBg) { calc.onKey("×") }
+            QKey("4", Modifier.weight(1f), bg = keyBg) { calc.onKey("4") }
+            QKey("5", Modifier.weight(1f), bg = keyBg) { calc.onKey("5") }
+            QKey("6", Modifier.weight(1f), bg = keyBg) { calc.onKey("6") }
+            if (row2ExtraKey != null) row2ExtraKey() else Spacer(Modifier.weight(1f))
+        }
+        // Рядки 3+4: оператори | 1/₴ | 2/0 | 3/, | = (подвійна висота)
+        Row(
+            modifier              = Modifier.weight(2f).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(gap)
+        ) {
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                QKey("−", Modifier.weight(1f).fillMaxWidth(), isOp = true, bg = opBg) { calc.onKey("−") }
+                QKey("+", Modifier.weight(1f).fillMaxWidth(), isOp = true, bg = opBg) { calc.onKey("+") }
+            }
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                QKey("1", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey("1") }
+                QKey(currencySymbol, Modifier.weight(1f).fillMaxWidth(), bg = keyBg) {}
+            }
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                QKey("2", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey("2") }
+                QKey("0", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey("0") }
+            }
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                QKey("3", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey("3") }
+                QKey(",", Modifier.weight(1f).fillMaxWidth(), bg = keyBg) { calc.onKey(",") }
+            }
+            // Кнопка «=» — охоплює обидва рядки
+            Box(
+                modifier = Modifier
+                    .weight(1f).fillMaxHeight()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(confirmColor)
+                    .clickable { onConfirm() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("=", fontSize = 32.sp, fontWeight = FontWeight.Normal, color = Color.White)
+            }
+        }
+    }
+}
+
+// ── Універсальний аркуш-калькулятор для введення суми ────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AmountCalculatorSheet(
+    initial:        Double = 0.0,
+    currencySymbol: String = "₴",
+    title:          String = "Сума",
+    onResult:       (Double) -> Unit,
+    onDismiss:      () -> Unit
+) {
+    val calc    = rememberCalcState(initial)
+    val screenH = LocalConfiguration.current.screenHeightDp.dp
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.58f)) {
+
+            // Дисплей виразу
+            Column(
+                modifier            = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(title, style = MaterialTheme.typography.labelMedium, color = Color(0xFF4CAF50))
+                Text(
+                    text       = calc.displayExpr(currencySymbol),
+                    fontSize   = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+            }
+
+            SharedCalcKeypad(
+                calc           = calc,
+                modifier       = Modifier.weight(1f).fillMaxWidth(),
+                currencySymbol = currencySymbol,
+                onConfirm      = { onResult(calc.result()) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
     }
 }

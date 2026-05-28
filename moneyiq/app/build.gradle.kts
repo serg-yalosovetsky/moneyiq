@@ -83,4 +83,7 @@ dependencies {
 
     // WorkManager (обновление виджетов)
     implementation(libs.work.runtime.ktx)
+
+    // Biometric
+    implementation(libs.biometric)
 }
