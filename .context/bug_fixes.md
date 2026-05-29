@@ -1,4 +1,4 @@
-# Bug Fixes
+﻿# Bug Fixes
 
 ## High-Risk Areas
 
@@ -240,6 +240,18 @@ c.name.trim().lowercase() != cat.name.trim().lowercase()
 
 ---
 
+
+### CategoriesScreen — Side Columns Removed, Full-Width Donut (2026-05-29)
+
+**Change:** The [2-left | donut | 2-right] side-column layout was replaced with a full-width donut + grid-below layout.
+
+**Before:** display[4..9] filled left (indices 4, 5, 8) and right (6, 7, 9) columns flanking the donut. Only display[10+] appeared below. SideSubcategoryPanel showed subcategories inline when a side-column chip was double-clicked.
+
+**After:** Donut always occupies full width (Box with DONUT_SECTION_HEIGHT). extCats = display.drop(4) — all categories from position 5 onward render in rows of 4 below the donut. SideSubcategoryPanel call sites removed; composable kept in CategoriesWidgets.kt but unused.
+
+**Regression rule:** Do not re-introduce side columns or midLeft/midRight slot assignment. If a side-panel UX is ever wanted again, re-introduce it as a separate opt-in mode, not the default layout.
+
+---
 ## Verification Checklist
 
 - Kotlin compile passes.
