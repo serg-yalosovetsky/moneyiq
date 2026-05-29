@@ -159,35 +159,35 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "devices"    to "#607D8B",  // blue-grey     — Електроніка
         "wifi"       to "#00BCD4",  // cyan          — Інтернет
         "phone"      to "#3F51B5",  // indigo        — Зв'язок
-        "coffee"     to "#795548",  // brown         — Кафе
-        "restaurant" to "#5C6BC0",  // indigo        — Ресторація
-        "shopping"   to "#795548",  // brown         — Покупки
+        "coffee"     to "#7B5947",  // brown         — Кафе
+        "restaurant" to "#4659BE",  // blue          — Ресторація
+        "shopping"   to "#7B5947",  // brown         — Покупки
         "taxi"        to "#FDD835",  // yellow        — Таксі
         "gas_station" to "#FF8F00",  // amber         — АЗС
-        "theater"    to "#7B1FA2",  // grape-purple  — Дозвілля
+        "theater"    to "#F73579",  // pink          — Дозвілля
         "celebration" to "#FF6D00", // orange        — Свято
         "spa"        to "#26A69A",  // teal-green    — Спа/Велнес
-        "car"        to "#00897B",  // teal          — Транспорт
+        "car"        to "#FFA834",  // orange        — Транспорт
         "home"       to "#546E7A",  // blue-grey     — Комунальні
         "work"       to "#1565C0",  // dark-blue     — Зарплата/Робота
         "school"     to "#FF9800",  // orange        — Освіта
-        "volunteer"  to "#4CAF50",  // green         — Здоров'я
+        "volunteer"  to "#48B456",  // green         — Здоров'я
         "health"     to "#43A047",  // green-dark    — Медицина
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
-        "movie"      to "#7B1FA2",  // deep-purple   — Розваги/кіно
+        "movie"      to "#F73579",  // pink          — Розваги/кіно
         "gaming"     to "#607D8B",  // blue-grey     — Gaming
         "telegram"   to "#2196F3",  // blue          — Telegram
         "dating"     to "#E91E63",  // pink          — Dating
         "ticket"     to "#AD1457",  // dark-pink     — Концерт/театр
         "music"      to "#AB47BC",  // purple        — Музика
-        "grocery"    to "#03A9F4",  // light-blue    — Продукти
+        "grocery"    to "#4AAFE8",  // light-blue    — Продукти
         "money"      to "#F9A825",  // amber-dark    — Інвестиції
         "pets"       to "#8D6E63",  // brown-light   — Тварини
-        "gift"       to "#F44336",  // red           — Подарунки
+        "gift"       to "#F34B4D",  // red           — Подарунки
         "sports"     to "#F44336",  // red           — Спорт
         "beauty"     to "#AD1457",  // dark-pink     — Краса
         "clothes"    to "#00838F",  // dark-cyan     — Одяг
-        "family"     to "#673AB7",  // purple        — Сім'я
+        "family"     to "#7A48F2",  // purple        — Сім'я
         "receipt"    to "#546E7A"   // blue-grey     — Рахунки
     )
 

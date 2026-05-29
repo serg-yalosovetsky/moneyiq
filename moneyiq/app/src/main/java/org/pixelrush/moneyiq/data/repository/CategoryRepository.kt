@@ -29,14 +29,14 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
         val I = TransactionType.INCOME
 
         // ── Витрати: кореневі категорії (order matches 1Money reference) ─────
-        val prodId   = dao.insertCategory(CategoryEntity(name = "Продукти",   type = E, colorHex = "#03A9F4", icon = "grocery",    isDefault = true, sortOrder = 1))
-        val restId   = dao.insertCategory(CategoryEntity(name = "Ресторація", type = E, colorHex = "#5C6BC0", icon = "restaurant", isDefault = true, sortOrder = 2))
-        val dozId    = dao.insertCategory(CategoryEntity(name = "Дозвілля",   type = E, colorHex = "#7B1FA2", icon = "theater",    isDefault = true, sortOrder = 3))
-        val transId  = dao.insertCategory(CategoryEntity(name = "Транспорт",  type = E, colorHex = "#00897B", icon = "car",        isDefault = true, sortOrder = 4))
-        val healthId = dao.insertCategory(CategoryEntity(name = "Здоров'я",   type = E, colorHex = "#4CAF50", icon = "volunteer",  isDefault = true, sortOrder = 5))
-        val giftId   = dao.insertCategory(CategoryEntity(name = "Подарунки",  type = E, colorHex = "#F44336", icon = "gift",       isDefault = true, sortOrder = 6))
-        val familyId = dao.insertCategory(CategoryEntity(name = "Сім'я",      type = E, colorHex = "#673AB7", icon = "family",     isDefault = true, sortOrder = 7))
-        val shopId   = dao.insertCategory(CategoryEntity(name = "Покупки",    type = E, colorHex = "#795548", icon = "shopping",   isDefault = true, sortOrder = 8))
+        val prodId   = dao.insertCategory(CategoryEntity(name = "Продукти",   type = E, colorHex = "#4AAFE8", icon = "grocery",    isDefault = true, sortOrder = 1))
+        val restId   = dao.insertCategory(CategoryEntity(name = "Ресторація", type = E, colorHex = "#4659BE", icon = "restaurant", isDefault = true, sortOrder = 2))
+        val dozId    = dao.insertCategory(CategoryEntity(name = "Дозвілля",   type = E, colorHex = "#F73579", icon = "theater",    isDefault = true, sortOrder = 3))
+        val transId  = dao.insertCategory(CategoryEntity(name = "Транспорт",  type = E, colorHex = "#FFA834", icon = "car",        isDefault = true, sortOrder = 4))
+        val healthId = dao.insertCategory(CategoryEntity(name = "Здоров'я",   type = E, colorHex = "#48B456", icon = "volunteer",  isDefault = true, sortOrder = 5))
+        val giftId   = dao.insertCategory(CategoryEntity(name = "Подарунки",  type = E, colorHex = "#F34B4D", icon = "gift",       isDefault = true, sortOrder = 6))
+        val familyId = dao.insertCategory(CategoryEntity(name = "Сім'я",      type = E, colorHex = "#7A48F2", icon = "family",     isDefault = true, sortOrder = 7))
+        val shopId   = dao.insertCategory(CategoryEntity(name = "Покупки",    type = E, colorHex = "#7B5947", icon = "shopping",   isDefault = true, sortOrder = 8))
         /* Робота — додаткова категорія */
         dao.insertCategory(CategoryEntity(name = "Робота",     type = E, colorHex = "#1565C0", icon = "work",       isDefault = true, sortOrder = 9))
 

@@ -20,6 +20,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.flow.first
+import org.pixelrush.moneyiq.data.db.ALL_MIGRATIONS
 import org.pixelrush.moneyiq.MainActivity
 import org.pixelrush.moneyiq.R
 import org.pixelrush.moneyiq.data.db.AppDatabase
@@ -39,7 +40,9 @@ class BalanceWidget : GlanceAppWidget() {
             context.applicationContext,
             AppDatabase::class.java,
             "moneyiq.db"
-        ).build()
+        )
+            .addMigrations(*ALL_MIGRATIONS)
+            .build()
 
         val (from, to) = monthRange()
         val income  = db.transactionDao().getSumByTypeAndPeriod(TransactionType.INCOME, from, to).first()

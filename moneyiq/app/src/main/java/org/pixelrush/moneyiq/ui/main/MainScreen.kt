@@ -203,8 +203,7 @@ fun MainScreen(
                 currentPage         = contentPage,
                 onAvatarClick       = { scope.launch { drawerState.open() } },
                 onPlusClick         = triggerNewAccount,
-                onToggleCatCompact  = { categoriesCompact = !categoriesCompact },
-                categoriesCompact   = categoriesCompact,
+                onEditCategories    = triggerEditCategories,
                 onSettings          = { showSettingsScreen = true },
                 onSearchTx          = { openTxSearch = true },
                 onBudgetSettings    = { showBudgetSettings = true }
@@ -438,8 +437,7 @@ fun SharedTopBar(
     currentPage:        Int,
     onAvatarClick:      () -> Unit = {},
     onPlusClick:        () -> Unit,
-    onToggleCatCompact: () -> Unit = {},
-    categoriesCompact:  Boolean    = false,
+    onEditCategories:   () -> Unit = {},
     onSettings:         () -> Unit = {},
     onSearchTx:         () -> Unit = {},
     onBudgetSettings:   () -> Unit = {}
@@ -492,10 +490,9 @@ fun SharedTopBar(
         Spacer(Modifier.width(12.dp))
 
         // Права кнопка
-        val catIcon = if (categoriesCompact) Icons.Default.UnfoldMore else Icons.Default.UnfoldLess
         val (icon, description, action) = when (currentPage) {
             0    -> Triple(Icons.Default.Add,       "Новий рахунок",        onPlusClick)
-            1    -> Triple(catIcon,                 "Вигляд категорій",     onToggleCatCompact)
+            1    -> Triple(Icons.Outlined.Edit,     "Редагувати категорії", onEditCategories)
             2    -> Triple(Icons.Default.Search,    "Пошук операцій",       onSearchTx)
             3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету", onBudgetSettings)
             else -> Triple(Icons.Outlined.Settings, "Налаштування",         onSettings)

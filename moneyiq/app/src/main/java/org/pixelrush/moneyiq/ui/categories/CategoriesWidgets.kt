@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.NumberFormat
+import java.util.Locale
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.main.formatMoney
@@ -56,6 +58,14 @@ internal fun CategoryChip(
     val titleSize  = if (isCompact) 12.sp  else 13.sp
     val moneySize  = if (isCompact) 10.sp  else 11.sp
     val spendSize  = if (isCompact) 12.sp  else 13.sp
+    val hasBudget  = category.budgetAmount > 0.0
+    val remainingBudget = category.budgetAmount - spending
+    val overBudget = hasBudget && remainingBudget < 0.0
+    val fillFraction = when {
+        hasBudget -> (spending / category.budgetAmount).toFloat().coerceIn(0f, 1f)
+        spending > 0.0 -> 1f
+        else -> 0f
+    }
 
     val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
@@ -87,8 +97,8 @@ internal fun CategoryChip(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(
-                    min = if (isCompact) 26.dp else 32.dp,
-                    max = if (isCompact) 40.dp else 48.dp
+                    min = if (isCompact) 24.dp else 28.dp,
+                    max = if (isCompact) 34.dp else 40.dp
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -99,33 +109,61 @@ internal fun CategoryChip(
                     lineHeight = if (isCompact) 14.sp else 16.sp
                 ),
                 fontWeight = FontWeight.SemiBold,
-                maxLines   = 2,
+                maxLines   = 1,
                 overflow   = TextOverflow.Ellipsis,
-                softWrap   = true,
+                softWrap   = false,
                 textAlign  = TextAlign.Center,
                 color      = MaterialTheme.colorScheme.onSurface,
                 modifier   = Modifier.fillMaxWidth()
             )
         }
-        // 2. Бюджет або spacer
-        if (category.budgetAmount > 0.0) {
+        // 2. Залишок бюджету, перевитрата або 0 для категорій без бюджету
+        if (hasBudget) {
+            val budgetText = formatBudgetAmount(kotlin.math.abs(remainingBudget)) + " ₴"
+            Box(
+                modifier = Modifier
+                    .height(if (isCompact) 15.dp else 17.dp)
+                    .then(
+                        if (overBudget) {
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(color)
+                                .padding(horizontal = if (isCompact) 6.dp else 8.dp)
+                        } else {
+                            Modifier.padding(horizontal = if (isCompact) 6.dp else 8.dp)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    budgetText,
+                    style      = MaterialTheme.typography.labelSmall.copy(
+                        fontSize   = moneySize,
+                        lineHeight = if (isCompact) 12.sp else 13.sp
+                    ),
+                    fontWeight = if (overBudget) FontWeight.Bold else FontWeight.SemiBold,
+                    color      = if (overBudget) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis,
+                    textAlign  = TextAlign.Center
+                )
+            }
+        } else {
             Text(
-                formatMoney(category.budgetAmount) + " ₴",
+                "0 ₴",
                 style      = MaterialTheme.typography.labelSmall.copy(
                     fontSize   = moneySize,
                     lineHeight = if (isCompact) 12.sp else 13.sp
                 ),
-                fontWeight = FontWeight.Normal,
-                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                fontWeight = FontWeight.SemiBold,
+                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.30f),
                 maxLines   = 1,
                 overflow   = TextOverflow.Ellipsis,
                 textAlign  = TextAlign.Center,
                 modifier   = Modifier.fillMaxWidth()
             )
-        } else {
-            Spacer(Modifier.height(if (isCompact) 12.dp else 13.dp))
         }
-        Spacer(Modifier.height(if (isCompact) 2.dp else 3.dp))
+        Spacer(Modifier.height(if (isCompact) 1.dp else 2.dp))
         // 3. Іконка — outer Box рисує кільце expansion поза кліпом внутрішнього кола
         val iconKey = remember(category.icon, category.name) {
             if (category.icon == "category")
@@ -151,12 +189,21 @@ internal fun CategoryChip(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(if (hasSpending) color else color.copy(alpha = 0.13f)),
+                    .background(color.copy(alpha = if (hasBudget) 0.28f else 0.13f)),
                 contentAlignment = Alignment.Center
             ) {
+                if (fillFraction > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .fillMaxHeight(fillFraction)
+                            .background(color)
+                    )
+                }
                 Icon(
                     categoryIconFor(iconKey), null,
-                    tint     = if (hasSpending) Color.White else color,
+                    tint     = if (hasSpending || hasBudget) Color.White else color,
                     modifier = Modifier.size(iconSize)
                 )
             }
@@ -178,7 +225,7 @@ internal fun CategoryChip(
                 }
             }
         }
-        Spacer(Modifier.height(if (isCompact) 2.dp else 3.dp))
+        Spacer(Modifier.height(if (isCompact) 1.dp else 2.dp))
         // 4. Витрачено
         Text(
             formatMoney(spending) + " ₴",
@@ -407,6 +454,13 @@ internal fun AddCategoryChip(onClick: () -> Unit) {
             modifier  = Modifier.fillMaxWidth()
         )
     }
+}
+
+private fun formatBudgetAmount(amount: Double): String {
+    val nf = NumberFormat.getNumberInstance(Locale.getDefault())
+    nf.maximumFractionDigits = 0
+    nf.minimumFractionDigits = 0
+    return nf.format(amount)
 }
 
 // ── Donut-чарт ───────────────────────────────────────────────────────────────

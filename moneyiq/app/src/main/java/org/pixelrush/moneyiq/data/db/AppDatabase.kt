@@ -106,9 +106,54 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            DELETE FROM categories
+            WHERE type = 'EXPENSE'
+              AND (
+                LOWER(name) LIKE '%фінанс%'
+                OR LOWER(name) LIKE '%финанс%'
+              )
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET colorHex = '#4AAFE8' WHERE name = 'Продукти'")
+        database.execSQL("UPDATE categories SET colorHex = '#4659BE' WHERE name = 'Ресторація'")
+        database.execSQL("UPDATE categories SET colorHex = '#F73579' WHERE name = 'Дозвілля'")
+        database.execSQL("UPDATE categories SET colorHex = '#FFA834' WHERE name = 'Транспорт'")
+        database.execSQL("UPDATE categories SET colorHex = '#48B456' WHERE name = 'Здоров''я'")
+        database.execSQL("UPDATE categories SET colorHex = '#F34B4D' WHERE name = 'Подарунки'")
+        database.execSQL("UPDATE categories SET colorHex = '#7A48F2' WHERE name = 'Сім''я'")
+        database.execSQL("UPDATE categories SET colorHex = '#7B5947' WHERE name = 'Покупки'")
+    }
+}
+
+val ALL_MIGRATIONS = arrayOf(
+    MIGRATION_1_2,
+    MIGRATION_2_3,
+    MIGRATION_3_4,
+    MIGRATION_4_5,
+    MIGRATION_5_6,
+    MIGRATION_6_7,
+    MIGRATION_7_8,
+    MIGRATION_8_9,
+    MIGRATION_9_10,
+    MIGRATION_10_11,
+    MIGRATION_11_12,
+    MIGRATION_12_13,
+    MIGRATION_13_14,
+    MIGRATION_14_15
+)
+
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 13,
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

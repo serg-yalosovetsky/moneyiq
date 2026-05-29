@@ -5,10 +5,10 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 internal val CATEGORY_FORM_COLORS = listOf(
-    "#FF5722", "#F44336", "#E91E63", "#9C27B0",
-    "#673AB7", "#3F51B5", "#2196F3", "#03A9F4",
-    "#009688", "#4CAF50", "#FFEB3B", "#FF9800",
-    "#6200EA", "#FF6D00", "#0288D1"
+    "#4AAFE8", "#4659BE", "#F73579", "#FFA834",
+    "#48B456", "#F34B4D", "#7A48F2", "#7B5947",
+    "#FF5722", "#E91E63", "#9C27B0", "#3F51B5",
+    "#009688", "#FFEB3B", "#6200EA", "#607D8B"
 )
 
 internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(

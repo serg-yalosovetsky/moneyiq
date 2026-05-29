@@ -63,6 +63,7 @@ fun CategoryActionSheet(
     }
     val percent  = if (totalInPeriod > 0.0) (spending / totalInPeriod * 100).toInt() else 0
     val progress = if (totalInPeriod > 0.0) (spending / totalInPeriod).coerceIn(0.0, 1.0).toFloat() else 0f
+    val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     // Повноекранний Dialog = скрим + кастомний шит знизу (без кліпінгу ModalBottomSheet)
     Dialog(
@@ -181,21 +182,18 @@ fun CategoryActionSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 16.dp, vertical = 20.dp),
+                        .padding(
+                            start = 16.dp,
+                            top = 20.dp,
+                            end = 16.dp,
+                            bottom = 20.dp + navigationBottom
+                        ),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     CatActionButton(Icons.Default.Edit,     "Редагувати", catColor, onEdit,       Modifier.weight(1f))
                     CatActionButton(Icons.Outlined.Speed,   "Бюджет",     catColor, onBudget,     Modifier.weight(1f))
                     CatActionButton(Icons.Outlined.Receipt, "Операції",   catColor, onOperations, Modifier.weight(1f))
                 }
-
-                // Навігаційний відступ
-                Spacer(
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .background(MaterialTheme.colorScheme.surface)
-                )
             }
         }
     }

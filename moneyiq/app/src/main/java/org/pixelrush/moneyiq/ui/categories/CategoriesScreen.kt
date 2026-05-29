@@ -38,6 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
+import org.pixelrush.moneyiq.ui.budget.BudgetCatRow
+import org.pixelrush.moneyiq.ui.budget.BudgetInputSheet
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
@@ -45,13 +48,14 @@ import org.pixelrush.moneyiq.util.suggestCategoryStyle
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
-internal val CHIP_WIDTH           = 82.dp
-internal val CHIP_HEIGHT          = 132.dp
-internal val CHIP_CIRCLE_SIZE     = 48.dp
-internal val CHIP_WIDTH_COMPACT   = 70.dp
-internal val CHIP_HEIGHT_COMPACT  = 116.dp
+internal val CHIP_WIDTH           = 116.dp
+internal val CHIP_HEIGHT          = 136.dp
+internal val CHIP_CIRCLE_SIZE     = 60.dp
+internal val CHIP_WIDTH_COMPACT   = 82.dp
+internal val CHIP_HEIGHT_COMPACT  = 112.dp
 internal val CHIP_CIRCLE_COMPACT  = 40.dp
-internal val DONUT_SECTION_HEIGHT = 360.dp
+internal val CATEGORY_VERTICAL_GAP = 12.dp
+internal val DONUT_SECTION_HEIGHT = 300.dp
 internal val SIDE_COLUMN_WIDTH    = 90.dp
 
 // ── Головний екран ────────────────────────────────────────────────────────────
@@ -72,6 +76,7 @@ fun CategoriesScreen(
 
     var quickCategory      by remember { mutableStateOf<CategoryEntity?>(null) }
     var actionCategory     by remember { mutableStateOf<CategoryEntity?>(null) }
+    var budgetCategory     by remember { mutableStateOf<CategoryEntity?>(null) }
     var editCategory       by remember { mutableStateOf<CategoryEntity?>(null) }
     var expandedCategoryId by remember { mutableStateOf<Long?>(null) }
     var showAddSheet       by remember { mutableStateOf(false) }
@@ -103,6 +108,7 @@ fun CategoriesScreen(
         }
         result
     } else spending
+    val monthLabel = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
 
     Column(
         modifier = Modifier
@@ -158,9 +164,24 @@ fun CategoriesScreen(
             totalInPeriod = catTotal,
             pillLabel     = state.pillLabel,
             onEdit        = { actionCategory = null; editCategory = cat },
-            onBudget      = { actionCategory = null; onViewBudget() },
+            onBudget      = { actionCategory = null; budgetCategory = cat },
             onOperations  = { actionCategory = null; onViewCategoryTx(cat) },
             onDismiss     = { actionCategory = null }
+        )
+    }
+
+    budgetCategory?.let { cat ->
+        val catAmount = effectiveSpending[cat.id] ?: 0.0
+        BudgetInputSheet(
+            catRow      = BudgetCatRow(cat, catAmount),
+            monthLabel  = monthLabel,
+            accentColor = if (cat.type == TransactionType.INCOME) Color(0xFF26A69A) else Color(0xFFD81B60),
+            amountLabel = if (cat.type == TransactionType.INCOME) "отримано" else "витрачено",
+            onDismiss   = { budgetCategory = null },
+            onConfirm   = { newBudget ->
+                viewModel.update(cat.copy(budgetAmount = newBudget))
+                budgetCategory = null
+            }
         )
     }
 
@@ -214,6 +235,132 @@ fun CategoriesScreen(
     }
 }
 
+@Composable
+private fun CategoryGridSlot(
+    category:          CategoryEntity?,
+    spending:          Map<Long, Double>,
+    childCounts:       Map<Long, Int>,
+    parentColors:      Map<Long, String>,
+    expandedId:        Long?,
+    showChildBadge:    Boolean,
+    isCompact:         Boolean,
+    onChipClick:       (CategoryEntity) -> Unit,
+    onChipLongClick:   (CategoryEntity) -> Unit,
+    onChipDoubleClick: (Long?) -> Unit
+) {
+    Box(
+        Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH),
+        contentAlignment = Alignment.Center
+    ) {
+        if (category != null) {
+            CategoryChip(
+                category       = category,
+                spending       = spending[category.id] ?: 0.0,
+                onClick        = { onChipClick(category) },
+                childCount     = childCounts[category.id] ?: 0,
+                onLongPress    = { onChipLongClick(category) },
+                onDoubleClick  = {
+                    if ((childCounts[category.id] ?: 0) > 0) onChipDoubleClick(category.id)
+                    else onChipClick(category)
+                },
+                showChildBadge = showChildBadge,
+                groupColorHex  = parentColors[category.id],
+                isCompact      = isCompact,
+                isExpanded     = category.id == expandedId
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryGridRow(
+    rowCats:           List<CategoryEntity?>,
+    spending:          Map<Long, Double>,
+    childCounts:       Map<Long, Int>,
+    parentColors:      Map<Long, String>,
+    expandedId:        Long?,
+    showChildBadge:    Boolean,
+    isCompact:         Boolean,
+    onChipClick:       (CategoryEntity) -> Unit,
+    onChipLongClick:   (CategoryEntity) -> Unit,
+    onChipDoubleClick: (Long?) -> Unit,
+    modifier:          Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        repeat(4) { i ->
+            CategoryGridSlot(
+                category       = rowCats.getOrNull(i),
+                spending       = spending,
+                childCounts    = childCounts,
+                parentColors   = parentColors,
+                expandedId     = expandedId,
+                showChildBadge = showChildBadge,
+                isCompact      = isCompact,
+                onChipClick    = onChipClick,
+                onChipLongClick = onChipLongClick,
+                onChipDoubleClick = onChipDoubleClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryBottomActionRow(
+    leftCategory:      CategoryEntity?,
+    rightCategory:     CategoryEntity?,
+    spending:          Map<Long, Double>,
+    childCounts:       Map<Long, Int>,
+    parentColors:      Map<Long, String>,
+    expandedId:        Long?,
+    isCompact:         Boolean,
+    onChipClick:       (CategoryEntity) -> Unit,
+    onChipLongClick:   (CategoryEntity) -> Unit,
+    onChipDoubleClick: (Long?) -> Unit,
+    onAdd:             () -> Unit,
+    modifier:          Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        CategoryGridSlot(
+            category       = leftCategory,
+            spending       = spending,
+            childCounts    = childCounts,
+            parentColors   = parentColors,
+            expandedId     = expandedId,
+            showChildBadge = true,
+            isCompact      = isCompact,
+            onChipClick    = onChipClick,
+            onChipLongClick = onChipLongClick,
+            onChipDoubleClick = onChipDoubleClick
+        )
+        Box(
+            Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH),
+            contentAlignment = Alignment.Center
+        ) {
+            AddCategoryChip(onClick = onAdd)
+        }
+        CategoryGridSlot(
+            category       = rightCategory,
+            spending       = spending,
+            childCounts    = childCounts,
+            parentColors   = parentColors,
+            expandedId     = expandedId,
+            showChildBadge = true,
+            isCompact      = isCompact,
+            onChipClick    = onChipClick,
+            onChipLongClick = onChipLongClick,
+            onChipDoubleClick = onChipDoubleClick
+        )
+    }
+}
+
 // ── Сітка: donut-чарт + чипи ─────────────────────────────────────────────────
 
 @Composable
@@ -236,6 +383,7 @@ internal fun CategoriesGridContent(
     childCounts:           Map<Long, Int>   = emptyMap(),
     isCompact:             Boolean          = false
 ) {
+    val chipHeight = if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT
     val sorted: List<CategoryEntity> = if (showSubcategories) {
         val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId!! }
         val roots    = categories.filter { it.parentId == null }
@@ -261,9 +409,10 @@ internal fun CategoriesGridContent(
     // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
     val display = sorted
 
-    // Top 4 chips above the donut; all remaining chips in rows below the donut
-    val topRow  = if (!showSubcategories) display.take(4) else emptyList()
-    val extCats = if (!showSubcategories) display.drop(4) else display
+    // Collapsed mode keeps the original map-like layout: top row, side slots around donut, then bottom grid.
+    val topRow     = if (!showSubcategories) display.take(4) else emptyList()
+    val sideCats   = if (!showSubcategories) display.drop(4).take(4) else emptyList()
+    val bottomCats = if (!showSubcategories) display.drop(8) else display
 
     // Double-click expansion strip (only in collapsed mode)
     val expandedCat = if (expandedCategoryId != null && !showSubcategories)
@@ -309,14 +458,104 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Top row: 4 чипи (тільки в згорнутому режимі) ────────────────
+        if (!showSubcategories) {
+            item {
+                val rowStep = chipHeight + CATEGORY_VERTICAL_GAP
+                val donutTopOffset = rowStep + 16.dp
+                val leadBottomCats = bottomCats.take(2)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(rowStep * 4)
+                ) {
+                    DonutChart(
+                        categories   = categories,
+                        spending     = spending,
+                        totalExpense = totalExpense,
+                        totalIncome  = totalIncome,
+                        selectedTab  = selectedTab,
+                        onToggle     = onToggleTab,
+                        modifier     = Modifier
+                            .align(Alignment.TopCenter)
+                            .offset(y = donutTopOffset)
+                            .fillMaxWidth()
+                            .height(DONUT_SECTION_HEIGHT)
+                            .padding(
+                                start = SIDE_COLUMN_WIDTH,
+                                end   = SIDE_COLUMN_WIDTH,
+                                top   = 8.dp,
+                                bottom = 8.dp
+                            )
+                    )
+
+                    CategoryGridRow(
+                        rowCats = topRow,
+                        spending = spending,
+                        childCounts = childCounts,
+                        parentColors = parentColors,
+                        expandedId = expandedCategoryId,
+                        showChildBadge = true,
+                        isCompact = isCompact,
+                        onChipClick = onChipClick,
+                        onChipLongClick = onChipLongClick,
+                        onChipDoubleClick = onChipDoubleClick,
+                        modifier = Modifier.align(Alignment.TopStart)
+                    )
+                    CategoryGridRow(
+                        rowCats = listOf(sideCats.getOrNull(0), null, null, sideCats.getOrNull(1)),
+                        spending = spending,
+                        childCounts = childCounts,
+                        parentColors = parentColors,
+                        expandedId = expandedCategoryId,
+                        showChildBadge = true,
+                        isCompact = isCompact,
+                        onChipClick = onChipClick,
+                        onChipLongClick = onChipLongClick,
+                        onChipDoubleClick = onChipDoubleClick,
+                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep)
+                    )
+                    CategoryGridRow(
+                        rowCats = listOf(sideCats.getOrNull(2), null, null, sideCats.getOrNull(3)),
+                        spending = spending,
+                        childCounts = childCounts,
+                        parentColors = parentColors,
+                        expandedId = expandedCategoryId,
+                        showChildBadge = true,
+                        isCompact = isCompact,
+                        onChipClick = onChipClick,
+                        onChipLongClick = onChipLongClick,
+                        onChipDoubleClick = onChipDoubleClick,
+                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep * 2)
+                    )
+                    CategoryBottomActionRow(
+                        leftCategory      = leadBottomCats.getOrNull(0),
+                        rightCategory     = leadBottomCats.getOrNull(1),
+                        spending          = spending,
+                        childCounts       = childCounts,
+                        parentColors      = parentColors,
+                        expandedId        = expandedCategoryId,
+                        isCompact         = isCompact,
+                        onChipClick       = onChipClick,
+                        onChipLongClick   = onChipLongClick,
+                        onChipDoubleClick = onChipDoubleClick,
+                        onAdd             = onAdd,
+                        modifier          = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(y = rowStep * 3)
+                            .height(chipHeight)
+                    )
+                }
+            }
+        }
+
+        // ── Top row: 4 чипи (тільки в розгорнутому режимі) ────────────────
         item {
-            if (!showSubcategories) {
+            if (showSubcategories) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
@@ -363,33 +602,67 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Mid row: donut на повну ширину ──────────────────────────────
+        // ── Mid row: side chips + donut ─────────────────────────────────
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(DONUT_SECTION_HEIGHT)
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
-            ) {
-                DonutChart(
-                    categories   = categories,
-                    spending     = spending,
-                    totalExpense = totalExpense,
-                    totalIncome  = totalIncome,
-                    selectedTab  = selectedTab,
-                    onToggle     = onToggleTab,
-                    modifier     = Modifier.fillMaxSize().padding(8.dp)
+            if (showSubcategories) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DONUT_SECTION_HEIGHT)
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    DonutChart(
+                        categories   = categories,
+                        spending     = spending,
+                        totalExpense = totalExpense,
+                        totalIncome  = totalIncome,
+                        selectedTab  = selectedTab,
+                        onToggle     = onToggleTab,
+                        modifier     = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp)
+                    )
+                }
+            }
+        }
+        if (expandedCat != null && sideCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+            item(key = "strip_side_${expandedCategoryId}") {
+                ExpandedCategoryStrip(
+                    parent           = expandedCat,
+                    children         = expandedChildren,
+                    spending         = spending,
+                    onClickParent    = { onChipClick(expandedCat) },
+                    onClickChild     = { onChipClick(it) },
+                    onLongClickChild = { onChipLongClick(it) }
                 )
             }
         }
-        extCats.chunked(4).forEach { rowCats ->
+        val leadBottomCats = if (!showSubcategories) bottomCats.take(2) else emptyList()
+        if (!showSubcategories) {
+            if (expandedCat != null && leadBottomCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                item(key = "strip_bottom_lead_${expandedCategoryId}") {
+                    ExpandedCategoryStrip(
+                        parent           = expandedCat,
+                        children         = expandedChildren,
+                        spending         = spending,
+                        onClickParent    = { onChipClick(expandedCat) },
+                        onClickChild     = { onChipClick(it) },
+                        onLongClickChild = { onChipLongClick(it) }
+                    )
+                }
+            }
+        }
+
+        val gridRows = if (showSubcategories) bottomCats.chunked(4) else bottomCats.drop(2).chunked(4)
+        gridRows.forEach { rowCats ->
             item(key = rowCats.firstOrNull()?.id) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT)
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                        .height(chipHeight + CATEGORY_VERTICAL_GAP)
+                        .padding(bottom = CATEGORY_VERTICAL_GAP)
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
                     repeat(4) { i ->
@@ -435,12 +708,14 @@ internal fun CategoriesGridContent(
         }
 
         // ── Кнопка «+» ──────────────────────────────────────────────────
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                AddCategoryChip(onClick = onAdd)
+        if (showSubcategories) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    AddCategoryChip(onClick = onAdd)
+                }
             }
         }
 
