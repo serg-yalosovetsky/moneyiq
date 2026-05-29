@@ -6,5 +6,16 @@ apktool_out/*
 jadx_out/*
 moneyiq/app/build/*
 moneyiq/import/__pycache__/*
-moneyiq/.gradle/configuration-cache/*
+moneyiq/.gradle/*
 moneyiq/local.properties
+
+# Signing keys — never commit
+*.keystore
+*.jks
+
+# Release outputs
+moneyiq/app/release/
+moneyiq/build/
+
+# Gradle caches / probes
+moneyiq/.gradle/

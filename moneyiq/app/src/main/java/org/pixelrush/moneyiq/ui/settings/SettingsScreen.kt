@@ -30,7 +30,7 @@ import org.pixelrush.moneyiq.ui.settings.data.*
 
 // ── Enum внутрішньої навігації ─────────────────────────────────────────────────
 
-private enum class SettingsPage { MAIN, THEME, CURRENCY }
+private enum class SettingsPage { MAIN, THEME, CURRENCY, ABOUT }
 
 // ── Головний контейнер ─────────────────────────────────────────────────────────
 
@@ -56,6 +56,7 @@ fun SettingsScreen(
             onTheme    = { page = SettingsPage.THEME },
             onCurrency = { page = SettingsPage.CURRENCY },
             onData     = onData,
+            onAbout    = { page = SettingsPage.ABOUT },
             onBack     = onBack
         )
         SettingsPage.THEME    -> ThemePageContent(
@@ -68,6 +69,7 @@ fun SettingsScreen(
             onSelect = { code -> viewModel.setDefaultCurrency(code); page = SettingsPage.MAIN },
             onClose  = { page = SettingsPage.MAIN }
         )
+        SettingsPage.ABOUT    -> AboutPageContent(onBack = onBack)
     }
 }
 
@@ -80,6 +82,7 @@ private fun MainSettingsContent(
     onTheme:    () -> Unit,
     onCurrency: () -> Unit,
     onData:     () -> Unit,
+    onAbout:    () -> Unit,
     onBack:     () -> Unit
 ) {
     var showHomeDialog       by remember { mutableStateOf(false) }
@@ -212,6 +215,16 @@ private fun MainSettingsContent(
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     showCrown = true,
                     onClick   = { showMonthDialog = true }
+                )
+            }
+            item { SettingsDivider() }
+
+            // ── Про додаток ──────────────────────────────────────────────────
+            item {
+                SettingsRow(
+                    icon     = Icons.Default.Info,
+                    title    = "Про додаток",
+                    onClick  = onAbout
                 )
             }
         }

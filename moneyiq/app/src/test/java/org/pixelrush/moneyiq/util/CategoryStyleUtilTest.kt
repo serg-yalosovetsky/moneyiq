@@ -9,9 +9,9 @@ class CategoryStyleUtilTest {
     // ── expense categories ───────────────────────────────────────────────────
 
     @Test
-    fun `продукти returns shopping icon`() {
+    fun `продукти returns grocery icon`() {
         val (icon, _) = suggestCategoryStyle("продукти", TransactionType.EXPENSE)
-        assertEquals("shopping", icon)
+        assertEquals("grocery", icon)
     }
 
     @Test
@@ -27,15 +27,15 @@ class CategoryStyleUtilTest {
     }
 
     @Test
-    fun `здоров'я returns health icon`() {
+    fun `здоров'я returns volunteer icon`() {
         val (icon, _) = suggestCategoryStyle("здоров'я", TransactionType.EXPENSE)
-        assertEquals("health", icon)
+        assertEquals("volunteer", icon)
     }
 
     @Test
-    fun `дозвілля returns music icon`() {
+    fun `дозвілля returns theater icon`() {
         val (icon, _) = suggestCategoryStyle("дозвілля", TransactionType.EXPENSE)
-        assertEquals("music", icon)
+        assertEquals("theater", icon)
     }
 
     @Test
@@ -144,25 +144,25 @@ class CategoryStyleUtilTest {
     @Test
     fun `транспорт returns orange color`() {
         val (_, color) = suggestCategoryStyle("транспорт", TransactionType.EXPENSE)
-        assertEquals("#FF9800", color)
+        assertEquals("#FFA834", color)
     }
 
     @Test
     fun `здоров'я returns green color`() {
         val (_, color) = suggestCategoryStyle("здоров'я", TransactionType.EXPENSE)
-        assertEquals("#4CAF50", color)
+        assertEquals("#48B456", color)
     }
 
     @Test
     fun `кафе returns brown color`() {
         val (_, color) = suggestCategoryStyle("кафе", TransactionType.EXPENSE)
-        assertEquals("#795548", color)
+        assertEquals("#7B5947", color)
     }
 
     @Test
     fun `дозвілля returns pink color`() {
         val (_, color) = suggestCategoryStyle("дозвілля", TransactionType.EXPENSE)
-        assertEquals("#E91E63", color)
+        assertEquals("#F73579", color)
     }
 
     // ── trim whitespace ──────────────────────────────────────────────────────

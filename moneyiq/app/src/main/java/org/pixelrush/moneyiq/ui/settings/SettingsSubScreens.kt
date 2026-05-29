@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,9 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.pixelrush.moneyiq.BuildConfig
+import org.pixelrush.moneyiq.R
 import org.pixelrush.moneyiq.data.repository.*
 import org.pixelrush.moneyiq.ui.settings.data.*
 
@@ -372,6 +377,84 @@ internal fun RadioListDialog(
             TextButton(onClick = onDismiss) { Text("OK") }
         }
     )
+}
+
+// ── Сторінка «Про додаток» ────────────────────────────────────────────────────
+
+@Composable
+internal fun AboutPageContent(onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        SettingsTopBar(title = "Про додаток", onBack = onBack)
+
+        Column(
+            modifier            = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(48.dp))
+
+            Surface(
+                shape  = CircleShape,
+                color  = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(96.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter            = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier           = Modifier.size(80.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                "MoneyIQ",
+                style      = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color      = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                "Версія ${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                "Персональний фінансовий менеджер.\nВідстежуйте витрати, доходи та бюджет.",
+                style     = MaterialTheme.typography.bodyMedium,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+
+        Text(
+            "© 2025 PixelRush",
+            modifier  = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
+            style     = MaterialTheme.typography.bodySmall,
+            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 // ── Діалог вибору часу сповіщення ─────────────────────────────────────────────
