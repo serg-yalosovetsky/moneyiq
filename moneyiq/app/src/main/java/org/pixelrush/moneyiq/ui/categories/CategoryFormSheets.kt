@@ -5,10 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -358,9 +359,8 @@ fun CategoryFormSheet(
     }
 }
 
-// ── Пікер кольору та іконки (BottomSheet) ─────────────────────────────────────
+// ── Пікер кольору та іконки ───────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ColorIconPickerSheet(
     currentColor: String,
@@ -374,87 +374,155 @@ internal fun ColorIconPickerSheet(
         try { Color(android.graphics.Color.parseColor(selectedColor)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     } }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor   = MaterialTheme.colorScheme.surface
+        properties       = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Превʼю
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(color)
-                    .align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(categoryIconFor(selectedIcon), null, tint = Color.White, modifier = Modifier.size(38.dp))
-            }
-
-            // Кольори
-            Text("Колір", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CATEGORY_FORM_COLORS.chunked(6).forEach { rowColors ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        rowColors.forEach { hex ->
-                            val c     = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color.Gray }
-                            val isSel = hex == selectedColor
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp).clip(CircleShape).background(c)
-                                    .then(if (isSel) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                                    .clickable { selectedColor = hex },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isSel) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                            }
-                        }
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Закрити", modifier = Modifier.size(34.dp))
+                    }
+                    Text(
+                        "Значок категорії",
+                        modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Button(
+                        onClick = { onSave(selectedColor, selectedIcon) },
+                        shape = RoundedCornerShape(28.dp),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+                    ) {
+                        Text("Готово", fontWeight = FontWeight.Bold)
                     }
                 }
             }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(168.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(112.dp)
+                            .clip(CircleShape)
+                            .background(color),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            categoryIconFor(selectedIcon),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(58.dp)
+                        )
+                    }
+                }
 
-            // Іконки
-            Text("Іконка", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CATEGORY_ICONS_LIST.chunked(4).forEach { rowIcons ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        rowIcons.forEach { (key, icon) ->
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        icon = { Icon(Icons.Outlined.StarBorder, null, modifier = Modifier.size(30.dp)) },
+                        text = { Text("Значок", fontWeight = FontWeight.SemiBold) }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        icon = { Icon(Icons.Outlined.Palette, null, modifier = Modifier.size(30.dp)) },
+                        text = { Text("Колір", fontWeight = FontWeight.SemiBold) }
+                    )
+                }
+
+                if (selectedTab == 0) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        items(CATEGORY_ICONS_LIST) { (key, icon) ->
                             val isSel = key == selectedIcon
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp).clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSel) color else MaterialTheme.colorScheme.surfaceVariant)
+                                    .aspectRatio(1f)
+                                    .clip(CircleShape)
+                                    .background(if (isSel) color else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                                     .clickable { selectedIcon = key },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(icon, null,
-                                    tint     = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(24.dp))
+                                Icon(
+                                    icon,
+                                    contentDescription = null,
+                                    tint = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
                         }
-                        repeat(4 - rowIcons.size) { Spacer(Modifier.size(44.dp)) }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        items(CATEGORY_FORM_COLORS) { hex ->
+                            val swatch = remember(hex) {
+                                try { Color(android.graphics.Color.parseColor(hex)) }
+                                catch (_: Exception) { Color.Gray }
+                            }
+                            val isSel = hex == selectedColor
+                            Box(
+                                modifier = Modifier
+                                    .aspectRatio(1f)
+                                    .clip(CircleShape)
+                                    .background(swatch)
+                                    .then(
+                                        if (isSel) Modifier.border(
+                                            width = 4.dp,
+                                            color = MaterialTheme.colorScheme.surface,
+                                            shape = CircleShape
+                                        ) else Modifier
+                                    )
+                                    .clickable { selectedColor = hex },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSel) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(7.dp)
+                                            .border(3.dp, Color.White, CircleShape)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-            }
-
-            // Кнопка збереження
-            Button(
-                onClick  = { onSave(selectedColor, selectedIcon) },
-                modifier = Modifier.fillMaxWidth(),
-                shape    = RoundedCornerShape(12.dp)
-            ) {
-                Text("Застосувати")
             }
         }
     }

@@ -49,7 +49,8 @@ internal fun CategoryChip(
     showChildBadge: Boolean = false,
     groupColorHex:  String? = null,
     isCompact:      Boolean = false,
-    isExpanded:     Boolean = false
+    isExpanded:     Boolean = false,
+    budgetOverride: Double? = null
 ) {
     val chipW      = if (isCompact) CHIP_WIDTH_COMPACT   else CHIP_WIDTH
     val chipH      = if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT
@@ -58,11 +59,12 @@ internal fun CategoryChip(
     val titleSize  = if (isCompact) 12.sp  else 13.sp
     val moneySize  = if (isCompact) 10.sp  else 11.sp
     val spendSize  = if (isCompact) 12.sp  else 13.sp
-    val hasBudget  = category.budgetAmount > 0.0
-    val remainingBudget = category.budgetAmount - spending
+    val budgetAmount = budgetOverride ?: category.budgetAmount
+    val hasBudget  = budgetAmount > 0.0
+    val remainingBudget = budgetAmount - spending
     val overBudget = hasBudget && remainingBudget < 0.0
     val fillFraction = when {
-        hasBudget -> (spending / category.budgetAmount).toFloat().coerceIn(0f, 1f)
+        hasBudget -> (spending / budgetAmount).toFloat().coerceIn(0f, 1f)
         spending > 0.0 -> 1f
         else -> 0f
     }
@@ -262,7 +264,7 @@ internal fun SideSubcategoryPanel(
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val sortedKids = children
-        .filter { (spending[it.id] ?: 0.0) > 0.0 }
+        .filter { (spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0 }
         .sortedByDescending { spending[it.id] ?: 0.0 }
 
     Card(
@@ -280,6 +282,14 @@ internal fun SideSubcategoryPanel(
                 val childIconKey = if (child.icon == "category")
                     suggestCategoryStyle(child.name, child.type).first else child.icon
                 val childSpend = spending[child.id] ?: 0.0
+                val hasBudget = child.budgetAmount > 0.0
+                val remainingBudget = child.budgetAmount - childSpend
+                val overBudget = hasBudget && remainingBudget < 0.0
+                val fillFraction = when {
+                    hasBudget -> (childSpend / child.budgetAmount).toFloat().coerceIn(0f, 1f)
+                    childSpend > 0.0 -> 1f
+                    else -> 0f
+                }
 
                 Row(
                     modifier = Modifier
@@ -296,12 +306,21 @@ internal fun SideSubcategoryPanel(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(if (childSpend > 0) childColor else childColor.copy(alpha = 0.2f)),
+                            .background(childColor.copy(alpha = if (hasBudget) 0.28f else 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
+                        if (fillFraction > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(fillFraction)
+                                    .background(childColor)
+                            )
+                        }
                         Icon(
                             categoryIconFor(childIconKey), null,
-                            tint     = if (childSpend > 0) Color.White else childColor,
+                            tint     = if (childSpend > 0 || hasBudget) Color.White else childColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -320,6 +339,27 @@ internal fun SideSubcategoryPanel(
                                          else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                             maxLines   = 1
                         )
+                    }
+                    if (hasBudget) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (overBudget) childColor
+                                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                formatBudgetAmount(kotlin.math.abs(remainingBudget)) + " ₴",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, lineHeight = 10.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = if (overBudget) Color.White
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -344,7 +384,7 @@ internal fun ExpandedCategoryStrip(
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val sortedKids = children
-        .filter { (spending[it.id] ?: 0.0) > 0.0 }
+        .filter { (spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0 }
         .sortedByDescending { spending[it.id] ?: 0.0 }
 
     Card(

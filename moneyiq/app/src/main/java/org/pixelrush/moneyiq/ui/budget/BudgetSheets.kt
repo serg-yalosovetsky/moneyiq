@@ -1,6 +1,7 @@
 package org.pixelrush.moneyiq.ui.budget
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +42,11 @@ internal fun BudgetInputSheet(
     // ── Стан калькулятора ─────────────────────────────────────────────────
     val calc        = rememberCalcState(catRow.category.budgetAmount)
     val displayText = calc.displayExpr("₴")
+    val budgetProgress = if (catRow.category.budgetAmount > 0.0) {
+        (catRow.amount / catRow.category.budgetAmount).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -59,9 +65,9 @@ internal fun BudgetInputSheet(
             }
         }
     ) {
-        Box(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().padding(top = 26.dp)) {
             Column(Modifier.fillMaxWidth()) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(22.dp))
 
                 // Назва категорії
                 Text(
@@ -106,6 +112,19 @@ internal fun BudgetInputSheet(
                     }
                 }
 
+                Spacer(Modifier.height(12.dp))
+
+                LinearProgressIndicator(
+                    progress   = { budgetProgress },
+                    modifier   = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color      = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.25f)
+                )
+
                 Spacer(Modifier.height(16.dp))
 
                 // Белая секция с клавиатурой
@@ -144,15 +163,17 @@ internal fun BudgetInputSheet(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(end = 20.dp)
-                    .size(52.dp)
+                    .offset(y = (-18).dp)
+                    .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.22f)),
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     resolvedCatIcon(catRow.category.icon, catRow.category.name, catRow.category.type), null,
-                    modifier = Modifier.size(28.dp),
-                    tint     = Color.White
+                    modifier = Modifier.size(34.dp),
+                    tint     = catColor
                 )
             }
         }

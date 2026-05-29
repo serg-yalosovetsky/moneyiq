@@ -57,6 +57,8 @@ internal val CHIP_CIRCLE_COMPACT  = 40.dp
 internal val CATEGORY_VERTICAL_GAP = 12.dp
 internal val DONUT_SECTION_HEIGHT = 300.dp
 internal val SIDE_COLUMN_WIDTH    = 90.dp
+internal val SUBCATEGORY_PANEL_WIDTH = 150.dp
+internal val SUBCATEGORY_PANEL_HEIGHT = 76.dp
 
 // ── Головний екран ────────────────────────────────────────────────────────────
 
@@ -90,7 +92,7 @@ fun CategoriesScreen(
         .filter { !it.archived }
     val spending   = if (selectedTab == 0) state.monthSpending else state.monthIncome
     val childCounts = allCategoriesForTab
-        .filter { it.parentId != null && (spending[it.id] ?: 0.0) > 0.0 }
+        .filter { it.parentId != null && ((spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0) }
         .groupBy { it.parentId!! }
         .mapValues { it.value.size }
     val categories = if (!state.showSubcategories) {
@@ -239,6 +241,7 @@ fun CategoriesScreen(
 private fun CategoryGridSlot(
     category:          CategoryEntity?,
     spending:          Map<Long, Double>,
+    displayBudgets:    Map<Long, Double>,
     childCounts:       Map<Long, Int>,
     parentColors:      Map<Long, String>,
     expandedId:        Long?,
@@ -266,7 +269,8 @@ private fun CategoryGridSlot(
                 showChildBadge = showChildBadge,
                 groupColorHex  = parentColors[category.id],
                 isCompact      = isCompact,
-                isExpanded     = category.id == expandedId
+                isExpanded     = category.id == expandedId,
+                budgetOverride = displayBudgets[category.id]
             )
         }
     }
@@ -276,6 +280,7 @@ private fun CategoryGridSlot(
 private fun CategoryGridRow(
     rowCats:           List<CategoryEntity?>,
     spending:          Map<Long, Double>,
+    displayBudgets:    Map<Long, Double>,
     childCounts:       Map<Long, Int>,
     parentColors:      Map<Long, String>,
     expandedId:        Long?,
@@ -295,6 +300,7 @@ private fun CategoryGridRow(
             CategoryGridSlot(
                 category       = rowCats.getOrNull(i),
                 spending       = spending,
+                displayBudgets = displayBudgets,
                 childCounts    = childCounts,
                 parentColors   = parentColors,
                 expandedId     = expandedId,
@@ -313,6 +319,7 @@ private fun CategoryBottomActionRow(
     leftCategory:      CategoryEntity?,
     rightCategory:     CategoryEntity?,
     spending:          Map<Long, Double>,
+    displayBudgets:    Map<Long, Double>,
     childCounts:       Map<Long, Int>,
     parentColors:      Map<Long, String>,
     expandedId:        Long?,
@@ -331,6 +338,7 @@ private fun CategoryBottomActionRow(
         CategoryGridSlot(
             category       = leftCategory,
             spending       = spending,
+            displayBudgets = displayBudgets,
             childCounts    = childCounts,
             parentColors   = parentColors,
             expandedId     = expandedId,
@@ -349,6 +357,7 @@ private fun CategoryBottomActionRow(
         CategoryGridSlot(
             category       = rightCategory,
             spending       = spending,
+            displayBudgets = displayBudgets,
             childCounts    = childCounts,
             parentColors   = parentColors,
             expandedId     = expandedId,
@@ -358,6 +367,61 @@ private fun CategoryBottomActionRow(
             onChipLongClick = onChipLongClick,
             onChipDoubleClick = onChipDoubleClick
         )
+    }
+}
+
+@Composable
+private fun LocalSubcategoryPanel(
+    parent:           CategoryEntity,
+    children:         List<CategoryEntity>,
+    spending:         Map<Long, Double>,
+    onChipClick:      (CategoryEntity) -> Unit,
+    onChipLongClick:  (CategoryEntity) -> Unit,
+    modifier:         Modifier = Modifier
+) {
+    SideSubcategoryPanel(
+        parent           = parent,
+        children         = children,
+        spending         = spending,
+        onClickChild     = onChipClick,
+        onLongClickChild = onChipLongClick,
+        modifier         = modifier
+            .width(SUBCATEGORY_PANEL_WIDTH)
+            .heightIn(max = SUBCATEGORY_PANEL_HEIGHT)
+    )
+}
+
+@Composable
+private fun TopSubcategoryPanelRow(
+    expandedIndex:    Int,
+    parent:           CategoryEntity,
+    children:         List<CategoryEntity>,
+    spending:         Map<Long, Double>,
+    onChipClick:      (CategoryEntity) -> Unit,
+    onChipLongClick:  (CategoryEntity) -> Unit,
+    modifier:         Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        repeat(4) { i ->
+            Box(
+                Modifier.width(if (i == expandedIndex) SUBCATEGORY_PANEL_WIDTH else CHIP_WIDTH),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (i == expandedIndex) {
+                    LocalSubcategoryPanel(
+                        parent          = parent,
+                        children        = children,
+                        spending        = spending,
+                        onChipClick     = onChipClick,
+                        onChipLongClick = onChipLongClick
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -404,6 +468,16 @@ internal fun CategoriesGridContent(
         categories.filter { it.parentId != null }.mapNotNull { child ->
             parentMap[child.parentId]?.let { child.id to it.colorHex }
         }.toMap()
+    } else emptyMap()
+
+    val displayBudgets: Map<Long, Double> = if (!showSubcategories) {
+        val childBudgets = allCategoriesForTab
+            .filter { it.parentId != null && !it.archived && it.budgetAmount > 0.0 }
+            .groupBy { it.parentId!! }
+            .mapValues { (_, children) -> children.sumOf { it.budgetAmount } }
+        categories.associate { cat ->
+            cat.id to (cat.budgetAmount + (childBudgets[cat.id] ?: 0.0))
+        }.filterValues { it > 0.0 }
     } else emptyMap()
 
     // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
@@ -461,12 +535,26 @@ internal fun CategoriesGridContent(
         if (!showSubcategories) {
             item {
                 val rowStep = chipHeight + CATEGORY_VERTICAL_GAP
-                val donutTopOffset = rowStep + 16.dp
                 val leadBottomCats = bottomCats.take(2)
+                val topExpandedIndex = topRow.indexOfFirst { it.id == expandedCat?.id }
+                val isTopExpanded = topExpandedIndex >= 0 && expandedChildren.isNotEmpty()
+                val topExpansionShift = if (isTopExpanded) SUBCATEGORY_PANEL_HEIGHT else 0.dp
+                val isLeftSideExpanded = expandedChildren.isNotEmpty() &&
+                    (sideCats.getOrNull(0)?.id == expandedCat?.id || sideCats.getOrNull(2)?.id == expandedCat?.id)
+                val isRightSideExpanded = expandedChildren.isNotEmpty() &&
+                    (sideCats.getOrNull(1)?.id == expandedCat?.id || sideCats.getOrNull(3)?.id == expandedCat?.id)
+                val isBottomLeftExpanded = expandedChildren.isNotEmpty() &&
+                    leadBottomCats.getOrNull(0)?.id == expandedCat?.id
+                val isBottomRightExpanded = expandedChildren.isNotEmpty() &&
+                    leadBottomCats.getOrNull(1)?.id == expandedCat?.id
+                val donutTopOffset = rowStep + 16.dp + topExpansionShift
+                val sidePanelReserve = CHIP_WIDTH + 8.dp + SUBCATEGORY_PANEL_WIDTH + 16.dp
+                val donutStartPadding = if (isLeftSideExpanded) sidePanelReserve else SIDE_COLUMN_WIDTH
+                val donutEndPadding = if (isRightSideExpanded) sidePanelReserve else SIDE_COLUMN_WIDTH
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(rowStep * 4)
+                        .height(rowStep * 4 + topExpansionShift)
                 ) {
                     DonutChart(
                         categories   = categories,
@@ -481,8 +569,8 @@ internal fun CategoriesGridContent(
                             .fillMaxWidth()
                             .height(DONUT_SECTION_HEIGHT)
                             .padding(
-                                start = SIDE_COLUMN_WIDTH,
-                                end   = SIDE_COLUMN_WIDTH,
+                                start = donutStartPadding,
+                                end   = donutEndPadding,
                                 top   = 8.dp,
                                 bottom = 8.dp
                             )
@@ -491,6 +579,7 @@ internal fun CategoriesGridContent(
                     CategoryGridRow(
                         rowCats = topRow,
                         spending = spending,
+                        displayBudgets = displayBudgets,
                         childCounts = childCounts,
                         parentColors = parentColors,
                         expandedId = expandedCategoryId,
@@ -501,9 +590,23 @@ internal fun CategoriesGridContent(
                         onChipDoubleClick = onChipDoubleClick,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
+                    if (isTopExpanded && expandedCat != null) {
+                        TopSubcategoryPanelRow(
+                            expandedIndex   = topExpandedIndex,
+                            parent          = expandedCat,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(y = chipHeight)
+                        )
+                    }
                     CategoryGridRow(
                         rowCats = listOf(sideCats.getOrNull(0), null, null, sideCats.getOrNull(1)),
                         spending = spending,
+                        displayBudgets = displayBudgets,
                         childCounts = childCounts,
                         parentColors = parentColors,
                         expandedId = expandedCategoryId,
@@ -512,11 +615,38 @@ internal fun CategoriesGridContent(
                         onChipClick = onChipClick,
                         onChipLongClick = onChipLongClick,
                         onChipDoubleClick = onChipDoubleClick,
-                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep)
+                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep + topExpansionShift)
                     )
+                    if (expandedChildren.isNotEmpty() && expandedCat?.id == sideCats.getOrNull(0)?.id) {
+                        val parent = expandedCat!!
+                        LocalSubcategoryPanel(
+                            parent          = parent,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = CHIP_WIDTH + 8.dp, y = rowStep + topExpansionShift)
+                        )
+                    }
+                    if (expandedChildren.isNotEmpty() && expandedCat?.id == sideCats.getOrNull(1)?.id) {
+                        val parent = expandedCat!!
+                        LocalSubcategoryPanel(
+                            parent          = parent,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = -(CHIP_WIDTH + 8.dp), y = rowStep + topExpansionShift)
+                        )
+                    }
                     CategoryGridRow(
                         rowCats = listOf(sideCats.getOrNull(2), null, null, sideCats.getOrNull(3)),
                         spending = spending,
+                        displayBudgets = displayBudgets,
                         childCounts = childCounts,
                         parentColors = parentColors,
                         expandedId = expandedCategoryId,
@@ -525,12 +655,39 @@ internal fun CategoriesGridContent(
                         onChipClick = onChipClick,
                         onChipLongClick = onChipLongClick,
                         onChipDoubleClick = onChipDoubleClick,
-                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep * 2)
+                        modifier = Modifier.align(Alignment.TopStart).offset(y = rowStep * 2 + topExpansionShift)
                     )
+                    if (expandedChildren.isNotEmpty() && expandedCat?.id == sideCats.getOrNull(2)?.id) {
+                        val parent = expandedCat!!
+                        LocalSubcategoryPanel(
+                            parent          = parent,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = CHIP_WIDTH + 8.dp, y = rowStep * 2 + topExpansionShift)
+                        )
+                    }
+                    if (expandedChildren.isNotEmpty() && expandedCat?.id == sideCats.getOrNull(3)?.id) {
+                        val parent = expandedCat!!
+                        LocalSubcategoryPanel(
+                            parent          = parent,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = -(CHIP_WIDTH + 8.dp), y = rowStep * 2 + topExpansionShift)
+                        )
+                    }
                     CategoryBottomActionRow(
                         leftCategory      = leadBottomCats.getOrNull(0),
                         rightCategory     = leadBottomCats.getOrNull(1),
                         spending          = spending,
+                        displayBudgets    = displayBudgets,
                         childCounts       = childCounts,
                         parentColors      = parentColors,
                         expandedId        = expandedCategoryId,
@@ -541,9 +698,33 @@ internal fun CategoriesGridContent(
                         onAdd             = onAdd,
                         modifier          = Modifier
                             .align(Alignment.TopStart)
-                            .offset(y = rowStep * 3)
+                            .offset(y = rowStep * 3 + topExpansionShift)
                             .height(chipHeight)
                     )
+                    if (isBottomLeftExpanded && expandedCat != null) {
+                        LocalSubcategoryPanel(
+                            parent          = expandedCat,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = CHIP_WIDTH + 8.dp, y = rowStep * 3 + topExpansionShift)
+                        )
+                    }
+                    if (isBottomRightExpanded && expandedCat != null) {
+                        LocalSubcategoryPanel(
+                            parent          = expandedCat,
+                            children        = expandedChildren,
+                            spending        = spending,
+                            onChipClick     = onChipClick,
+                            onChipLongClick = onChipLongClick,
+                            modifier        = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = -(CHIP_WIDTH + 8.dp), y = rowStep * 3 + topExpansionShift)
+                        )
+                    }
                 }
             }
         }
@@ -588,20 +769,6 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Expansion strip після topRow ─────────────────────────────────
-        if (expandedCat != null && topRow.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-            item(key = "strip_top_${expandedCategoryId}") {
-                ExpandedCategoryStrip(
-                    parent           = expandedCat,
-                    children         = expandedChildren,
-                    spending         = spending,
-                    onClickParent    = { onChipClick(expandedCat) },
-                    onClickChild     = { onChipClick(it) },
-                    onLongClickChild = { onChipLongClick(it) }
-                )
-            }
-        }
-
         // ── Mid row: side chips + donut ─────────────────────────────────
         item {
             if (showSubcategories) {
@@ -625,34 +792,6 @@ internal fun CategoriesGridContent(
                 }
             }
         }
-        if (expandedCat != null && sideCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-            item(key = "strip_side_${expandedCategoryId}") {
-                ExpandedCategoryStrip(
-                    parent           = expandedCat,
-                    children         = expandedChildren,
-                    spending         = spending,
-                    onClickParent    = { onChipClick(expandedCat) },
-                    onClickChild     = { onChipClick(it) },
-                    onLongClickChild = { onChipLongClick(it) }
-                )
-            }
-        }
-        val leadBottomCats = if (!showSubcategories) bottomCats.take(2) else emptyList()
-        if (!showSubcategories) {
-            if (expandedCat != null && leadBottomCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-                item(key = "strip_bottom_lead_${expandedCategoryId}") {
-                    ExpandedCategoryStrip(
-                        parent           = expandedCat,
-                        children         = expandedChildren,
-                        spending         = spending,
-                        onClickParent    = { onChipClick(expandedCat) },
-                        onClickChild     = { onChipClick(it) },
-                        onLongClickChild = { onChipLongClick(it) }
-                    )
-                }
-            }
-        }
-
         val gridRows = if (showSubcategories) bottomCats.chunked(4) else bottomCats.drop(2).chunked(4)
         gridRows.forEach { rowCats ->
             item(key = rowCats.firstOrNull()?.id) {
@@ -691,18 +830,6 @@ internal fun CategoriesGridContent(
                             }
                         }
                     }
-                }
-            }
-            if (expandedCat != null && rowCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-                item(key = "strip_ext_${expandedCategoryId}") {
-                    ExpandedCategoryStrip(
-                        parent           = expandedCat,
-                        children         = expandedChildren,
-                        spending         = spending,
-                        onClickParent    = { onChipClick(expandedCat) },
-                        onClickChild     = { onChipClick(it) },
-                        onLongClickChild = { onChipLongClick(it) }
-                    )
                 }
             }
         }
