@@ -196,7 +196,230 @@ fun TransactionsListScreen(
         }
     }
 
-    // ── Карточки балансу ─────────────────────────────────────────────────────────
+    // ── Аркуш фільтрів ────────────────────────────────────────────────────
+    if (showFilterSheet) {
+        TxSearchScreen(
+            query              = filterQuery,
+            filterTypes        = filterTypes,
+            filterAccountIds   = filterAccountIds,
+            filterCategoryIds  = filterCategoryIds,
+            accounts           = state.accounts,
+            expenseCategories  = state.expenseCategories,
+            incomeCategories   = state.incomeCategories,
+            onQueryChange      = { filterQuery = it },
+            onTypesChange      = { filterTypes = it },
+            onAccountsChange   = { filterAccountIds = it },
+            onCategoriesChange = { filterCategoryIds = it },
+            onReset = {
+                filterQuery       = ""
+                filterTypes       = emptySet()
+                filterAccountIds  = emptySet()
+                filterCategoryIds = emptySet()
+                showFilterSheet   = false
+            },
+            onDone = { showFilterSheet = false }
+        )
+    }
+
+    // ── Пікер категорій для швидкого додавання ────────────────────────────
+    if (showCategoryPicker) {
+        CategoryPickerSheet(
+            expenseCategories = state.expenseCategories,
+            incomeCategories  = state.incomeCategories,
+            accounts          = state.accounts,
+            categorySpending  = categorySpending,
+            onSelect          = { cat ->
+                showCategoryPicker = false
+                quickCategory = cat
+            },
+            onTransfer        = { acc ->
+                showCategoryPicker = false
+                transferFromAccount = acc
+            },
+            onDismiss = { showCategoryPicker = false }
+        )
+    }
+
+    // ── QuickExpenseSheet ─────────────────────────────────────────────────
+    quickCategory?.let { cat ->
+        QuickExpenseSheet(
+            category  = cat,
+            accounts  = state.accounts,
+            onSave    = { accountId, amount, note, date ->
+                viewModel.recordTransaction(accountId, cat, amount, note, date)
+                quickCategory = null
+            },
+            onDismiss = { quickCategory = null }
+        )
+    }
+
+    // ── TransferQuickSheet ────────────────────────────────────────────────
+    transferFromAccount?.let { fromAcc ->
+        TransferQuickSheet(
+            fromAccount = fromAcc,
+            allAccounts = state.accounts,
+            onSave      = { toAccountId, amount, date ->
+                viewModel.recordTransfer(fromAcc.id, toAccountId, amount, date)
+                transferFromAccount = null
+            },
+            onDismiss = { transferFromAccount = null }
+        )
+    }
+
+    // ── Деталі / редагування транзакції ───────────────────────────────────
+    selectedDetailTx?.let { tx ->
+        TransactionDetailSheet(
+            tx          = tx,
+            onDismiss   = { selectedDetailTx = null },
+            onDelete    = { viewModel.deleteTransaction(tx); selectedDetailTx = null },
+            onDuplicate = { viewModel.duplicateTransaction(tx); selectedDetailTx = null },
+            onSave      = { note, amount, date ->
+                viewModel.updateTransaction(tx, note, amount, date)
+                selectedDetailTx = null
+            }
+        )
+    }
+}
+
+// ── Шапка ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TxTopBar(totalBalance: Double, onSearchClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Всі рахунки",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+            Text(
+                "${formatMoney(totalBalance)} ₴",
+                style      = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color      = MaterialTheme.colorScheme.onSurface,
+                maxLines   = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        IconButton(onClick = onSearchClick, modifier = Modifier.size(44.dp).clip(CircleShape)) {
+            Icon(Icons.Default.Search, "Пошук", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
+// ── Рядок активних фільтрів ───────────────────────────────────────────────────
+
+@Composable
+private fun ActiveFilterChipsRow(
+    filterQuery:       String,
+    filterTypes:       Set<String>,
+    filterAccountIds:  Set<Long>,
+    filterCategoryIds: Set<Long>,
+    accounts:          List<AccountEntity>,
+    expenseCategories: List<CategoryEntity>,
+    incomeCategories:  List<CategoryEntity>,
+    onRemoveQuery:     () -> Unit,
+    onRemoveType:      (String) -> Unit,
+    onRemoveAccount:   (Long) -> Unit,
+    onRemoveCategory:  (Long) -> Unit
+) {
+    val allCats = expenseCategories + incomeCategories
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        // Пошуковий запит
+        if (filterQuery.isNotBlank()) {
+            FilterActiveChip(
+                label     = "«$filterQuery»",
+                color     = Color(0xFF5C6BC0),
+                onRemove  = onRemoveQuery
+            )
+        }
+
+        // Типи операцій
+        filterTypes.forEach { typeName ->
+            val (label, color) = when (typeName) {
+                "INCOME"   -> "Дохід"   to Color(0xFF26A69A)
+                "EXPENSE"  -> "Витрата" to Color(0xFFD81B60)
+                "TRANSFER" -> "Переказ" to Color(0xFF607D8B)
+                "BORROW"   -> "Борг"    to Color(0xFFEF6C00)
+                else       -> typeName  to Color(0xFF607D8B)
+            }
+            FilterActiveChip(
+                label    = label,
+                color    = color,
+                onRemove = { onRemoveType(typeName) }
+            )
+        }
+
+        // Рахунки
+        filterAccountIds.forEach { accId ->
+            val name = accounts.firstOrNull { it.id == accId }?.name ?: "Рахунок"
+            FilterActiveChip(
+                label    = name,
+                color    = Color(0xFF3949AB),
+                onRemove = { onRemoveAccount(accId) }
+            )
+        }
+
+        // Категорії
+        filterCategoryIds.forEach { catId ->
+            val cat   = allCats.firstOrNull { it.id == catId }
+            val name  = cat?.name ?: "Категорія"
+            val color = cat?.colorHex?.let { hex ->
+                try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color(0xFF607D8B) }
+            } ?: Color(0xFF607D8B)
+            FilterActiveChip(label = name, color = color, onRemove = { onRemoveCategory(catId) })
+        }
+    }
+}
+
+@Composable
+private fun FilterActiveChip(label: String, color: Color, onRemove: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(50.dp),
+        color = color
+    ) {
+        Row(
+            modifier          = Modifier.padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Box(
+                modifier         = Modifier
+                    .size(16.dp).clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.25f))
+                    .clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(10.dp))
+            }
+        }
+    }
+}
+
+// ── Карточки балансу ─────────────────────────────────────────────────────────
 
 @Composable
 private fun BalanceCardsRow(openingBalance: Double, closingBalance: Double) {

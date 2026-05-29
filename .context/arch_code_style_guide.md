@@ -18,6 +18,7 @@
 - Calculator and date-picker components live in `ui/components/calculator/` — import from there, not from `ui.categories`.
 - `categoryIconFor()` remains in `ui/categories/CategoryIcons.kt` (internal).
 - Transaction sheet composables are split into `TxSearchScreen.kt`, `CategoryPickerSheet.kt`, `TransferQuickSheet.kt`, `TransactionDetailSheet.kt` — do not re-merge into a single file. New transaction sheet composables go into the most relevant of these four files.
+- Generic dialog composables live in `ui/components/dialogs/` — use `TextInputDialog` for single-line text input and `ConfirmationDialog` for destructive/confirm prompts. Do not re-inline `AlertDialog` copies for these patterns.
 
 ## Companion File Pattern
 
@@ -30,10 +31,12 @@ Large screen files (>600 lines) are split into a main file + one or more compani
 | `CategorySheets.kt` | `CategoryFormSheets.kt` | CategoryFormSheet, ColorIconPickerSheet, EditCategoriesScreen |
 | `AccountSheets.kt` | `AccountPickerSheets.kt` | Picker sheets, dialogs, form helpers, AccountActionSheet |
 | `OverviewScreen.kt` | `OverviewSheets.kt` | CategoryDetailSheet |
-| `SettingsScreen.kt` | `SettingsSubScreens.kt` | Sub-pages, helpers, dialogs, data constants |
+| `SettingsScreen.kt` | `SettingsSubScreens.kt` | Sub-pages, helpers, dialogs |
 | `DataScreen.kt` | `DataWidgets.kt` | All private composables and helper functions |
 
 **Visibility rule:** Composables/functions shared across files in the same package must be `internal`, not `private`. Use `private` only for helpers that are used exclusively within the same file.
+
+**Data subpackage:** Pure data constants and pure utility functions (no Compose/Android dependencies except `Color`) go in a `data/` subpackage of the owning module. Example: `ui/settings/data/CurrencyData.kt` (`CurrencyDef`, currency lists) and `ui/settings/data/SettingsData.kt` (`ACCENT_COLORS`, `LANGUAGES`, `DAYS_OF_WEEK`, `CURRENCY_FORMAT_EXAMPLES`, `formatMoneyWithSettings`). Screen and companion files import via `import ...settings.data.*`.
 
 ## Persistence
 

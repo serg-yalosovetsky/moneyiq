@@ -73,6 +73,8 @@ https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4
 ```
 Org: `serg-yalosovetsky`, project: `one_money`.
 
+**Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `MoneyIQApp.onCreate()`.
+
 ## Known Build Warning
 
 Android Gradle Plugin `8.7.3` warns that it was tested up to compile SDK 35 while this app uses compile SDK 36. This is a warning only; builds succeed. Suppress with `android.suppressUnsupportedCompileSdk=36` in `gradle.properties` if needed.

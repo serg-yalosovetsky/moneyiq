@@ -58,7 +58,7 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
                                "дитин", "дитяча"),
 
         // Bills / utilities (before home to be more specific)
-        "receipt"    to listOf("рахунки", "рахунок", "комунальн", "bills", "utilities",
+        "receipt"    to listOf("рахунки", "рахунок", "bills", "utilities",
                                "счет", "оплат", "платіж"),
 
         // Cafe (more specific than restaurant — must be before it)
@@ -70,22 +70,49 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
                                "обід", "ужин", "завтрак", "food", "піца", "pizza",
                                "суші", "sushi", "питан", "харч", "кухн", "restaurant"),
 
-        // Entertainment (includes "дозвілля" — One Money's broad category name)
-        "music"      to listOf("дозвілл", "розваг", "кіно", "музик", "концерт", "театр",
-                               "music", "entertainment", "netflix", "spotify", "steam"),
-
-        // Groceries / shopping
-        "shopping"   to listOf("продукти", "продукт", "покупки",
-                               "магазин", "market", "shopping", "ринок",
+        // Groceries (before general shopping)
+        "grocery"    to listOf("продукти", "продукт", "продовольч",
                                "атб", "сільпо", "фора", "новус"),
 
-        // Transport / taxi
+        // Broad leisure/entertainment (дозвілля, розваги)
+        "theater"    to listOf("дозвілл", "розваг", "театр", "концерт", "шоу",
+                               "entertainment", "festival", "відпочин"),
+
+        // Cinema / movies specifically
+        "movie"      to listOf("кіно", "cinema", "фільм", "кінотеатр", "netflix"),
+
+        // Video games
+        "gaming"     to listOf("gaming", "гейм", "ігри", "відеоігр",
+                               "playstation", "xbox", "nintendo", "steam"),
+
+        // Messaging apps
+        "telegram"   to listOf("telegram", "телеграм", "viber", "вайбер", "messenger"),
+
+        // Dating apps
+        "dating"     to listOf("dating", "тіндер", "tinder", "bumble", "hinge", "знайомств"),
+
+        // Event tickets
+        "ticket"     to listOf("квиток", "квитки", "concert ticket"),
+
+        // Music specifically
+        "music"      to listOf("музик", "music", "spotify"),
+
+        // Shopping (general)
+        "shopping"   to listOf("покупки", "магазин", "market", "shopping", "ринок"),
+
+        // Taxi (before car — more specific)
+        "taxi"        to listOf("таксі", "taxi", "uklon", "bolt", "uber"),
+
+        // Gas station (before car — more specific)
+        "gas_station" to listOf("азс", "азц", "заправк", "wog", "okko", "socar", "brsm", "нафтан"),
+
+        // Transport (general)
         "car"        to listOf("транспорт", "авто", "машин", "автомоб",
-                               "car", "taxi", "таксі", "автобус", "метро",
-                               "uklon", "bolt", "uber", "паркінг", "бензин", "пальне"),
+                               "car", "автобус", "метро",
+                               "паркінг", "бензин", "пальне"),
 
         // Home / utilities
-        "home"       to listOf("комунал", "квартир", "аренд", "оренд",
+        "home"       to listOf("комунальн", "комунал", "квартир", "аренд", "оренд",
                                "home", "rent", "house", "ремонт", "будинок",
                                "електроенергія", "газ ", "вода ", "опален"),
 
@@ -97,8 +124,11 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "school"     to listOf("освіт", "навчан", "школ", "курс", "study",
                                "education", "університет", "репетитор"),
 
-        // Health
-        "health"     to listOf("медицин", "здоров", "аптек", "лікар", "ліки",
+        // Wellbeing (includes "здоров'я" — One Money's broad category name)
+        "volunteer"  to listOf("здоров", "самопочутт"),
+
+        // Medical / hospital specifically
+        "health"     to listOf("медицин", "аптек", "лікар", "ліки",
                                "health", "doctor", "клінік", "стоматолог"),
 
         // Travel / flights
@@ -106,7 +136,7 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
                                "flight", "travel", "готель", "hotel", "booking"),
 
         // Finance / savings
-        "money"      to listOf("інвестиц", "інвестицій", "банк", "крипто",
+        "money"      to listOf("фінанс", "інвестиц", "інвестицій", "банк", "крипто",
                                "invest", "crypto", "накопич", "депозит", "вклад"),
 
         // Pets
@@ -131,14 +161,26 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "phone"      to "#3F51B5",  // indigo        — Зв'язок
         "coffee"     to "#795548",  // brown         — Кафе
         "restaurant" to "#5C6BC0",  // indigo        — Ресторація
-        "shopping"   to "#03A9F4",  // light-blue    — Продукти
-        "car"        to "#FF9800",  // orange        — Транспорт
-        "home"       to "#9C27B0",  // purple        — Комунальні
+        "shopping"   to "#795548",  // brown         — Покупки
+        "taxi"        to "#FDD835",  // yellow        — Таксі
+        "gas_station" to "#FF8F00",  // amber         — АЗС
+        "theater"    to "#7B1FA2",  // grape-purple  — Дозвілля
+        "celebration" to "#FF6D00", // orange        — Свято
+        "spa"        to "#26A69A",  // teal-green    — Спа/Велнес
+        "car"        to "#00897B",  // teal          — Транспорт
+        "home"       to "#546E7A",  // blue-grey     — Комунальні
         "work"       to "#1565C0",  // dark-blue     — Зарплата/Робота
         "school"     to "#FF9800",  // orange        — Освіта
-        "health"     to "#4CAF50",  // green         — Здоров'я
+        "volunteer"  to "#4CAF50",  // green         — Здоров'я
+        "health"     to "#43A047",  // green-dark    — Медицина
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
-        "music"      to "#E91E63",  // pink          — Дозвілля
+        "movie"      to "#7B1FA2",  // deep-purple   — Розваги/кіно
+        "gaming"     to "#607D8B",  // blue-grey     — Gaming
+        "telegram"   to "#2196F3",  // blue          — Telegram
+        "dating"     to "#E91E63",  // pink          — Dating
+        "ticket"     to "#AD1457",  // dark-pink     — Концерт/театр
+        "music"      to "#AB47BC",  // purple        — Музика
+        "grocery"    to "#03A9F4",  // light-blue    — Продукти
         "money"      to "#F9A825",  // amber-dark    — Інвестиції
         "pets"       to "#8D6E63",  // brown-light   — Тварини
         "gift"       to "#F44336",  // red           — Подарунки

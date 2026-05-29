@@ -11,18 +11,19 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Modules
 
-- `data/db` - Room v10, entities (accounts, categories, transactions), DAOs, migrations 1→10, type converters.
+- `data/db` - Room v13, entities (accounts, categories, transactions), DAOs, migrations 1→13, type converters.
 - `data/repository` - AccountRepository, CategoryRepository, TransactionRepository, SelectedMonthRepository (shared period state), SettingsRepository (DataStore).
 - `di` - Hilt wiring for DAOs, database, and workers.
 - `ui/main` - `MainScreen` (app shell, HorizontalPager, bottom nav, drawer, shared top bar), `SharedMonthNavPill`, `MainViewModel`.
 - `ui/accounts` - account list, `AccountsScreen`, `IconColorPickerScreen`. Sheets split: `AccountSheets.kt` (CurrencyInfo data, type helpers, `NewAccountTypeSheet`, `AccountFormSheet`), `AccountPickerSheets.kt` (`CurrencyPickerSheet`, `TypePickerSheet`, `ColorPickerSheet`, `DescEditorDialog`, `BalanceInputDialog`, form helpers, `AccountActionSheet`).
 - `ui/categories` - `CategoriesScreen` (donut + chip grid), `CategoriesViewModel`. Companion files: `CategoriesWidgets.kt` (`CategoryChip`, `SideSubcategoryPanel`, `ExpandedCategoryStrip`, `AddCategoryChip`, `DonutChart`, `dashedCircleBorder`), `CategorySheets.kt` (`CategoryActionSheet`, `QuickExpenseSheet`), `CategoryFormSheets.kt` (`CategoryFormSheet`, `ColorIconPickerSheet`, `EditCategoriesScreen`), `CategoryIcons.kt` (icon/color lists, `categoryIconFor()`).
 - `ui/components/calculator` - shared cross-screen components: `CalcState.kt` (`CalcStateHolder`, `rememberCalcState`), `CalcKeypad.kt` (`SharedCalcKeypad`, `AmountCalculatorSheet`), `CalcDateSheet.kt` (`CalcDateSheet`, `FullDatePickerDialog`, `AccountPickerSheet`, repeat/reminder dialogs).
+- `ui/components/dialogs` - generic reusable AlertDialog composables: `TextInputDialog.kt` (single-line text input with optional enforce-fill mode), `ConfirmationDialog.kt` (destructive/neutral confirmation with optional icon). Both `internal`.
 - `ui/transactions` - `TransactionsListScreen`, `AddTransactionScreen`, `TransactionViewModel`, `TransactionsListViewModel`. Sheet/dialog composables in dedicated files: `TxSearchScreen.kt` (`TxSearchScreen`, `SearchSectionHeader`, `TypeFilterCard`, `ColoredFilterChip`), `CategoryPickerSheet.kt` (`CategoryPickerSheet`, `CategoryPickerCell`, `AccountPickerRow`), `TransferQuickSheet.kt`, `TransactionDetailSheet.kt`.
 - `ui/budget` - `BudgetScreen` (main + `BudgetTopBar`, `resolvedCatIcon`, chip/card composables), `BudgetSheets.kt` (`BudgetInputSheet`, `BudgetSettingsSheet`), `BudgetViewModel`.
 - `ui/overview` - `OverviewScreen` (main + all chart/stats composables), `OverviewSheets.kt` (`CategoryDetailSheet`), `OverviewViewModel`.
 - `ui/reports` - `ReportsScreen`, `ReportsViewModel`.
-- `ui/settings` - `SettingsScreen` (enum + `SettingsScreen` composable + `MainSettingsContent`), `SettingsSubScreens.kt` (`ThemePageContent`, `ColorPalette`, `CurrencyPageContent`, shared helpers, dialogs, data constants incl. `formatMoneyWithSettings`), `SettingsViewModel`.
+- `ui/settings` - `SettingsScreen` (enum + `SettingsScreen` composable + `MainSettingsContent`), `SettingsSubScreens.kt` (`ThemePageContent`, `ColorPalette`, `CurrencyPageContent`, shared helpers, dialogs), `SettingsViewModel`. Static data in `ui/settings/data/`: `CurrencyData.kt` (`CurrencyDef`, `CURRENCIES_MAIN/OTHER/CRYPTO/ALL`) and `SettingsData.kt` (`ACCENT_COLORS`, `LANGUAGES`, `DAYS_OF_WEEK`, `CURRENCY_FORMAT_EXAMPLES`, `formatMoneyWithSettings`).
 - `ui/data` - `DataScreen` (main screen only), `DataWidgets.kt` (`MonoFlowSyncCard`, `DataSectionHeader`, `DataActionItem`, `DriveBackupItem`, `LocalBackupItem`, `pluralUk`, `ResetDataDialog`), `DataViewModel` (JSON import/export, backup; injects DAOs directly — TODO: migrate to repositories).
 - `ui/theme` - `Theme.kt` (colors incl. `BudgetExpenseColor`, `BudgetIncomeColor`), `Spacing.kt` (design tokens xs–xxl).
 - `ui/widget` - `BalanceWidget`, `ExpenseWidget` (Glance).

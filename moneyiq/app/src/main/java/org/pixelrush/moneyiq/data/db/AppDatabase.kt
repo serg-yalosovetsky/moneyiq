@@ -46,9 +46,69 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'grocery',   colorHex = '#03A9F4' WHERE name = 'Продукти'")
+        database.execSQL("UPDATE categories SET icon = 'ticket',    colorHex = '#E91E63' WHERE name = 'Дозвілля'")
+        database.execSQL("UPDATE categories SET icon = 'volunteer', colorHex = '#4CAF50' WHERE name = 'Здоров''я'")
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'taxi',        colorHex = '#FDD835' WHERE name = 'Таксі'")
+        database.execSQL("UPDATE categories SET icon = 'gas_station', colorHex = '#FF8F00' WHERE name = 'АЗС'")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'movie'   WHERE name IN ('Дозвілля', 'Розваги', 'Кіно')")
+        database.execSQL("UPDATE categories SET icon = 'gaming'  WHERE name = 'Gaming'")
+        database.execSQL("UPDATE categories SET icon = 'telegram' WHERE name = 'Telegram'")
+        database.execSQL("UPDATE categories SET icon = 'dating'  WHERE name = 'Dating'")
+    }
+}
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix colors that were not updated in 5→6: Дозвілля stayed pink (similar to Подарунки)
+        database.execSQL("UPDATE categories SET icon = 'theater', colorHex = '#7B1FA2' WHERE name = 'Дозвілля'")
+        // Fix Транспорт: was blue/cyan in user DB — conflicts with Продукти #03A9F4
+        database.execSQL("UPDATE categories SET colorHex = '#00897B' WHERE name = 'Транспорт'")
+    }
+}
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'phone', colorHex = '#3F51B5' WHERE name = 'Зв''язок'")
+        database.execSQL("UPDATE categories SET icon = 'wifi',  colorHex = '#00BCD4' WHERE name = 'Інтернет'")
+    }
+}
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'home', colorHex = '#546E7A' WHERE name IN ('Комунальні', 'Комунальне', 'Комуналка', 'Комунальн')")
+    }
+}
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'money', colorHex = '#F9A825' WHERE LOWER(name) LIKE '%фінанс%'")
+    }
+}
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'delivery', colorHex = '#FF6F00' WHERE LOWER(name) IN ('food delivery', 'glovo', 'bolt food', 'uber eats', 'uklon food')")
+        database.execSQL("UPDATE categories SET icon = 'coffee',   colorHex = '#795548' WHERE LOWER(name) LIKE '%кафе%' OR LOWER(name) IN ('cafe', 'coffee', 'кав''ярня')")
+        database.execSQL("UPDATE categories SET icon = 'restaurant', colorHex = '#E53935' WHERE LOWER(name) IN ('ресторани', 'ресторан', 'restaurants')")
+    }
+}
+
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 5,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -481,7 +481,7 @@ fun SharedTopBar(
             )
             Text(
                 formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleSmall,
+                style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color      = MaterialTheme.colorScheme.onSurface,
                 maxLines   = 1,

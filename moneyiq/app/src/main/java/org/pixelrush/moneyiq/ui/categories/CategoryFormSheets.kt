@@ -30,6 +30,8 @@ import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.components.calculator.*
+import org.pixelrush.moneyiq.ui.components.dialogs.ConfirmationDialog
+import org.pixelrush.moneyiq.ui.components.dialogs.TextInputDialog
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
 
@@ -56,14 +58,13 @@ fun CategoryFormSheet(
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
 
     var showNameDialog    by remember { mutableStateOf(false) }
-    var tempName          by remember { mutableStateOf("") }
     var showIconPicker    by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showBudgetCalc    by remember { mutableStateOf(false) }
 
     // Для нової категорії — одразу відкриваємо введення назви
     LaunchedEffect(Unit) {
-        if (existing == null) { tempName = ""; showNameDialog = true }
+        if (existing == null) showNameDialog = true
     }
 
     // Авто-підказка стилю при введенні назви нової категорії
@@ -139,7 +140,7 @@ fun CategoryFormSheet(
                                 color = if (name.isBlank())
                                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                                         else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.clickable { tempName = name; showNameDialog = true }
+                                modifier = Modifier.clickable { showNameDialog = true }
                             )
                         }
                         // Велика кольорова іконка праворуч
@@ -309,29 +310,13 @@ fun CategoryFormSheet(
 
     // ── Діалог назви ─────────────────────────────────────────────────────────
     if (showNameDialog) {
-        AlertDialog(
-            onDismissRequest = { if (name.isNotBlank()) showNameDialog = false },
-            title   = { Text(if (existing != null) "Назва категорії" else "Нова категорія") },
-            text    = {
-                OutlinedTextField(
-                    value         = tempName,
-                    onValueChange = { tempName = it },
-                    singleLine    = true,
-                    modifier      = Modifier.fillMaxWidth(),
-                    label         = { Text("Назва") }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick  = { name = tempName; showNameDialog = false },
-                    enabled  = tempName.isNotBlank()
-                ) { Text("OK") }
-            },
-            dismissButton = {
-                if (name.isNotBlank()) {
-                    TextButton(onClick = { showNameDialog = false }) { Text("Скасувати") }
-                }
-            }
+        TextInputDialog(
+            title        = if (existing != null) "Назва категорії" else "Нова категорія",
+            label        = "Назва",
+            initialValue = name,
+            allowDismiss = name.isNotBlank(),
+            onConfirm    = { name = it; showNameDialog = false },
+            onDismiss    = { showNameDialog = false }
         )
     }
 
@@ -351,17 +336,11 @@ fun CategoryFormSheet(
 
     // ── Видалення ─────────────────────────────────────────────────────────────
     if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title   = { Text("Видалити категорію?") },
-            text    = { Text("Транзакції залишаться, але без категорії.") },
-            confirmButton = {
-                Button(
-                    onClick = { showDeleteConfirm = false; onDelete?.invoke() },
-                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("Видалити") }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Скасувати") } }
+        ConfirmationDialog(
+            title     = "Видалити категорію?",
+            message   = "Транзакції залишаться, але без категорії.",
+            onConfirm = { showDeleteConfirm = false; onDelete?.invoke() },
+            onDismiss = { showDeleteConfirm = false }
         )
     }
 

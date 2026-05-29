@@ -53,9 +53,9 @@ internal fun CategoryChip(
     val chipH      = if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT
     val circleSize = if (isCompact) CHIP_CIRCLE_COMPACT  else CHIP_CIRCLE_SIZE
     val iconSize   = if (isCompact) 22.dp  else 26.dp
-    val titleSize  = if (isCompact) 10.sp  else 11.sp
-    val moneySize  = if (isCompact)  8.sp  else  9.sp
-    val spendSize  = if (isCompact)  9.sp  else 10.sp
+    val titleSize  = if (isCompact) 12.sp  else 13.sp
+    val moneySize  = if (isCompact) 10.sp  else 11.sp
+    val spendSize  = if (isCompact) 12.sp  else 13.sp
 
     val color = remember(category.colorHex) {
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
@@ -86,14 +86,17 @@ internal fun CategoryChip(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isCompact) 22.dp else 28.dp),
+                .heightIn(
+                    min = if (isCompact) 26.dp else 32.dp,
+                    max = if (isCompact) 40.dp else 48.dp
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 category.name,
                 style      = MaterialTheme.typography.labelSmall.copy(
                     fontSize   = titleSize,
-                    lineHeight = if (isCompact) 12.sp else 13.sp
+                    lineHeight = if (isCompact) 14.sp else 16.sp
                 ),
                 fontWeight = FontWeight.SemiBold,
                 maxLines   = 2,
@@ -110,7 +113,7 @@ internal fun CategoryChip(
                 formatMoney(category.budgetAmount) + " ₴",
                 style      = MaterialTheme.typography.labelSmall.copy(
                     fontSize   = moneySize,
-                    lineHeight = if (isCompact) 10.sp else 11.sp
+                    lineHeight = if (isCompact) 12.sp else 13.sp
                 ),
                 fontWeight = FontWeight.Normal,
                 color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
@@ -120,7 +123,7 @@ internal fun CategoryChip(
                 modifier   = Modifier.fillMaxWidth()
             )
         } else {
-            Spacer(Modifier.height(if (isCompact) 10.dp else 11.dp))
+            Spacer(Modifier.height(if (isCompact) 12.dp else 13.dp))
         }
         Spacer(Modifier.height(if (isCompact) 2.dp else 3.dp))
         // 3. Іконка — outer Box рисує кільце expansion поза кліпом внутрішнього кола
@@ -181,9 +184,9 @@ internal fun CategoryChip(
             formatMoney(spending) + " ₴",
             style      = MaterialTheme.typography.labelSmall.copy(
                 fontSize   = spendSize,
-                lineHeight = if (isCompact) 11.sp else 12.sp
+                lineHeight = if (isCompact) 14.sp else 15.sp
             ),
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             color      = if (spending > 0.0) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
             maxLines   = 1,
             overflow   = TextOverflow.Ellipsis,
@@ -478,19 +481,19 @@ internal fun DonutChart(
         ) {
             Text(
                 if (selectedTab == 0) "Витрати" else "Доходи",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 14.sp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
             Text(
                 formatMoney(totalExpense),
-                style      = MaterialTheme.typography.titleSmall,
+                style      = MaterialTheme.typography.titleSmall.copy(fontSize = 20.sp),
                 fontWeight = FontWeight.Bold,
                 color      = expenseColor,
                 maxLines   = 1
             )
             Text(
                 formatMoney(totalIncome),
-                style      = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                style      = MaterialTheme.typography.bodySmall.copy(fontSize = 15.sp),
                 fontWeight = FontWeight.Medium,
                 color      = incomeColor,
                 maxLines   = 1

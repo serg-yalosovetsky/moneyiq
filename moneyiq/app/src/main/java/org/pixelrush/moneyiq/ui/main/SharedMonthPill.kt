@@ -133,17 +133,14 @@ fun SharedMonthNavPill(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier          = Modifier
+        Icon(
+            Icons.Default.KeyboardDoubleArrowLeft, null,
+            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            modifier = Modifier
+                .size(32.dp)
                 .clickable(onClick = onPrev)
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            val arrowTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-            Icon(Icons.Default.KeyboardArrowLeft, null, tint = arrowTint, modifier = Modifier.size(22.dp))
-            Icon(Icons.Default.KeyboardArrowLeft, null, tint = arrowTint, modifier = Modifier.size(22.dp))
-        }
+                .padding(4.dp)
+        )
 
         Surface(
             shape    = RoundedCornerShape(50.dp),
@@ -192,17 +189,14 @@ fun SharedMonthNavPill(
             }
         }
 
-        Row(
-            modifier          = Modifier
+        Icon(
+            Icons.Default.KeyboardDoubleArrowRight, null,
+            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            modifier = Modifier
+                .size(32.dp)
                 .clickable(onClick = onNext)
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            val arrowTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-            Icon(Icons.Default.KeyboardArrowRight, null, tint = arrowTint, modifier = Modifier.size(22.dp))
-            Icon(Icons.Default.KeyboardArrowRight, null, tint = arrowTint, modifier = Modifier.size(22.dp))
-        }
+                .padding(4.dp)
+        )
     }
 }
 

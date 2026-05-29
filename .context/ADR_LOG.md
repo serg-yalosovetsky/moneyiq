@@ -94,7 +94,7 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 10):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 12):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
@@ -113,10 +113,15 @@ Root category icon keys must be semantically specific — not generic fallbacks.
 | Gaming (child) | `gaming`      | `SportsEsports`         | `#607D8B`  |
 | Зв'язок        | `phone`       | `PhoneAndroid`          | `#3F51B5`  |
 | Інтернет       | `wifi`        | `Wifi`                  | `#00BCD4`  |
+| Фінанси        | `money`       | `AccountBalance`        | `#F9A825`  |
+| Комуналка      | `home`        | `Home`                  | `#546E7A`  |
+| Food delivery  | `delivery`    | `LocalShipping`         | `#FF6F00`  |
+| Ресторани      | `restaurant`  | `Restaurant`            | `#E53935`  |
+| Кафе           | `coffee`      | `LocalCafe`             | `#795548`  |
 
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→11 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→13 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 

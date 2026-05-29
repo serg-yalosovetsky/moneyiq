@@ -39,7 +39,8 @@
 
 - Sentry Android SDK `7.20.0` (`io.sentry:sentry-android`).
 - Gradle plugin `io.sentry.android.gradle:4.14.1` — uploads ProGuard mappings and source context on release builds.
-- Initialized in `MoneyIQApp.onCreate` via `SentryAndroid.init`. DSN is hardcoded; `isDebug = BuildConfig.DEBUG`; `tracesSampleRate = 1.0`.
+- `AndroidManifest.xml` contains `io.sentry.auto-init=false` — disables `SentryInitProvider` (the ContentProvider that fires before `Application.onCreate()`). Without this the app crashes if no DSN is in the manifest.
+- Initialized in `MoneyIQApp.onCreate` via `SentryAndroid.init` with: DSN hardcoded, `isDebug = BuildConfig.DEBUG`, `environment = "debug"|"production"`, `release = "moneyiq@<versionName>"`, `tracesSampleRate = 1.0`, `attachScreenshot = true`, `attachViewHierarchy = true`, `enableUserInteractionTracing = true`.
 - Auth token for the build plugin is read from `local.properties` (`sentry.auth.token`) with `SENTRY_AUTH_TOKEN` env-var fallback for CI. Never commit the token.
 
 ## Testing
