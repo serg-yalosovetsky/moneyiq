@@ -10,6 +10,11 @@ plugins {
     alias(libs.plugins.sentry)
 }
 
+val localProps = Properties().also { props ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) props.load(FileInputStream(f))
+}
+
 android {
     namespace = "org.pixelrush.moneyiq"
     compileSdk = 36
@@ -23,10 +28,34 @@ android {
         multiDexKeepProguard = file("multidex-keep.pro")
     }
 
+    // Release signing: reads from env vars set by GitHub Actions (SIGNING_*)
+    // or from local.properties (signing.storeFile, etc.) for local builds.
+    val storeFilePath: String? = System.getenv("SIGNING_STORE_FILE")
+        ?: localProps.getProperty("signing.storeFile")
+    val storePass: String? = System.getenv("SIGNING_STORE_PASSWORD")
+        ?: localProps.getProperty("signing.storePassword")
+    val keyAliasVal: String? = System.getenv("SIGNING_KEY_ALIAS")
+        ?: localProps.getProperty("signing.keyAlias")
+    val keyPass: String? = System.getenv("SIGNING_KEY_PASSWORD")
+        ?: localProps.getProperty("signing.keyPassword")
+
+    if (storeFilePath != null) {
+        signingConfigs {
+            create("release") {
+                storeFile     = file(storeFilePath)
+                storePassword = storePass
+                keyAlias      = keyAliasVal
+                keyPassword   = keyPass
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if (storeFilePath != null)
+                signingConfigs.getByName("release") else null
         }
     }
 
@@ -122,9 +151,6 @@ dependencies {
     androidTestImplementation(libs.coroutines.test)
 }
 
-val localProps = Properties()
-val localPropsFile = rootProject.file("local.properties")
-if (localPropsFile.exists()) localProps.load(FileInputStream(localPropsFile))
 val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")
     ?: localProps.getProperty("sentry.auth.token", "")
 
@@ -133,4 +159,8 @@ sentry {
     org = "serg-yalosovetsky"
     projectName = "one_money"
     authToken = sentryToken
+}
+
+tasks.register("printVersionName") {
+    doLast { println(android.defaultConfig.versionName) }
 }

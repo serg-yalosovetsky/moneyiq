@@ -1,0 +1,130 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Unit tests ────────────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: moneyiq
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: moneyiq/app/build/reports/tests/
+
+  # ── Debug APK (every push to main) ───────────────────────────────────────────
+  build-debug:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: moneyiq
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: moneyiq-debug-${{ github.sha }}
+          path: moneyiq/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+  # ── Release APK + GitHub Release (on version tags) ───────────────────────────
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: moneyiq
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+
+      - name: Build release APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SIGNING_STORE_FILE: ${{ github.workspace }}/moneyiq/app/release.keystore
+          SIGNING_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION=$(./gradlew -q :app:printVersionName --no-daemon 2>/dev/null || echo "${{ github.ref_name }}")
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}.apk || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MoneyIQ ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            moneyiq/app/build/outputs/apk/release/*.apk
+          body: |
+            ## MoneyIQ ${{ github.ref_name }}
+
+            ### Установка
+            Скачайте APK-файл и установите на устройство Android 8.0+.
+            Перед установкой разрешите установку из неизвестных источников.
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f app/release.keystore
