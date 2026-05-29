@@ -1,0 +1,4 @@
+-keep class org.pixelrush.moneyiq.MoneyIQApp { *; }
+-keep class org.pixelrush.moneyiq.Hilt_MoneyIQApp { *; }
+-keep class org.pixelrush.moneyiq.MainActivity { *; }
+-keep class org.pixelrush.moneyiq.Hilt_MainActivity { *; }
