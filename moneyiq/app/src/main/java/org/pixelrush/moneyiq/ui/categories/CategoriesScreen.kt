@@ -46,10 +46,10 @@ import org.pixelrush.moneyiq.util.suggestCategoryStyle
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
 internal val CHIP_WIDTH           = 82.dp
-internal val CHIP_HEIGHT          = 124.dp
+internal val CHIP_HEIGHT          = 132.dp
 internal val CHIP_CIRCLE_SIZE     = 48.dp
 internal val CHIP_WIDTH_COMPACT   = 70.dp
-internal val CHIP_HEIGHT_COMPACT  = 108.dp
+internal val CHIP_HEIGHT_COMPACT  = 116.dp
 internal val CHIP_CIRCLE_COMPACT  = 40.dp
 internal val DONUT_SECTION_HEIGHT = 360.dp
 internal val SIDE_COLUMN_WIDTH    = 90.dp
@@ -258,14 +258,12 @@ internal fun CategoriesGridContent(
         }.toMap()
     } else emptyMap()
 
-    val active  = sorted.filter { (spending[it.id] ?: 0.0) > 0.0 }
-    val display = if (active.isNotEmpty()) active else sorted.filter { it.parentId == null }
+    // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
+    val display = sorted
 
-    // When subcategories are expanded, everything goes below the donut — no overlap possible
-    val topRow   = if (!showSubcategories) display.take(4) else emptyList()
-    val midLeft  = if (!showSubcategories) listOfNotNull(display.getOrNull(4), display.getOrNull(5), display.getOrNull(8)) else emptyList()
-    val midRight = if (!showSubcategories) listOfNotNull(display.getOrNull(6), display.getOrNull(7), display.getOrNull(9)) else emptyList()
-    val extCats  = if (!showSubcategories) display.drop(10) else display
+    // Top 4 chips above the donut; all remaining chips in rows below the donut
+    val topRow  = if (!showSubcategories) display.take(4) else emptyList()
+    val extCats = if (!showSubcategories) display.drop(4) else display
 
     // Double-click expansion strip (only in collapsed mode)
     val expandedCat = if (expandedCategoryId != null && !showSubcategories)
@@ -277,14 +275,6 @@ internal fun CategoriesGridContent(
             c.name.trim().lowercase() != parentName  // skip same-name children
         }
     } ?: emptyList()
-
-    // Inline panel for mid-row: computed here so strip_mid can check it
-    val expandedMidLeft  = midLeft.find  { it.id == expandedCategoryId }
-    val expandedMidRight = midRight.find { it.id == expandedCategoryId }
-    val expandedChildrenWithSpending = expandedChildren.filter { (spending[it.id] ?: 0.0) > 0.0 }
-    val showInlinePanel  = (expandedMidLeft != null || expandedMidRight != null) &&
-                           expandedChildrenWithSpending.isNotEmpty()
-
     LazyColumn(
         modifier       = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 8.dp, bottom = bottomPadding + 16.dp)
@@ -373,175 +363,25 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Mid row: donut повна ширина АБО [2 зліва][donut][2 справа] ──
+        // ── Mid row: donut на повну ширину ──────────────────────────────
         item {
-            if (showSubcategories) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(DONUT_SECTION_HEIGHT)
-                        .padding(horizontal = 8.dp, vertical = 8.dp)
-                ) {
-                    DonutChart(
-                        categories   = categories,
-                        spending     = spending,
-                        totalExpense = totalExpense,
-                        totalIncome  = totalIncome,
-                        selectedTab  = selectedTab,
-                        onToggle     = onToggleTab,
-                        modifier     = Modifier.fillMaxSize().padding(8.dp)
-                    )
-                }
-            } else {
-                Row(
-                    modifier          = Modifier
-                        .fillMaxWidth()
-                        .height(DONUT_SECTION_HEIGHT)
-                        .padding(horizontal = 6.dp, vertical = 8.dp)
-                        .graphicsLayer { clip = false },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showInlinePanel && expandedMidLeft != null) {
-                        // Ліва категорія розкрита: [chip | panel | donut]
-                        Column(
-                            modifier            = Modifier.width(SIDE_COLUMN_WIDTH).fillMaxHeight(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CategoryChip(
-                                category       = expandedMidLeft,
-                                spending       = spending[expandedMidLeft.id] ?: 0.0,
-                                onClick        = { onChipClick(expandedMidLeft) },
-                                childCount     = childCounts[expandedMidLeft.id] ?: 0,
-                                onLongPress    = { onChipLongClick(expandedMidLeft) },
-                                onDoubleClick  = { onChipDoubleClick(expandedMidLeft.id) },
-                                showChildBadge = true,
-                                isCompact      = true,
-                                isExpanded     = true
-                            )
-                        }
-                        SideSubcategoryPanel(
-                            parent           = expandedMidLeft,
-                            children         = expandedChildrenWithSpending,
-                            spending         = spending,
-                            onClickChild     = { onChipClick(it) },
-                            onLongClickChild = { onChipLongClick(it) },
-                            modifier         = Modifier.weight(0.6f)
-                        )
-                        DonutChart(
-                            categories   = categories,
-                            spending     = spending,
-                            totalExpense = totalExpense,
-                            totalIncome  = totalIncome,
-                            selectedTab  = selectedTab,
-                            onToggle     = onToggleTab,
-                            modifier     = Modifier.weight(0.4f).fillMaxHeight().padding(4.dp)
-                        )
-                    } else if (showInlinePanel && expandedMidRight != null) {
-                        // Права категорія розкрита: [donut | panel | chip]
-                        DonutChart(
-                            categories   = categories,
-                            spending     = spending,
-                            totalExpense = totalExpense,
-                            totalIncome  = totalIncome,
-                            selectedTab  = selectedTab,
-                            onToggle     = onToggleTab,
-                            modifier     = Modifier.weight(0.4f).fillMaxHeight().padding(4.dp)
-                        )
-                        SideSubcategoryPanel(
-                            parent           = expandedMidRight,
-                            children         = expandedChildrenWithSpending,
-                            spending         = spending,
-                            onClickChild     = { onChipClick(it) },
-                            onLongClickChild = { onChipLongClick(it) },
-                            modifier         = Modifier.weight(0.6f)
-                        )
-                        Column(
-                            modifier            = Modifier.width(SIDE_COLUMN_WIDTH).fillMaxHeight(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CategoryChip(
-                                category       = expandedMidRight,
-                                spending       = spending[expandedMidRight.id] ?: 0.0,
-                                onClick        = { onChipClick(expandedMidRight) },
-                                childCount     = childCounts[expandedMidRight.id] ?: 0,
-                                onLongPress    = { onChipLongClick(expandedMidRight) },
-                                onDoubleClick  = { onChipDoubleClick(expandedMidRight.id) },
-                                showChildBadge = true,
-                                isCompact      = true,
-                                isExpanded     = true
-                            )
-                        }
-                    } else {
-                        // Звичайна розкладка: [leftCol | donut | rightCol]
-                        Column(
-                            modifier              = Modifier
-                                .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
-                                .graphicsLayer { clip = false },
-                            verticalArrangement   = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment   = Alignment.CenterHorizontally
-                        ) {
-                            midLeft.forEach { cat ->
-                                CategoryChip(
-                                    category       = cat,
-                                    spending       = spending[cat.id] ?: 0.0,
-                                    onClick        = { onChipClick(cat) },
-                                    childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = { onChipLongClick(cat) },
-                                    onDoubleClick  = {
-                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                        else onChipClick(cat)
-                                    },
-                                    showChildBadge = true,
-                                    groupColorHex  = parentColors[cat.id],
-                                    isCompact      = true,
-                                    isExpanded     = cat.id == expandedCategoryId
-                                )
-                            }
-                        }
-                        DonutChart(
-                            categories   = categories,
-                            spending     = spending,
-                            totalExpense = totalExpense,
-                            totalIncome  = totalIncome,
-                            selectedTab  = selectedTab,
-                            onToggle     = onToggleTab,
-                            modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
-                        )
-                        Column(
-                            modifier              = Modifier
-                                .width(SIDE_COLUMN_WIDTH).fillMaxHeight()
-                                .graphicsLayer { clip = false },
-                            verticalArrangement   = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment   = Alignment.CenterHorizontally
-                        ) {
-                            midRight.forEach { cat ->
-                                CategoryChip(
-                                    category       = cat,
-                                    spending       = spending[cat.id] ?: 0.0,
-                                    onClick        = { onChipClick(cat) },
-                                    childCount     = childCounts[cat.id] ?: 0,
-                                    onLongPress    = { onChipLongClick(cat) },
-                                    onDoubleClick  = {
-                                        if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                        else onChipClick(cat)
-                                    },
-                                    showChildBadge = true,
-                                    groupColorHex  = parentColors[cat.id],
-                                    isCompact      = true,
-                                    isExpanded     = cat.id == expandedCategoryId
-                                )
-                            }
-                        }
-                    }
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(DONUT_SECTION_HEIGHT)
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
+            ) {
+                DonutChart(
+                    categories   = categories,
+                    spending     = spending,
+                    totalExpense = totalExpense,
+                    totalIncome  = totalIncome,
+                    selectedTab  = selectedTab,
+                    onToggle     = onToggleTab,
+                    modifier     = Modifier.fillMaxSize().padding(8.dp)
+                )
             }
         }
-
-        // strip_mid intentionally removed: children are already shown via SideSubcategoryPanel inline
-
-        // ── Ext рядки: по 4, з expansion strip після рядка що містить expanded ──
         extCats.chunked(4).forEach { rowCats ->
             item(key = rowCats.firstOrNull()?.id) {
                 Row(
