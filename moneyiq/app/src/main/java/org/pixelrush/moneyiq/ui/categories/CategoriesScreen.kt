@@ -54,7 +54,6 @@ internal val CHIP_HEIGHT_COMPACT  = 112.dp
 internal val CHIP_CIRCLE_COMPACT  = 40.dp
 internal val CATEGORY_VERTICAL_GAP = 12.dp
 internal val DONUT_SECTION_HEIGHT = 300.dp
-internal val SIDE_COLUMN_WIDTH    = 90.dp
 internal val SUBCATEGORY_PANEL_WIDTH = 150.dp
 internal val SUBCATEGORY_PANEL_HEIGHT = 76.dp
 
@@ -481,11 +480,9 @@ internal fun CategoriesGridContent(
     // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
     val display = sorted
 
-    // top 4 above donut; 2 on each side beside donut; rest below in 4-chip rows
-    val topRow   = if (!showSubcategories) display.take(4) else emptyList()
-    val midLeft  = if (!showSubcategories) display.drop(4).take(2) else emptyList()
-    val midRight = if (!showSubcategories) display.drop(6).take(2) else emptyList()
-    val extCats  = if (!showSubcategories) display.drop(8) else display
+    // top 4 above full-width donut; rest below in 4-chip rows
+    val topRow  = if (!showSubcategories) display.take(4) else emptyList()
+    val extCats = if (!showSubcategories) display.drop(4) else display
 
     // Double-click expansion strip (only in collapsed mode)
     val expandedCat = if (expandedCategoryId != null && !showSubcategories)
@@ -563,88 +560,17 @@ internal fun CategoriesGridContent(
             }
         }
 
-        // ── Mid section: [left col] [donut] [right col] ───────────────
+        // ── Donut chart (full width) ──────────────────────────────────
         item {
-            Row(
-                modifier          = Modifier.fillMaxWidth().height(DONUT_SECTION_HEIGHT),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left column: up to 2 compact chips
-                Column(
-                    modifier             = Modifier.width(SIDE_COLUMN_WIDTH).fillMaxHeight(),
-                    verticalArrangement  = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    horizontalAlignment  = Alignment.CenterHorizontally
-                ) {
-                    midLeft.forEach { cat ->
-                        CategoryChip(
-                            category       = cat,
-                            spending       = spending[cat.id] ?: 0.0,
-                            onClick        = { onChipClick(cat) },
-                            childCount     = childCounts[cat.id] ?: 0,
-                            onLongPress    = { onChipLongClick(cat) },
-                            onDoubleClick  = {
-                                if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                else onChipClick(cat)
-                            },
-                            showChildBadge = true,
-                            groupColorHex  = parentColors[cat.id],
-                            isCompact      = true,
-                            isExpanded     = cat.id == expandedCategoryId,
-                            budgetOverride = displayBudgets[cat.id]
-                        )
-                    }
-                }
-
-                // Donut chart
-                DonutChart(
-                    categories   = categories,
-                    spending     = spending,
-                    totalExpense = totalExpense,
-                    totalIncome  = totalIncome,
-                    selectedTab  = selectedTab,
-                    onToggle     = onToggleTab,
-                    modifier     = Modifier.weight(1f).fillMaxHeight().padding(8.dp)
-                )
-
-                // Right column: up to 2 compact chips
-                Column(
-                    modifier             = Modifier.width(SIDE_COLUMN_WIDTH).fillMaxHeight(),
-                    verticalArrangement  = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    horizontalAlignment  = Alignment.CenterHorizontally
-                ) {
-                    midRight.forEach { cat ->
-                        CategoryChip(
-                            category       = cat,
-                            spending       = spending[cat.id] ?: 0.0,
-                            onClick        = { onChipClick(cat) },
-                            childCount     = childCounts[cat.id] ?: 0,
-                            onLongPress    = { onChipLongClick(cat) },
-                            onDoubleClick  = {
-                                if ((childCounts[cat.id] ?: 0) > 0) onChipDoubleClick(cat.id)
-                                else onChipClick(cat)
-                            },
-                            showChildBadge = true,
-                            groupColorHex  = parentColors[cat.id],
-                            isCompact      = true,
-                            isExpanded     = cat.id == expandedCategoryId,
-                            budgetOverride = displayBudgets[cat.id]
-                        )
-                    }
-                }
-            }
-        }
-        // Expansion strip for side column chips
-        if (expandedCat != null && (midLeft + midRight).any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-            item(key = "strip_mid_$expandedCategoryId") {
-                ExpandedCategoryStrip(
-                    parent           = expandedCat,
-                    children         = expandedChildren,
-                    spending         = spending,
-                    onClickParent    = { onChipClick(expandedCat) },
-                    onClickChild     = { onChipClick(it) },
-                    onLongClickChild = { onChipLongClick(it) }
-                )
-            }
+            DonutChart(
+                categories   = categories,
+                spending     = spending,
+                totalExpense = totalExpense,
+                totalIncome  = totalIncome,
+                selectedTab  = selectedTab,
+                onToggle     = onToggleTab,
+                modifier     = Modifier.fillMaxWidth().height(DONUT_SECTION_HEIGHT).padding(8.dp)
+            )
         }
 
         // ── Bottom grid: same 4-chip rows as top ─────────────────────
