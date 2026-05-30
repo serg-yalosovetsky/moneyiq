@@ -94,7 +94,7 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 15):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 16):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
@@ -121,10 +121,11 @@ Root category icon keys must be semantically specific — not generic fallbacks.
 
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→15 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→16 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
 
 Migration 13→14: Deletes EXPENSE categories named "Фінанс*" — financial savings/investments are not expenses.
 Migration 14→15: Updates root category colors to match current design palette (more vibrant shades).
+Migration 15→16: Re-applies Ресторація subcategory icons using `LOWER(TRIM(name)) LIKE` matching (broader than exact equality) — fixes cases where user-edited names had leading/trailing spaces. SQL: `delivery #FF6F00` for food delivery variants; `coffee #795548` for кафе variants; `restaurant #E53935` for ресторан variants (excluding the root "ресторація").
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 
@@ -196,3 +197,47 @@ The `+` (add category) chip must be placed as a dedicated `item(key="add_btn")` 
 Current dimensions: `Column(width=64dp)`, circle `Box(44dp)`, icon `18dp`.
 
 `DONUT_SECTION_HEIGHT` is sized to exactly 2 mid-column chips: `CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP`. This ensures the + button appears directly below the donut without extra blank space.
+
+## ADR-026: BudgetViewModel `totalAmount` Counts All Spending, Not Just Budgeted
+
+`BudgetSectionData.totalAmount` is the sum of **all** actual spending for the period (`expRows.sumOf { it.amount }`), regardless of whether a category has a budget set.
+
+Previously this was filtered to `expRows.filter { it.category.budgetAmount > 0 }.sumOf { ... }`, which caused "витрачено 0.00" on the Budget screen whenever no category had a budget — even with real transactions.
+
+`totalAmount` drives:
+- "витрачено N" label in `BudgetSectionCard`
+- `expenseTotal` passed to `IncomeBudgetBar` for "Доступно в бюджеті" calculation
+
+**Rule:** Do not re-add the `budgetAmount > 0` filter. The "в бюджеті" figure uses `totalBudget` (sum of budget amounts); the "витрачено" figure uses `totalAmount` (sum of actual spending). These are intentionally separate.
+
+## ADR-027: MonoFlow Sync Uses BackupSerializer JSON, Not CSV
+
+`MonoFlowSyncWorker` calls `GET $url/api/sync?since=$lastSyncMs` (Bearer token auth) and deserializes the response with `BackupSerializer.deserialize(json)`. The `/export/flow.csv` endpoint is a separate export for the Flow app and is not consumed by MoneyIQ.
+
+The JSON format is the same as the manual backup:
+```json
+{
+  "version": 1, "exportDate": ..., "app": "MoneyIQ",
+  "accounts":     [ { "id", "name", "type", "balance", "currency", ... } ],
+  "categories":   [ { "id", "name", "type", "colorHex", "icon", "budgetAmount", "parentId", ... } ],
+  "transactions": [ { "id", "type", "amount", "accountId", "toAccountId", "categoryId", "note", "date" } ]
+}
+```
+
+`type` on transactions is `EXPENSE | INCOME | TRANSFER | BORROW | LEND | REPAY`. `toAccountId` is a valid `Long` for transfers, `null` otherwise. The server is responsible for detecting PayPal/Revolut/ATM rows and setting `type=TRANSFER` with the appropriate `toAccountId`.
+
+Worker inserts via `insertAccounts` / `insertCategories` / `insertTransactions` (REPLACE strategy — MERGE by `id`). Existing data is not deleted.
+
+## ADR-025: Overview List Falls Back To Transactions When No Categories
+
+`OverviewScreen` renders the list below the stats row with this priority:
+
+1. Category rows (spending > 0 for mode + period)
+2. Transaction rows via `TransactionListItem` (when categories list is empty but transactions exist)
+3. "Немає категорій" empty state (both empty)
+
+**Reason:** Income/expense header totals are computed from all transactions of that type, regardless of category assignment. Without the fallback, a non-zero total header with an empty list is contradictory and confusing to the user.
+
+**`OverviewUiState`** carries `transactions: List<TransactionWithDetails>` populated from `monoTx` (mode-filtered transactions for the period).
+
+**Rule:** Do not remove the transaction fallback without also fixing the header total to exclude uncategorised transactions. Tapping a fallback transaction row is intentionally a no-op — if navigation to `TransactionDetailSheet` is added later, ensure the CategoryDetailSheet bottom sheet state is not inadvertently triggered.

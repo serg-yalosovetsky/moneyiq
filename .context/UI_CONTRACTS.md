@@ -58,7 +58,10 @@ The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, 
 - **All categories are always shown**, including those with 0 spending. Zero-spending chips appear "pale".
 - Icon circle is solid (white icon): when `spending > 0`
 - Icon circle is tinted (light alpha 0.13, colored icon): when `spending == 0`
-- **Budget text** (above icon, position 2): shown whenever `budgetAmount > 0`, regardless of spending; dimmed (alpha 0.42), 8sp Normal; otherwise a fixed-height `Spacer` preserves layout
+- **Budget row** (position 2, above icon):
+  - If `budgetAmount > 0`: shows **remaining budget** (`budgetAmount - spending`). When over budget (`remainingBudget < 0`): remaining shown in a colored pill (category color bg, white text Bold). When within budget: remaining shown dimmed (alpha 0.42, SemiBold).
+  - If `budgetAmount == 0`: shows "0 ₴" dimmed (alpha 0.30). No spacer.
+  - `budgetOverride: Double?` parameter overrides `category.budgetAmount` (used by Budget screen to pass its own budget value).
 - **+N badge** (small circle top-right of icon): shown when `showChildBadge && childCount > 0`; displays `"+N"` (N = child count after same-name dedup); 18dp normal / 16dp compact circle, `primary` bg, 8sp / 7sp compact
 - Spending text color: category color if `spending > 0`, grey (onSurface 35%) if `spending == 0`
 
@@ -122,12 +125,24 @@ This happens inside `CategoriesGridContent`, NOT in the ViewModel.
 **Subcategory mode** (`showSubcategories = true`): full-width donut at top, all categories in rows of 4 below.
 ### Expanded Subcategory Strip (`ExpandedCategoryStrip`)
 
-Shown below the row that contains the double-clicked parent chip.
+Triggered by double-click on a chip. Placement and appearance depend on which zone the chip is in:
 
-- **No parent chip** shown in the strip — only children
-- Children distributed evenly across full card width using `weight(1f)` per child (max 4)
-- Only children with `spending > 0` appear (zero-amount subcategories filtered out)
-- Child icon circles: 44dp; icon 22dp; name 10sp; card background: parent color 8% alpha
+**Top row / mid section chips** (`topRow`, `midLeft`, `midRight`, `mid3`):
+- Strip is inserted as a LazyColumn item immediately AFTER the row/section containing the expanded chip
+- `showParentHeader = false` (default) — strip shows only children
+- Chip in the grid retains its expanded highlight (`isExpanded = true` → rounded card background at 12% alpha)
+
+**Bottom grid chips** (`extCats`):
+- Strip is inserted BEFORE all extCats rows — always appears directly under the circle (`+` button area)
+- `showParentHeader = true` — strip shows a unified card: parent icon + name + spending at top, divider, then children below
+- Grid chips in extCats use `expandedId = null` — no separate chip highlight (the card is the single visual element)
+
+**Strip visual spec:**
+- Card background: parent color 8% alpha, `RoundedCornerShape(16.dp)`, elevation 0
+- Children: distributed with `weight(1f)` per child (max 4), sorted by spending desc
+- Only children with `spending > 0` OR `budgetAmount > 0` appear
+- Child icon circles: 44dp; icon 22dp; name 10sp; spending 9sp SemiBold
+- Parent header (when `showParentHeader = true`): 44dp circle icon, parent name `titleSmall` SemiBold, spending `bodySmall` in parent color; separated from children by `HorizontalDivider(alpha=15%)`
 
 ### Inline Subcategory Panel (`SideSubcategoryPanel`) — Dead Code
 
@@ -220,6 +235,61 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 
 Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
+### CategoryFormSheet — Name Input
+
+Category name is edited via an **inline `BasicTextField`** directly inside the form header (not a separate dialog). Behaviour:
+- On new category creation (`existing == null`): `FocusRequester.requestFocus()` is called in `LaunchedEffect(Unit)` — keyboard appears immediately.
+- Placeholder text "Введіть назву" is shown when blank (via `decorationBox`).
+- `ImeAction.Done` → `focusManager.clearFocus()` (dismisses keyboard).
+- `TextInputDialog` is **not** used for category name input — it was removed from `CategoryFormSheets.kt`.
+
+`TextInputDialog` remains available in `ui/components/dialogs` and is still used in other screens (e.g., account name editing).
+
+## Budget Screen
+
+`BudgetScreen` (`Бюджет` tab) is a `Column { LazyColumn(weight=1f) + IncomeBudgetBar }` layout.
+
+### IncomeBudgetBar Layout (CRITICAL)
+
+`IncomeBudgetBar` is placed **outside** the `LazyColumn` — it is a fixed element pinned to the bottom of the screen, not a scrollable list item.
+
+```
+Column(fillMaxSize) {
+    LazyColumn(Modifier.weight(1f)) { … expense budget rows … }
+    IncomeBudgetBar(modifier = Modifier.padding(bottom = bottomPadding))
+}
+```
+
+Do **not** move `IncomeBudgetBar` back inside the `LazyColumn`. It was moved out because:
+- When income categories are few, the bar would scroll out of view.
+- The income total summary must always be visible alongside the expense list.
+
+`IncomeBudgetBar` takes a `modifier: Modifier = Modifier` parameter for bottom padding injection.
+
+## Overview Screen
+
+`OverviewScreen` is the `Огляд` tab. It shows monthly totals, a daily bar chart, stats row, and a list section below the stats.
+
+### Mode Toggle
+
+Expense/Income toggle switches `OverviewMode` (EXPENSE / INCOME). All amounts, chart bars, and the list section reflect only the active mode.
+
+### List Section Priority
+
+The lower list section renders in this priority order:
+
+1. **Category rows** — if `state.categories` is non-empty (categories with spending > 0 for the active mode and period)
+2. **Transaction rows** — if `state.categories` is empty but `state.transactions` is non-empty (renders each `TransactionWithDetails` via `TransactionListItem`)
+3. **Empty state** — "Немає категорій" icon + label if both are empty
+
+This ensures that income/expense amounts shown in the toggle header always correspond to visible line items. Transactions that belong to a deleted category or have `categoryId = null` still contribute to the header total and appear in the fallback list.
+
+`OverviewUiState.transactions` holds the mode-filtered transaction list (`monoTx` in `OverviewViewModel.buildState`). Tapping a transaction row in fallback mode is a no-op (`onClick = {}`).
+
+### Category Detail Sheet
+
+Tapping a category row opens `CategoryDetailSheet` (`OverviewSheets.kt`) as a `ModalBottomSheet` with the category color as container. Not available from transaction rows.
+
 ## Transactions Screen
 
 Sheet/dialog composables for the transactions tab were split from `TransactionSheets.kt` (deleted) into four dedicated files in `ui/transactions`:
@@ -254,6 +324,17 @@ Settings persisted via DataStore (`SettingsRepository` → `AppSettings`):
 - Horizontal swipes inside feature screens change month/period (swipe left = next month, swipe right = prev month).
 - Edge swipes handled by `MainScreen` for drawer/back behavior.
 - `BackHandler` inside `MainScreen` handles closing embedded overlays (Settings, EditCategories) before system back.
+
+### Back Navigation To Home Tab
+
+`BackHandler(enabled = currentPage != homeTabIndex)` — pressing Back from any tab navigates to the **home screen tab** configured in Settings (`settings.homeScreen: HomeScreenTab`). Pressing Back while already on the home tab is handled by the system → closes the app.
+
+```kotlin
+val homeTabIndex = activeTabs.indexOfFirst { it.label == settings.homeScreen.label }
+    .takeIf { it >= 0 } ?: 0
+```
+
+Right-edge swipe (`onRightEdge = goBack`) follows the same logic. If `homeScreen` is set to `BUDGET` but Budget tab is hidden, index falls back to `0` (Accounts).
 
 ### Swipe Sensitivity (`horizontalSwipe` modifier in `MainScreen.kt`)
 
@@ -301,9 +382,11 @@ Material 3 token defaults used throughout (no custom font family — system defa
 | Element | Style | Size | Weight |
 |---|---|---|---|
 | "Всі рахунки" subtitle | `labelSmall` | 11sp | Medium, alpha 55% |
-| Total balance | `titleSmall` + Bold override | 14sp | Bold 700 |
+| Total balance | `titleLarge` + Bold override | 22sp | Bold 700 |
 
 ### SharedMonthNavPill
+
+Navigation arrows: single `Icons.Default.KeyboardDoubleArrowLeft` / `KeyboardDoubleArrowRight` (32dp icon, 4dp padding = 24dp visual). Previously two `KeyboardArrowLeft/Right` side-by-side — replaced because `spacedBy(2.dp)` left a visible gap.
 
 | Element | Style | Size | Weight |
 |---|---|---|---|
@@ -312,30 +395,30 @@ Material 3 token defaults used throughout (no custom font family — system defa
 
 ### CategoryChip — normal (`isCompact = false`)
 
-Icon circle 48dp, icon 26dp. Name box `heightIn(min=28dp, max=40dp)`.
+Icon circle 48dp, icon 26dp. Name box `heightIn(min=28dp, max=40dp)`. Name is single-line (`maxLines=1, softWrap=false`).
 
 | Element | Size | Weight |
 |---|---|---|
-| Category name | 11sp, lineHeight 13sp | SemiBold 600 |
-| Budget text (above icon, when `budgetAmount > 0`) | 8sp, lineHeight 11sp | Normal 400, alpha 42% |
-| Spending amount (bottom) | 10sp, lineHeight 12sp | SemiBold 600 |
+| Category name | 13sp, lineHeight 16sp | SemiBold 600 |
+| Budget row (position 2) | 11sp, lineHeight 13sp | SemiBold or Bold (overbudget) |
+| Spending amount (bottom) | 13sp, lineHeight 15sp | **Bold 700** |
 | +N child badge | 8sp | — white on primary |
 
 ### CategoryChip — compact (`isCompact = true`)
 
-Icon circle 40dp, icon 22dp. Name box `heightIn(min=22dp, max=32dp)`.
+Icon circle 40dp, icon 22dp. Name box `heightIn(min=24dp, max=34dp)`. Name is single-line (`maxLines=1, softWrap=false`).
 
 | Element | Size | Weight |
 |---|---|---|
-| Category name | 10sp, lineHeight 12sp | SemiBold 600 |
-| Budget text | 8sp, lineHeight 10sp | Normal 400, alpha 42% |
-| Spending amount | 9sp, lineHeight 11sp | SemiBold 600 |
+| Category name | 12sp, lineHeight 14sp | SemiBold 600 |
+| Budget row (position 2) | 10sp, lineHeight 12sp | SemiBold or Bold (overbudget) |
+| Spending amount | 12sp, lineHeight 14sp | **Bold 700** |
 | +N child badge | 7sp | — white on primary |
 
 ### DonutChart center
 
 | Element | Style | Size | Weight |
 |---|---|---|---|
-| "Витрати" / "Доходи" label | `labelSmall` | 11sp | Medium, alpha 55% |
-| Expense total | `titleSmall` + Bold | 14sp | Bold 700, error color |
-| Income total | `bodySmall.copy(fontSize=12sp)` + Medium | 12sp | Medium 500, teal #26A69A |
+| "Витрати" / "Доходи" label | `labelSmall.copy(fontSize=14sp)` | 14sp | Medium, alpha 55% |
+| Expense total | `titleSmall.copy(fontSize=20sp)` + Bold | 20sp | Bold 700, error color |
+| Income total | `bodySmall.copy(fontSize=15sp)` + Medium | 15sp | Medium 500, teal #26A69A |
