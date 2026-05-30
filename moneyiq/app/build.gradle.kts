@@ -170,7 +170,7 @@ val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")
     ?: localProps.getProperty("sentry.auth.token", "")
 
 sentry {
-    includeSourceContext = true
+    includeSourceContext = sentryToken.isNotEmpty()
     org = "serg-yalosovetsky"
     projectName = "one_money"
     authToken = sentryToken
