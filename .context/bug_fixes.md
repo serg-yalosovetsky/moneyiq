@@ -19,6 +19,20 @@
 
 ## Known Bugs Fixed
 
+### CategoriesScreen — ExtCat Strip Showed Two Disconnected Highlighted Elements (2026-05-31)
+
+**Symptom:** Double-tapping a chip in the bottom grid (extCats) produced two separate blue-tinted areas: one for the expansion strip (above the grid) and one for the expanded chip in the grid. They looked like independent elements despite belonging to the same parent→child relationship.
+
+**Root cause:** The expansion strip card and the chip's `isExpanded` background both applied the parent color independently, with a LazyColumn item gap between them.
+
+**Fix:** Two changes:
+1. `showParentHeader = true` passed to `ExpandedCategoryStrip` for extCats — the strip now shows a unified card: parent icon + name + spending (header), divider, children. One visual element represents the full parent+children relationship.
+2. `expandedId = null` for extCats `CategoryGridRow` — the grid chip no longer shows a separate expanded background; the card above is the sole visual indicator.
+
+**Regression rule:** Do not restore `expandedId = expandedCategoryId` for extCats rows. The strip's `showParentHeader = true` is the single source of visual expansion feedback for bottom-grid chips.
+
+---
+
 ### App Crashes On Launch — Sentry Auto-Init Missing DSN (2026-05-29)
 
 **Symptom:** App crashes immediately on startup with `java.lang.IllegalArgumentException: DSN is required. Use empty string or set enabled to false in SentryOptions to disable SDK` from `SentryInitProvider.onCreate`.

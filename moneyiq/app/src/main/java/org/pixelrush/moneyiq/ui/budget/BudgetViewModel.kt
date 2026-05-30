@@ -36,6 +36,7 @@ data class BudgetUiState(
     },
     val appMonth:       AppMonth          = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
     val daysInMonth:    Int              = 31,
+    val daysPassed:     Int              = 0,
     val pillLabel:      String           = "",
     val pillBadge:      String           = "31",
     val totalBalance:   Double           = 0.0,
@@ -55,6 +56,17 @@ class BudgetViewModel @Inject constructor(
     val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { am ->
         val sel        = BudgetSelMonth(am.year, am.month)
         val (from, to) = monthRepo.computeRange(am)
+        val totalDays = monthRepo.daysInPeriod(am)
+        val daysPassed = run {
+            val now = Calendar.getInstance()
+            val curYear  = now.get(Calendar.YEAR)
+            val curMonth = now.get(Calendar.MONTH)
+            when {
+                am.year < curYear || (am.year == curYear && am.month < curMonth) -> totalDays
+                am.year == curYear && am.month == curMonth -> now.get(Calendar.DAY_OF_MONTH)
+                else -> 0
+            }
+        }
         combine(
             categoryRepo.getByType(TransactionType.EXPENSE),
             categoryRepo.getByType(TransactionType.INCOME),
@@ -69,18 +81,19 @@ class BudgetViewModel @Inject constructor(
             BudgetUiState(
                 selectedMonth  = sel,
                 appMonth       = am,
-                daysInMonth    = monthRepo.daysInPeriod(am),
+                daysInMonth    = totalDays,
+                daysPassed     = daysPassed,
                 pillLabel      = monthRepo.pillLabel(am),
                 pillBadge      = monthRepo.pillBadge(am),
                 totalBalance   = rawBalance ?: 0.0,
                 expenseSection = BudgetSectionData(
                     totalBudget = expCats.sumOf { it.budgetAmount },
-                    totalAmount = expRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
+                    totalAmount = expRows.sumOf { it.amount },
                     rows        = expRows
                 ),
                 incomeSection = BudgetSectionData(
                     totalBudget = incCats.sumOf { it.budgetAmount },
-                    totalAmount = incRows.filter { it.category.budgetAmount > 0 }.sumOf { it.amount },
+                    totalAmount = incRows.sumOf { it.amount },
                     rows        = incRows
                 )
             )

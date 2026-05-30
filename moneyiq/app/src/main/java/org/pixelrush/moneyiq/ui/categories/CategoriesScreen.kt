@@ -566,31 +566,32 @@ internal fun CategoriesGridContent(
             // ── Top row: 4 chips ───────────────────────────────────────────
             if (topRow.isNotEmpty()) {
                 item(key = "top_row") {
-                    CategoryGridRow(
-                        rowCats           = topRow,
-                        spending          = spending,
-                        displayBudgets    = displayBudgets,
-                        childCounts       = childCounts,
-                        parentColors      = parentColors,
-                        expandedId        = expandedCategoryId,
-                        showChildBadge    = true,
-                        isCompact         = isCompact,
-                        onChipClick       = onChipClick,
-                        onChipLongClick   = onChipLongClick,
-                        onChipDoubleClick = onChipDoubleClick,
-                        modifier          = Modifier.height(chipHeight)
-                    )
-                }
-                if (expandedCat != null && topRow.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-                    item(key = "strip_top_$expandedCategoryId") {
-                        ExpandedCategoryStrip(
-                            parent           = expandedCat,
-                            children         = expandedChildren,
-                            spending         = spending,
-                            onClickParent    = { onChipClick(expandedCat) },
-                            onClickChild     = { onChipClick(it) },
-                            onLongClickChild = { onChipLongClick(it) }
+                    Column {
+                        CategoryGridRow(
+                            rowCats           = topRow,
+                            spending          = spending,
+                            displayBudgets    = displayBudgets,
+                            childCounts       = childCounts,
+                            parentColors      = parentColors,
+                            expandedId        = expandedCategoryId,
+                            showChildBadge    = true,
+                            isCompact         = isCompact,
+                            onChipClick       = onChipClick,
+                            onChipLongClick   = onChipLongClick,
+                            onChipDoubleClick = onChipDoubleClick,
+                            modifier          = Modifier.height(chipHeight)
                         )
+                        if (expandedCat != null && topRow.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                            ExpandedCategoryStrip(
+                                parent           = expandedCat,
+                                children         = expandedChildren,
+                                spending         = spending,
+                                onClickParent    = { onChipClick(expandedCat) },
+                                onClickChild     = { onChipClick(it) },
+                                onLongClickChild = { onChipLongClick(it) },
+                                inline           = true
+                            )
+                        }
                     }
                 }
             }
@@ -598,113 +599,110 @@ internal fun CategoriesGridContent(
             // ── Mid: left column | donut | right column ────────────────────
             item(key = "mid_section") {
                 val chipW = if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(
-                        modifier            = Modifier.width(chipW),
-                        verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        midLeft.forEach { cat ->
-                            Box(Modifier.height(chipHeight)) {
-                                CategoryGridSlot(
-                                    category          = cat,
-                                    spending          = spending,
-                                    displayBudgets    = displayBudgets,
-                                    childCounts       = childCounts,
-                                    parentColors      = parentColors,
-                                    expandedId        = expandedCategoryId,
-                                    showChildBadge    = true,
-                                    isCompact         = isCompact,
-                                    onChipClick       = onChipClick,
-                                    onChipLongClick   = onChipLongClick,
-                                    onChipDoubleClick = onChipDoubleClick
-                                )
+                        Column(
+                            modifier            = Modifier.width(chipW),
+                            verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
+                        ) {
+                            midLeft.forEach { cat ->
+                                Box(Modifier.height(chipHeight)) {
+                                    CategoryGridSlot(
+                                        category          = cat,
+                                        spending          = spending,
+                                        displayBudgets    = displayBudgets,
+                                        childCounts       = childCounts,
+                                        parentColors      = parentColors,
+                                        expandedId        = expandedCategoryId,
+                                        showChildBadge    = true,
+                                        isCompact         = isCompact,
+                                        onChipClick       = onChipClick,
+                                        onChipLongClick   = onChipLongClick,
+                                        onChipDoubleClick = onChipDoubleClick
+                                    )
+                                }
+                            }
+                        }
+                        DonutChart(
+                            categories   = categories,
+                            spending     = spending,
+                            totalExpense = totalExpense,
+                            totalIncome  = totalIncome,
+                            selectedTab  = selectedTab,
+                            onToggle     = onToggleTab,
+                            modifier     = Modifier.weight(1f).height(DONUT_SECTION_HEIGHT).padding(4.dp),
+                            onAdd        = onAdd
+                        )
+                        Column(
+                            modifier            = Modifier.width(chipW),
+                            verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
+                        ) {
+                            midRight.forEach { cat ->
+                                Box(Modifier.height(chipHeight)) {
+                                    CategoryGridSlot(
+                                        category          = cat,
+                                        spending          = spending,
+                                        displayBudgets    = displayBudgets,
+                                        childCounts       = childCounts,
+                                        parentColors      = parentColors,
+                                        expandedId        = expandedCategoryId,
+                                        showChildBadge    = true,
+                                        isCompact         = isCompact,
+                                        onChipClick       = onChipClick,
+                                        onChipLongClick   = onChipLongClick,
+                                        onChipDoubleClick = onChipDoubleClick
+                                    )
+                                }
                             }
                         }
                     }
-                    DonutChart(
-                        categories   = categories,
-                        spending     = spending,
-                        totalExpense = totalExpense,
-                        totalIncome  = totalIncome,
-                        selectedTab  = selectedTab,
-                        onToggle     = onToggleTab,
-                        modifier     = Modifier.weight(1f).height(DONUT_SECTION_HEIGHT).padding(4.dp),
-                        onAdd        = onAdd
-                    )
-                    Column(
-                        modifier            = Modifier.width(chipW),
-                        verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
-                    ) {
-                        midRight.forEach { cat ->
-                            Box(Modifier.height(chipHeight)) {
-                                CategoryGridSlot(
-                                    category          = cat,
-                                    spending          = spending,
-                                    displayBudgets    = displayBudgets,
-                                    childCounts       = childCounts,
-                                    parentColors      = parentColors,
-                                    expandedId        = expandedCategoryId,
-                                    showChildBadge    = true,
-                                    isCompact         = isCompact,
-                                    onChipClick       = onChipClick,
-                                    onChipLongClick   = onChipLongClick,
-                                    onChipDoubleClick = onChipDoubleClick
-                                )
-                            }
-                        }
+                    if (expandedCat != null && (midLeft + midRight).any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                        ExpandedCategoryStrip(
+                            parent           = expandedCat,
+                            children         = expandedChildren,
+                            spending         = spending,
+                            onClickParent    = { onChipClick(expandedCat) },
+                            onClickChild     = { onChipClick(it) },
+                            onLongClickChild = { onChipLongClick(it) },
+                            inline           = true
+                        )
                     }
-                }
-            }
-            if (expandedCat != null && (midLeft + midRight).any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-                item(key = "strip_mid_$expandedCategoryId") {
-                    ExpandedCategoryStrip(
-                        parent           = expandedCat,
-                        children         = expandedChildren,
-                        spending         = spending,
-                        onClickParent    = { onChipClick(expandedCat) },
-                        onClickChild     = { onChipClick(it) },
-                        onLongClickChild = { onChipLongClick(it) }
-                    )
-                }
-            }
-
-
-            // ── Strip for ext cats: always ABOVE the grid (under the circle) ──
-            if (expandedCat != null && extCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
-                item(key = "strip_ext_$expandedCategoryId") {
-                    ExpandedCategoryStrip(
-                        parent           = expandedCat,
-                        children         = expandedChildren,
-                        spending         = spending,
-                        onClickParent    = { onChipClick(expandedCat) },
-                        onClickChild     = { onChipClick(it) },
-                        onLongClickChild = { onChipLongClick(it) },
-                        showParentHeader = true
-                    )
                 }
             }
 
             // ── Ext cats: remaining categories in rows of 4 ────────────────
-            // expandedId = null: strip is shown above the grid, no chip highlight needed
             extCats.chunked(4).forEach { rowCats ->
                 item(key = rowCats.firstOrNull()?.id) {
-                    CategoryGridRow(
-                        rowCats           = rowCats,
-                        spending          = spending,
-                        displayBudgets    = displayBudgets,
-                        childCounts       = childCounts,
-                        parentColors      = parentColors,
-                        expandedId        = null,
-                        showChildBadge    = true,
-                        isCompact         = isCompact,
-                        onChipClick       = onChipClick,
-                        onChipLongClick   = onChipLongClick,
-                        onChipDoubleClick = onChipDoubleClick,
-                        modifier          = Modifier.height(chipHeight)
-                    )
+                    Column {
+                        CategoryGridRow(
+                            rowCats           = rowCats,
+                            spending          = spending,
+                            displayBudgets    = displayBudgets,
+                            childCounts       = childCounts,
+                            parentColors      = parentColors,
+                            expandedId        = expandedCategoryId,
+                            showChildBadge    = true,
+                            isCompact         = isCompact,
+                            onChipClick       = onChipClick,
+                            onChipLongClick   = onChipLongClick,
+                            onChipDoubleClick = onChipDoubleClick,
+                            modifier          = Modifier.height(chipHeight)
+                        )
+                        if (expandedCat != null && rowCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                            ExpandedCategoryStrip(
+                                parent           = expandedCat,
+                                children         = expandedChildren,
+                                spending         = spending,
+                                onClickParent    = { onChipClick(expandedCat) },
+                                onClickChild     = { onChipClick(it) },
+                                onLongClickChild = { onChipLongClick(it) },
+                                inline           = true
+                            )
+                        }
+                    }
                 }
             }
         }

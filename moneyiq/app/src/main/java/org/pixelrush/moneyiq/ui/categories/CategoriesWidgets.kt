@@ -378,7 +378,8 @@ internal fun ExpandedCategoryStrip(
     onClickParent:    () -> Unit,
     onClickChild:     (CategoryEntity) -> Unit,
     onLongClickChild: (CategoryEntity) -> Unit = {},
-    showParentHeader: Boolean = false
+    showParentHeader: Boolean = false,
+    inline:           Boolean = false
 ) {
     val parentColor = remember(parent.colorHex) {
         try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
@@ -388,14 +389,7 @@ internal fun ExpandedCategoryStrip(
         .filter { (spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0 }
         .sortedByDescending { spending[it.id] ?: 0.0 }
 
-    Card(
-        modifier  = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = parentColor.copy(alpha = 0.08f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
+    val stripContent: @Composable ColumnScope.() -> Unit = {
         if (showParentHeader) {
             val parentIconKey = if (parent.icon == "category")
                 suggestCategoryStyle(parent.name, parent.type).first else parent.icon
@@ -500,6 +494,26 @@ internal fun ExpandedCategoryStrip(
                 }
             }
         }
+    }
+
+    if (inline) {
+        HorizontalDivider(color = parentColor.copy(alpha = 0.18f), thickness = 1.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(parentColor.copy(alpha = 0.07f)),
+            content = stripContent
+        )
+    } else {
+        Card(
+            modifier  = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            shape     = RoundedCornerShape(16.dp),
+            colors    = CardDefaults.cardColors(containerColor = parentColor.copy(alpha = 0.08f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            content   = stripContent
+        )
     }
 }
 

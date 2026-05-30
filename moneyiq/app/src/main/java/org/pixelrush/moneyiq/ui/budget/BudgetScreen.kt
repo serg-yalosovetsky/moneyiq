@@ -91,7 +91,16 @@ fun BudgetScreen(
                 )
             }
             item { Spacer(Modifier.height(4.dp)) }
-            item { SavingsSectionCard() }
+            item {
+                SavingsSectionCard(
+                    expenseTotal  = state.expenseSection.totalAmount,
+                    incomeTotal   = state.incomeSection.totalAmount,
+                    incomeBudget  = state.incomeSection.totalBudget,
+                    expenseBudget = state.expenseSection.totalBudget,
+                    daysInMonth   = state.daysInMonth,
+                    daysPassed    = state.daysPassed
+                )
+            }
             item { Spacer(Modifier.height(4.dp)) }
             item {
                 BudgetSectionCard(
@@ -517,24 +526,47 @@ private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit)
     }
 }
 
-// ── Секция заощаджень (статическая) ──────────────────────────────────────────
+// ── Секция заощаджень з прогнозом ────────────────────────────────────────────
 
 @Composable
-private fun SavingsSectionCard() {
-    val savingsColor = Color(0xFF26A69A)  // teal, как у доходов
+private fun SavingsSectionCard(
+    expenseTotal:  Double,
+    incomeTotal:   Double,
+    incomeBudget:  Double,
+    expenseBudget: Double,
+    daysInMonth:   Int,
+    daysPassed:    Int
+) {
+    val savingsColor = Color(0xFF26A69A)
+    val negColor     = Color(0xFFD81B60)
+
+    // Реальні заощадження = отримано - витрачено (для підпису «збережено»)
+    val realSavings = incomeTotal - expenseTotal
+
+    // Заощадження за бюджетом = бюджет доходів - витрачено (для заголовку)
+    val actualSavings = if (incomeBudget > 0) incomeBudget - expenseTotal else realSavings
+
+    // Прогноз витрат на кінець місяця (лінійна екстраполяція по днях)
+    val hasForecast = daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0
+    val projectedExpenses = if (hasForecast) expenseTotal / daysPassed * daysInMonth else expenseTotal
+    val projectedSavings  = if (incomeBudget > 0) incomeBudget - projectedExpenses
+                            else realSavings - (projectedExpenses - expenseTotal)
+
+    // Бюджетні заощадження = бюджет доходів - бюджет витрат
+    val budgetSavings = incomeBudget - expenseBudget
+
+    // Що показуємо в заголовку: прогноз (якщо є) або бюджетні заощадження
+    val headerAmount = if (hasForecast && (incomeBudget > 0 || incomeTotal > 0)) projectedSavings
+                       else actualSavings
+    val headerColor  = if (headerAmount >= 0) savingsColor else negColor
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(savingsColor.copy(alpha = 0.06f))
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Цветная левая полоса
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(savingsColor)
-            )
+            Box(Modifier.width(4.dp).fillMaxHeight().background(savingsColor))
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -545,33 +577,63 @@ private fun SavingsSectionCard() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "Заощадження",
-                        style      = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color      = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        formatMoney(0.0),
-                        style      = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color      = savingsColor
-                    )
+                    Column {
+                        Text(
+                            "Заощадження",
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (hasForecast) {
+                            Text(
+                                "пройшло $daysPassed з $daysInMonth днів",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                            )
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "${formatMoney(headerAmount)} ₴",
+                            style      = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color      = headerColor
+                        )
+                        if (hasForecast) {
+                            Text(
+                                "прогноз",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = headerColor.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
                 }
+
+                Spacer(Modifier.height(4.dp))
+
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "збережено ${formatMoney(0.0)}",
+                        "збережено ${formatMoney(realSavings)} ₴",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        color = if (realSavings >= 0) savingsColor.copy(alpha = 0.8f)
+                                else negColor.copy(alpha = 0.8f)
                     )
-                    Text(
-                        "в бюджеті ${formatMoney(0.0)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                    )
+                    if (hasForecast && expenseTotal > 0) {
+                        Text(
+                            "витрати до кінця ~${formatMoney(projectedExpenses)} ₴",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    } else if (budgetSavings != 0.0 && incomeBudget > 0) {
+                        Text(
+                            "в бюджеті ${formatMoney(budgetSavings)} ₴",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    }
                 }
             }
         }
