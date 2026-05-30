@@ -137,6 +137,50 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'money', colorHex = '#F9A825' WHERE name IN ('Фінанси', 'Фінансові послуги', 'Finance', 'Finances')")
+    }
+}
+
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'delivery', colorHex = '#FF6F00' WHERE parentId IS NOT NULL AND name IN ('Food delivery', 'food delivery', 'Food Delivery', 'Glovo', 'glovo', 'Bolt Food', 'Uber Eats')")
+        database.execSQL("UPDATE categories SET icon = 'coffee',   colorHex = '#795548' WHERE parentId IS NOT NULL AND (name = 'Кафе' OR name = 'кафе' OR name = 'Cafe' OR name = 'cafe')")
+        database.execSQL("UPDATE categories SET icon = 'restaurant', colorHex = '#E53935' WHERE parentId IS NOT NULL AND (name = 'Ресторани' OR name = 'ресторани' OR name = 'Ресторан' OR name = 'Restaurants')")
+    }
+}
+
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'bus' WHERE parentId IS NULL AND name = 'Транспорт'")
+    }
+}
+
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix categories still stuck on placeholder after prior migrations
+        database.execSQL("UPDATE categories SET icon = 'money',       colorHex = '#F9A825' WHERE (LOWER(name) LIKE '%фінанс%' OR LOWER(name) LIKE '%финанс%') AND icon = 'category'")
+        database.execSQL("UPDATE categories SET icon = 'celebration', colorHex = '#FF6D00' WHERE LOWER(name) LIKE '%розваг%' AND icon = 'category'")
+        database.execSQL("UPDATE categories SET icon = 'theater',     colorHex = '#F73579' WHERE LOWER(name) LIKE '%дозвілл%' AND icon = 'category'")
+    }
+}
+
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // "bus" is now in CategoryIcons — restore Транспорт
+        database.execSQL("UPDATE categories SET icon = 'bus' WHERE parentId IS NULL AND name = 'Транспорт'")
+        // Give every duplicated subcategory its own distinct icon
+        database.execSQL("UPDATE categories SET icon = 'pharmacy'    WHERE name = 'Аптека'")
+        database.execSQL("UPDATE categories SET icon = 'doctor'      WHERE name = 'Лікар'")
+        database.execSQL("UPDATE categories SET icon = 'parking'     WHERE name = 'Паркінг'")
+        database.execSQL("UPDATE categories SET icon = 'gas_station' WHERE name = 'Пальне'")
+        database.execSQL("UPDATE categories SET icon = 'key'         WHERE name = 'Оренда'")
+        database.execSQL("UPDATE categories SET icon = 'laptop'      WHERE name = 'Фриланс'")
+        database.execSQL("UPDATE categories SET icon = 'sports'      WHERE name = 'Спорт'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -151,12 +195,17 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_11_12,
     MIGRATION_12_13,
     MIGRATION_13_14,
-    MIGRATION_14_15
+    MIGRATION_14_15,
+    MIGRATION_15_16,
+    MIGRATION_16_17,
+    MIGRATION_17_18,
+    MIGRATION_18_19,
+    MIGRATION_19_20
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 15,
+    version = 20,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

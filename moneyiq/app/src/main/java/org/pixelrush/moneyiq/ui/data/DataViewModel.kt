@@ -146,13 +146,31 @@ class DataViewModel @Inject constructor(
         }
     }
 
-    private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
-        val sanitizedCategories = data.categories.map { cat ->
-            if (cat.icon == "category") {
-                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-                cat.copy(icon = icon, colorHex = color)
-            } else cat
+    private fun normalizeImportedCategory(cat: org.pixelrush.moneyiq.data.db.entities.CategoryEntity): org.pixelrush.moneyiq.data.db.entities.CategoryEntity {
+        val n = cat.name.lowercase().trim()
+        if (cat.parentId != null) {
+            when {
+                n.contains("food delivery") || n == "glovo" || n.contains("bolt food") || n.contains("uber eats") || n.contains("uklon food") ->
+                    return cat.copy(icon = "delivery", colorHex = "#FF6F00")
+                n.contains("кафе") || n.contains("cafe") || n.contains("кав'ярн") ->
+                    return cat.copy(icon = "coffee", colorHex = "#795548")
+                n.contains("ресторан") && n != "ресторація" ->
+                    return cat.copy(icon = "restaurant", colorHex = "#E53935")
+            }
         }
+        if (cat.icon == "category") {
+            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
+            return cat.copy(icon = icon, colorHex = color)
+        }
+        return when (cat.icon) {
+            "movie"  -> if (cat.colorHex != "#9C27B0") cat.copy(colorHex = "#9C27B0") else cat
+            "coffee" -> if (cat.colorHex != "#795548") cat.copy(colorHex = "#795548") else cat
+            else -> cat
+        }
+    }
+
+    private suspend fun importBackupData(data: BackupData) = withContext(Dispatchers.IO) {
+        val sanitizedCategories = data.categories.map { normalizeImportedCategory(it) }
         txDao.deleteAllTransactions()
         accountDao.deleteAllAccounts()
         categoryDao.deleteAllCategories()
@@ -369,12 +387,7 @@ class DataViewModel @Inject constructor(
     }
 
     private suspend fun mergeBackupData(data: BackupData) = withContext(Dispatchers.IO) {
-        val sanitizedCategories = data.categories.map { cat ->
-            if (cat.icon == "category") {
-                val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-                cat.copy(icon = icon, colorHex = color)
-            } else cat
-        }
+        val sanitizedCategories = data.categories.map { normalizeImportedCategory(it) }
         accountDao.insertAccounts(data.accounts)
         categoryDao.insertCategories(sanitizedCategories)
         txDao.insertTransactions(data.transactions)

@@ -74,8 +74,11 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "grocery"    to listOf("продукти", "продукт", "продовольч",
                                "атб", "сільпо", "фора", "новус"),
 
-        // Broad leisure/entertainment (дозвілля, розваги)
-        "theater"    to listOf("дозвілл", "розваг", "театр", "концерт", "шоу",
+        // Parties / celebrations (more specific than theater — must come before it)
+        "celebration" to listOf("розваг", "свят", "party", "праздн", "вечірк", "банкет"),
+
+        // Broad leisure/entertainment (дозвілля, театр)
+        "theater"    to listOf("дозвілл", "театр", "концерт", "шоу",
                                "entertainment", "festival", "відпочин"),
 
         // Cinema / movies specifically
@@ -106,9 +109,12 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         // Gas station (before car — more specific)
         "gas_station" to listOf("азс", "азц", "заправк", "wog", "okko", "socar", "brsm", "нафтан"),
 
-        // Transport (general)
-        "car"        to listOf("транспорт", "авто", "машин", "автомоб",
-                               "car", "автобус", "метро",
+        // Transport (general — bus/metro/public)
+        "bus"        to listOf("транспорт", "автобус", "метро", "маршрутк",
+                               "bus", "transit", "електричк", "трамвай", "тролейбус"),
+
+        // Car / auto (personal vehicle)
+        "car"        to listOf("авто", "машин", "автомоб", "car",
                                "паркінг", "бензин", "пальне"),
 
         // Home / utilities
@@ -127,9 +133,13 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         // Wellbeing (includes "здоров'я" — One Money's broad category name)
         "volunteer"  to listOf("здоров", "самопочутт"),
 
-        // Medical / hospital specifically
-        "health"     to listOf("медицин", "аптек", "лікар", "ліки",
-                               "health", "doctor", "клінік", "стоматолог"),
+        // Pharmacy / drugs — more specific, must come before doctor
+        "pharmacy"   to listOf("аптек", "ліки", "ліків", "pharmacy", "medication",
+                               "таблетк", "пігулк", "препарат"),
+
+        // Medical / hospital / clinic
+        "doctor"     to listOf("медицин", "лікар", "клінік", "стоматолог",
+                               "health", "doctor", "лікарн", "hospital"),
 
         // Travel / flights
         "flight"     to listOf("відпочин", "туризм", "відпустк", "перельот",
@@ -167,12 +177,18 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "theater"    to "#F73579",  // pink          — Дозвілля
         "celebration" to "#FF6D00", // orange        — Свято
         "spa"        to "#26A69A",  // teal-green    — Спа/Велнес
-        "car"        to "#FFA834",  // orange        — Транспорт
+        "bus"        to "#FFA834",  // orange        — Транспорт (публічний)
+        "car"        to "#FF7043",  // deep-orange   — Авто (особисте)
         "home"       to "#546E7A",  // blue-grey     — Комунальні
         "work"       to "#1565C0",  // dark-blue     — Зарплата/Робота
         "school"     to "#FF9800",  // orange        — Освіта
-        "volunteer"  to "#48B456",  // green         — Здоров'я
-        "health"     to "#43A047",  // green-dark    — Медицина
+        "volunteer"  to "#48B456",  // green         — Здоров'я (серце)
+        "pharmacy"   to "#43A047",  // green-dark    — Аптека (таблетки)
+        "doctor"     to "#D81B60",  // pink-red      — Лікар/Медицина
+        "health"     to "#C62828",  // red           — (legacy key)
+        "parking"    to "#78909C",  // blue-grey     — Паркінг
+        "key"        to "#9C27B0",  // purple        — Оренда
+        "laptop"     to "#26A69A",  // teal-green    — Фриланс
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
         "movie"      to "#9C27B0",  // purple        — Кіно
         "gaming"     to "#607D8B",  // blue-grey     — Gaming

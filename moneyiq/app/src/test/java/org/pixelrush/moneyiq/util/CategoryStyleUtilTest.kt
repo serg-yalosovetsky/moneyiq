@@ -21,9 +21,9 @@ class CategoryStyleUtilTest {
     }
 
     @Test
-    fun `транспорт returns car icon`() {
+    fun `транспорт returns bus icon`() {
         val (icon, _) = suggestCategoryStyle("транспорт", TransactionType.EXPENSE)
-        assertEquals("car", icon)
+        assertEquals("bus", icon)
     }
 
     @Test
@@ -63,9 +63,9 @@ class CategoryStyleUtilTest {
     }
 
     @Test
-    fun `аптека returns health icon`() {
+    fun `аптека returns pharmacy icon`() {
         val (icon, _) = suggestCategoryStyle("аптека", TransactionType.EXPENSE)
-        assertEquals("health", icon)
+        assertEquals("pharmacy", icon)
     }
 
     @Test
@@ -170,6 +170,6 @@ class CategoryStyleUtilTest {
     @Test
     fun `name with leading and trailing spaces is matched correctly`() {
         val (icon, _) = suggestCategoryStyle("  транспорт  ", TransactionType.EXPENSE)
-        assertEquals("car", icon)
+        assertEquals("bus", icon)
     }
 }
