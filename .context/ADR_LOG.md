@@ -94,7 +94,7 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 16):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 18):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
@@ -121,11 +121,13 @@ Root category icon keys must be semantically specific — not generic fallbacks.
 
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→16 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→18 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
 
 Migration 13→14: Deletes EXPENSE categories named "Фінанс*" — financial savings/investments are not expenses.
 Migration 14→15: Updates root category colors to match current design palette (more vibrant shades).
 Migration 15→16: Re-applies Ресторація subcategory icons using `LOWER(TRIM(name)) LIKE` matching (broader than exact equality) — fixes cases where user-edited names had leading/trailing spaces. SQL: `delivery #FF6F00` for food delivery variants; `coffee #795548` for кафе variants; `restaurant #E53935` for ресторан variants (excluding the root "ресторація").
+Migration 16→17: Same subcategory icon fixes with added `parentId IS NOT NULL` guard — prevents accidental updates to root categories with similar names.
+Migration 17→18: Fixes `iconColorMap` bugs in `CategoryStyleUtil` for any user-created categories — `coffee` was `#7B5947` (shopping's color, not coffee's `#795548`); `movie` was `#F73579` (theater's color, not movie's `#9C27B0`). Seeded categories were not affected (seed always had correct colors).
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 

@@ -143,6 +143,23 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Exact name matching for Ресторація subcategories (parentId IS NOT NULL = subcategory only)
+        database.execSQL("UPDATE categories SET icon = 'delivery', colorHex = '#FF6F00' WHERE parentId IS NOT NULL AND name IN ('Food delivery', 'food delivery', 'Food Delivery', 'Glovo', 'glovo', 'Bolt Food', 'Uber Eats')")
+        database.execSQL("UPDATE categories SET icon = 'coffee',   colorHex = '#795548' WHERE parentId IS NOT NULL AND (name = 'Кафе' OR name = 'кафе' OR name = 'Cafe' OR name = 'cafe')")
+        database.execSQL("UPDATE categories SET icon = 'restaurant', colorHex = '#E53935' WHERE parentId IS NOT NULL AND (name = 'Ресторани' OR name = 'ресторани' OR name = 'Ресторан' OR name = 'Restaurants')")
+    }
+}
+
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix iconColorMap bugs: coffee had shopping's color; movie had theater's color
+        database.execSQL("UPDATE categories SET colorHex = '#795548' WHERE icon = 'coffee' AND colorHex = '#7B5947'")
+        database.execSQL("UPDATE categories SET colorHex = '#9C27B0' WHERE icon = 'movie'  AND colorHex = '#F73579'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -158,12 +175,14 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_12_13,
     MIGRATION_13_14,
     MIGRATION_14_15,
-    MIGRATION_15_16
+    MIGRATION_15_16,
+    MIGRATION_16_17,
+    MIGRATION_17_18
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 16,
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -159,7 +159,7 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "devices"    to "#607D8B",  // blue-grey     — Електроніка
         "wifi"       to "#00BCD4",  // cyan          — Інтернет
         "phone"      to "#3F51B5",  // indigo        — Зв'язок
-        "coffee"     to "#7B5947",  // brown         — Кафе
+        "coffee"     to "#795548",  // brown         — Кафе
         "restaurant" to "#4659BE",  // blue          — Ресторація
         "shopping"   to "#7B5947",  // brown         — Покупки
         "taxi"        to "#FDD835",  // yellow        — Таксі
@@ -174,7 +174,7 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "volunteer"  to "#48B456",  // green         — Здоров'я
         "health"     to "#43A047",  // green-dark    — Медицина
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
-        "movie"      to "#F73579",  // pink          — Розваги/кіно
+        "movie"      to "#9C27B0",  // purple        — Кіно
         "gaming"     to "#607D8B",  // blue-grey     — Gaming
         "telegram"   to "#2196F3",  // blue          — Telegram
         "dating"     to "#E91E63",  // pink          — Dating
