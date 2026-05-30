@@ -15,7 +15,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── Unit tests ────────────────────────────────────────────────────────────────
+  # ── Unit tests (every push / PR) ─────────────────────────────────────────────
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -44,38 +44,7 @@ jobs:
           name: test-results
           path: moneyiq/app/build/reports/tests/
 
-  # ── Debug APK (every push to main) ───────────────────────────────────────────
-  build-debug:
-    name: Build Debug APK
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        working-directory: moneyiq
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: moneyiq-debug-${{ github.sha }}
-          path: moneyiq/app/build/outputs/apk/debug/*.apk
-          retention-days: 14
-
-  # ── Release APK + GitHub Release (on version tags) ───────────────────────────
+  # ── Release APK + GitHub Release (only on version tags v*.*.*) ───────────────
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -114,12 +83,6 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease --no-daemon
-
-      - name: Get version name
-        id: version
-        run: |
-          VERSION=$(./gradlew -q :app:printVersionName --no-daemon 2>/dev/null || echo "${{ github.ref_name }}")
-          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Rename APK
         run: |
