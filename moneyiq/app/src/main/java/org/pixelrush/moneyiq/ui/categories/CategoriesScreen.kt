@@ -243,6 +243,7 @@ private fun CategoryGridSlot(
     expandedId:        Long?,
     showChildBadge:    Boolean,
     isCompact:         Boolean,
+    inlineStripShown:  Boolean = false,
     onChipClick:       (CategoryEntity) -> Unit,
     onChipLongClick:   (CategoryEntity) -> Unit,
     onChipDoubleClick: (Long?) -> Unit
@@ -266,7 +267,8 @@ private fun CategoryGridSlot(
                 groupColorHex  = parentColors[category.id],
                 isCompact      = isCompact,
                 isExpanded     = category.id == expandedId,
-                budgetOverride = displayBudgets[category.id]
+                budgetOverride = displayBudgets[category.id],
+                flatBottom     = category.id == expandedId && inlineStripShown
             )
         }
     }
@@ -282,6 +284,7 @@ private fun CategoryGridRow(
     expandedId:        Long?,
     showChildBadge:    Boolean,
     isCompact:         Boolean,
+    inlineStripShown:  Boolean = false,
     onChipClick:       (CategoryEntity) -> Unit,
     onChipLongClick:   (CategoryEntity) -> Unit,
     onChipDoubleClick: (Long?) -> Unit,
@@ -294,16 +297,17 @@ private fun CategoryGridRow(
     ) {
         repeat(4) { i ->
             CategoryGridSlot(
-                category       = rowCats.getOrNull(i),
-                spending       = spending,
-                displayBudgets = displayBudgets,
-                childCounts    = childCounts,
-                parentColors   = parentColors,
-                expandedId     = expandedId,
-                showChildBadge = showChildBadge,
-                isCompact      = isCompact,
-                onChipClick    = onChipClick,
-                onChipLongClick = onChipLongClick,
+                category          = rowCats.getOrNull(i),
+                spending          = spending,
+                displayBudgets    = displayBudgets,
+                childCounts       = childCounts,
+                parentColors      = parentColors,
+                expandedId        = expandedId,
+                showChildBadge    = showChildBadge,
+                isCompact         = isCompact,
+                inlineStripShown  = inlineStripShown,
+                onChipClick       = onChipClick,
+                onChipLongClick   = onChipLongClick,
                 onChipDoubleClick = onChipDoubleClick
             )
         }
@@ -496,6 +500,10 @@ internal fun CategoriesGridContent(
         }
     } ?: emptyList()
 
+    val hasExpandedStrip = expandedCat != null && expandedChildren.isNotEmpty()
+    val topStripShown  = hasExpandedStrip && topRow.any  { it.id == expandedCat?.id }
+    val midStripShown  = hasExpandedStrip && (midLeft + midRight).any { it.id == expandedCat?.id }
+
     LazyColumn(
         modifier              = Modifier.fillMaxSize(),
         contentPadding        = PaddingValues(top = 8.dp, bottom = bottomPadding + 16.dp),
@@ -576,12 +584,13 @@ internal fun CategoriesGridContent(
                             expandedId        = expandedCategoryId,
                             showChildBadge    = true,
                             isCompact         = isCompact,
+                            inlineStripShown  = topStripShown,
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
                             modifier          = Modifier.height(chipHeight)
                         )
-                        if (expandedCat != null && topRow.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                        if (topStripShown) {
                             ExpandedCategoryStrip(
                                 parent           = expandedCat,
                                 children         = expandedChildren,
@@ -619,6 +628,7 @@ internal fun CategoriesGridContent(
                                         expandedId        = expandedCategoryId,
                                         showChildBadge    = true,
                                         isCompact         = isCompact,
+                                        inlineStripShown  = midStripShown,
                                         onChipClick       = onChipClick,
                                         onChipLongClick   = onChipLongClick,
                                         onChipDoubleClick = onChipDoubleClick
@@ -651,6 +661,7 @@ internal fun CategoriesGridContent(
                                         expandedId        = expandedCategoryId,
                                         showChildBadge    = true,
                                         isCompact         = isCompact,
+                                        inlineStripShown  = midStripShown,
                                         onChipClick       = onChipClick,
                                         onChipLongClick   = onChipLongClick,
                                         onChipDoubleClick = onChipDoubleClick
@@ -659,7 +670,7 @@ internal fun CategoriesGridContent(
                             }
                         }
                     }
-                    if (expandedCat != null && (midLeft + midRight).any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                    if (midStripShown) {
                         ExpandedCategoryStrip(
                             parent           = expandedCat,
                             children         = expandedChildren,
@@ -675,6 +686,7 @@ internal fun CategoriesGridContent(
 
             // ── Ext cats: remaining categories in rows of 4 ────────────────
             extCats.chunked(4).forEach { rowCats ->
+                val rowStripShown = hasExpandedStrip && rowCats.any { it.id == expandedCat?.id }
                 item(key = rowCats.firstOrNull()?.id) {
                     Column {
                         CategoryGridRow(
@@ -686,12 +698,13 @@ internal fun CategoriesGridContent(
                             expandedId        = expandedCategoryId,
                             showChildBadge    = true,
                             isCompact         = isCompact,
+                            inlineStripShown  = rowStripShown,
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
                             modifier          = Modifier.height(chipHeight)
                         )
-                        if (expandedCat != null && rowCats.any { it.id == expandedCat.id } && expandedChildren.isNotEmpty()) {
+                        if (rowStripShown) {
                             ExpandedCategoryStrip(
                                 parent           = expandedCat,
                                 children         = expandedChildren,

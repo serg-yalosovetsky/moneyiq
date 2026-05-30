@@ -615,12 +615,16 @@ private fun SavingsSectionCard(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        "збережено ${formatMoney(realSavings)} ₴",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (realSavings >= 0) savingsColor.copy(alpha = 0.8f)
-                                else negColor.copy(alpha = 0.8f)
-                    )
+                    if (incomeTotal > 0) {
+                        Text(
+                            "збережено ${formatMoney(realSavings)} ₴",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (realSavings >= 0) savingsColor.copy(alpha = 0.8f)
+                                    else negColor.copy(alpha = 0.8f)
+                        )
+                    } else {
+                        Spacer(Modifier.width(1.dp))
+                    }
                     if (hasForecast && expenseTotal > 0) {
                         Text(
                             "витрати до кінця ~${formatMoney(projectedExpenses)} ₴",
@@ -629,7 +633,7 @@ private fun SavingsSectionCard(
                         )
                     } else if (budgetSavings != 0.0 && incomeBudget > 0) {
                         Text(
-                            "в бюджеті ${formatMoney(budgetSavings)} ₴",
+                            "в бюджеті ${formatMoney(incomeBudget)} ₴",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )

@@ -32,7 +32,7 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
         val prodId   = dao.insertCategory(CategoryEntity(name = "Продукти",   type = E, colorHex = "#4AAFE8", icon = "grocery",    isDefault = true, sortOrder = 1))
         val restId   = dao.insertCategory(CategoryEntity(name = "Ресторація", type = E, colorHex = "#4659BE", icon = "restaurant", isDefault = true, sortOrder = 2))
         val dozId    = dao.insertCategory(CategoryEntity(name = "Дозвілля",   type = E, colorHex = "#F73579", icon = "theater",    isDefault = true, sortOrder = 3))
-        val transId  = dao.insertCategory(CategoryEntity(name = "Транспорт",  type = E, colorHex = "#FFA834", icon = "car",        isDefault = true, sortOrder = 4))
+        val transId  = dao.insertCategory(CategoryEntity(name = "Транспорт",  type = E, colorHex = "#FFA834", icon = "bus",        isDefault = true, sortOrder = 4))
         val healthId = dao.insertCategory(CategoryEntity(name = "Здоров'я",   type = E, colorHex = "#48B456", icon = "volunteer",  isDefault = true, sortOrder = 5))
         val giftId   = dao.insertCategory(CategoryEntity(name = "Подарунки",  type = E, colorHex = "#F34B4D", icon = "gift",       isDefault = true, sortOrder = 6))
         val familyId = dao.insertCategory(CategoryEntity(name = "Сім'я",      type = E, colorHex = "#7A48F2", icon = "family",     isDefault = true, sortOrder = 7))
@@ -52,15 +52,15 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
             CategoryEntity(name = "Хобі",         type = E, colorHex = "#5C6BC0", icon = "school",     parentId = dozId,    sortOrder = 3),
             CategoryEntity(name = "Спорт",        type = E, colorHex = "#F44336", icon = "sports",     parentId = dozId,    sortOrder = 4),
             // Транспорт
-            CategoryEntity(name = "Таксі",        type = E, colorHex = "#FDD835", icon = "taxi",       parentId = transId,  sortOrder = 1),
-            CategoryEntity(name = "Паркінг",      type = E, colorHex = "#78909C", icon = "car",        parentId = transId,  sortOrder = 2),
-            CategoryEntity(name = "Пальне",       type = E, colorHex = "#FF8F00", icon = "car",        parentId = transId,  sortOrder = 3),
+            CategoryEntity(name = "Таксі",        type = E, colorHex = "#FDD835", icon = "taxi",        parentId = transId,  sortOrder = 1),
+            CategoryEntity(name = "Паркінг",      type = E, colorHex = "#78909C", icon = "parking",    parentId = transId,  sortOrder = 2),
+            CategoryEntity(name = "Пальне",       type = E, colorHex = "#FF8F00", icon = "gas_station", parentId = transId, sortOrder = 3),
             // Здоров'я
-            CategoryEntity(name = "Аптека",       type = E, colorHex = "#43A047", icon = "health",     parentId = healthId, sortOrder = 1),
-            CategoryEntity(name = "Лікар",        type = E, colorHex = "#D81B60", icon = "health",     parentId = healthId, sortOrder = 2),
+            CategoryEntity(name = "Аптека",       type = E, colorHex = "#43A047", icon = "pharmacy",   parentId = healthId, sortOrder = 1),
+            CategoryEntity(name = "Лікар",        type = E, colorHex = "#D81B60", icon = "doctor",     parentId = healthId, sortOrder = 2),
             // Сім'я
             CategoryEntity(name = "Комуналка",    type = E, colorHex = "#546E7A", icon = "home",       parentId = familyId, sortOrder = 1),
-            CategoryEntity(name = "Оренда",       type = E, colorHex = "#9C27B0", icon = "home",       parentId = familyId, sortOrder = 2),
+            CategoryEntity(name = "Оренда",       type = E, colorHex = "#9C27B0", icon = "key",        parentId = familyId, sortOrder = 2),
             CategoryEntity(name = "Зв'язок",      type = E, colorHex = "#3F51B5", icon = "phone",      parentId = familyId, sortOrder = 3),
             CategoryEntity(name = "Інтернет",     type = E, colorHex = "#00BCD4", icon = "wifi",       parentId = familyId, sortOrder = 4),
             // Покупки
@@ -73,7 +73,7 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
         // ── Доходи ───────────────────────────────────────────────────────────
         dao.insertCategories(listOf(
             CategoryEntity(name = "Зарплата", type = I, colorHex = "#4CAF50", icon = "work",     isDefault = true, sortOrder = 1),
-            CategoryEntity(name = "Фриланс",  type = I, colorHex = "#26A69A", icon = "work",     isDefault = true, sortOrder = 2),
+            CategoryEntity(name = "Фриланс",  type = I, colorHex = "#26A69A", icon = "laptop",   isDefault = true, sortOrder = 2),
             CategoryEntity(name = "Інше",     type = I, colorHex = "#78909C", icon = "category", isDefault = true, sortOrder = 3),
         ))
     }

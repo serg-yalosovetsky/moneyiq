@@ -50,7 +50,8 @@ internal fun CategoryChip(
     groupColorHex:  String? = null,
     isCompact:      Boolean = false,
     isExpanded:     Boolean = false,
-    budgetOverride: Double? = null
+    budgetOverride: Double? = null,
+    flatBottom:     Boolean = false
 ) {
     val chipW      = if (isCompact) CHIP_WIDTH_COMPACT   else CHIP_WIDTH
     val chipH      = if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT
@@ -85,7 +86,10 @@ internal fun CategoryChip(
             .size(width = chipW, height = chipH)
             .let { m ->
                 when {
-                    isExpanded  -> m.clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.12f))
+                    isExpanded  -> m.clip(
+                        if (flatBottom) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                        else RoundedCornerShape(12.dp)
+                    ).background(color.copy(alpha = 0.12f))
                     groupBg != null -> m.clip(RoundedCornerShape(12.dp)).background(groupBg)
                     else -> m
                 }
