@@ -156,7 +156,7 @@ class CategoryStyleUtilTest {
     @Test
     fun `кафе returns brown color`() {
         val (_, color) = suggestCategoryStyle("кафе", TransactionType.EXPENSE)
-        assertEquals("#7B5947", color)
+        assertEquals("#795548", color)
     }
 
     @Test
