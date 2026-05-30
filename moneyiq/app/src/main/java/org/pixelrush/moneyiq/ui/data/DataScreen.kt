@@ -276,7 +276,7 @@ fun DataScreen(
                             }
                             if (state.driveLastBackupMs > 0L) {
                                 Spacer(Modifier.height(4.dp))
-                                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+                                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
                                 Text(
                                     "Останній бекап: ${fmt.format(Date(state.driveLastBackupMs))}",
                                     style = MaterialTheme.typography.bodySmall,
@@ -459,7 +459,7 @@ fun DataScreen(
                 tint = MaterialTheme.colorScheme.primary) },
             title = { Text("Відновити з Drive?") },
             text = {
-                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
                 Text("Відновити резервну копію:\n${entry.name}\n" +
                      "(${fmt.format(Date(entry.modifiedMs))})\n\n" +
                      "Поточні дані будуть замінені.")

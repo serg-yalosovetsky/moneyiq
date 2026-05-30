@@ -3,6 +3,7 @@ package org.pixelrush.moneyiq.ui.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import org.pixelrush.moneyiq.data.db.dao.CategorySpending
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
@@ -19,6 +20,7 @@ data class ReportsUiState(
     val expenseByCategory: List<CategorySpending> = emptyList()
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
     private val txRepo: TransactionRepository

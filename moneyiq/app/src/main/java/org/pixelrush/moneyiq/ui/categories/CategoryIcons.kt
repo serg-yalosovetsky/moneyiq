@@ -1,6 +1,7 @@
 package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -22,6 +23,7 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "shopping"   to Icons.Outlined.ShoppingCart,
     "restaurant" to Icons.Outlined.Restaurant,
     "car"        to Icons.Outlined.DirectionsCar,
+    "bus"        to Icons.Outlined.DirectionsBus,
     "taxi"       to Icons.Outlined.LocalTaxi,
     "gas_station" to Icons.Outlined.LocalGasStation,
     "home"       to Icons.Outlined.Home,
@@ -32,7 +34,7 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "music"      to Icons.Outlined.MusicNote,
     "movie"      to Icons.Outlined.Movie,
     "gaming"     to Icons.Outlined.SportsEsports,
-    "telegram"   to Icons.Outlined.Send,
+    "telegram"   to Icons.AutoMirrored.Outlined.Send,
     "dating"     to Icons.Outlined.Favorite,
     "money"      to Icons.Outlined.AttachMoney,
     "coffee"     to Icons.Outlined.LocalCafe,

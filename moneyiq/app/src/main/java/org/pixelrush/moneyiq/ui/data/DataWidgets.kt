@@ -32,7 +32,7 @@ internal fun MonoFlowSyncCard(
     viewModel: DataViewModel
 ) {
     val scope = rememberCoroutineScope()
-    val fmt   = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale("uk")) }
+    val fmt   = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.forLanguageTag("uk")) }
 
     // Локальні поля введення
     var editUrl   by remember(state.monoflowUrl)   { mutableStateOf(state.monoflowUrl)   }
@@ -222,7 +222,7 @@ internal fun DriveBackupItem(
     entry: DriveBackupEntry,
     onRestore: () -> Unit
 ) {
-    val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale("uk")) }
+    val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
     val size = when {
         entry.sizeBytes < 1024        -> "${entry.sizeBytes} Б"
         entry.sizeBytes < 1024 * 1024 -> "${entry.sizeBytes / 1024} КБ"
@@ -248,7 +248,7 @@ internal fun DriveBackupItem(
 
 @Composable
 internal fun LocalBackupItem(backup: BackupEntry) {
-    val fmt    = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale("uk")) }
+    val fmt    = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale.forLanguageTag("uk")) }
     val txLbl  = pluralUk(backup.txCount,      "операція",  "операції",  "операцій")
     val accLbl = pluralUk(backup.accountCount,  "рахунок",   "рахунки",   "рахунків")
     val catLbl = pluralUk(backup.categoryCount, "категорія", "категорії", "категорій")

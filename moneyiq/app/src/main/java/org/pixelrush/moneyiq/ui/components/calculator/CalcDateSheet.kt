@@ -29,7 +29,7 @@ import java.util.*
 fun txDateLabelPublic(date: Long): String = txDateLabel(date)
 
 internal fun txDateLabel(date: Long): String {
-    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale("uk"))
+    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale.forLanguageTag("uk"))
     val cal  = Calendar.getInstance().apply { timeInMillis = date }
     val now  = Calendar.getInstance()
     val yest = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
@@ -107,7 +107,7 @@ fun CalcDateSheet(
         Calendar.getInstance().apply { timeInMillis = currentDate },
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
     )
-    val dFmt = SimpleDateFormat("d MMMM", Locale("uk"))
+    val dFmt = SimpleDateFormat("d MMMM", Locale.forLanguageTag("uk"))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

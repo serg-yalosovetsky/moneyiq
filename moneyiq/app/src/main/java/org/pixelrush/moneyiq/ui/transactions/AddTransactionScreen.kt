@@ -340,7 +340,7 @@ fun AddTransactionScreen(
 }
 
 private fun formatTxDate(date: Long): String {
-    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale("uk"))
+    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale.forLanguageTag("uk"))
     val cal  = Calendar.getInstance().apply { timeInMillis = date }
     val now  = Calendar.getInstance()
     val yest = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }

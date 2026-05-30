@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -103,7 +104,7 @@ internal fun TxSearchScreen(
                         modifier      = Modifier.fillMaxWidth(),
                         singleLine    = true,
                         leadingIcon   = {
-                            Icon(Icons.Default.Notes, null,
+                            Icon(Icons.AutoMirrored.Filled.Notes, null,
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         },
                         trailingIcon  = if (query.isNotEmpty()) {{

@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -76,7 +78,7 @@ val ACCOUNT_ICONS: List<AccountIconInfo> = listOf(
     AccountIconInfo("two_wheeler",            Icons.Outlined.TwoWheeler),
     AccountIconInfo("local_gas_station",      Icons.Outlined.LocalGasStation),
     AccountIconInfo("local_parking",          Icons.Outlined.LocalParking),
-    AccountIconInfo("directions_bike",        Icons.Outlined.DirectionsBike),
+    AccountIconInfo("directions_bike",        Icons.AutoMirrored.Outlined.DirectionsBike),
     AccountIconInfo("commute",                Icons.Outlined.Commute),
     AccountIconInfo("electric_car",           Icons.Outlined.ElectricCar),
     // Food & Drink
@@ -140,7 +142,7 @@ val ACCOUNT_ICONS: List<AccountIconInfo> = listOf(
     AccountIconInfo("science",                Icons.Outlined.Science),
     AccountIconInfo("laptop",                 Icons.Outlined.Laptop),
     AccountIconInfo("computer",               Icons.Outlined.Computer),
-    AccountIconInfo("menu_book",              Icons.Outlined.MenuBook),
+    AccountIconInfo("menu_book",              Icons.AutoMirrored.Outlined.MenuBook),
     AccountIconInfo("create",                 Icons.Outlined.Create),
     AccountIconInfo("history_edu",            Icons.Outlined.HistoryEdu),
     AccountIconInfo("calculate",              Icons.Outlined.Calculate),

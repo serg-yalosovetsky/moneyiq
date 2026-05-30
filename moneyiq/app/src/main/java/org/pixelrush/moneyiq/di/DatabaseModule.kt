@@ -23,7 +23,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "moneyiq.db")
             .addMigrations(*ALL_MIGRATIONS)
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
     @Provides fun provideAccountDao(db: AppDatabase): AccountDao = db.accountDao()
