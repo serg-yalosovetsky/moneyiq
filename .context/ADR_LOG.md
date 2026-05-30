@@ -94,18 +94,18 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 12):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 15):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
-| Продукти       | `grocery`     | `ShoppingBasket`        | `#03A9F4`  |
-| Ресторація     | `restaurant`  | `Restaurant`            | `#5C6BC0`  |
-| Дозвілля       | `theater`     | `TheaterComedy`         | `#7B1FA2`  |
-| Транспорт      | `car`         | `DirectionsCar`         | `#00897B`  |
-| Здоров'я       | `volunteer`   | `VolunteerActivism`     | `#4CAF50`  |
-| Подарунки      | `gift`        | `CardGiftcard`          | `#F44336`  |
-| Сім'я          | `family`      | `FamilyRestroom`        | `#673AB7`  |
-| Покупки        | `shopping`    | `ShoppingCart`          | `#795548`  |
+| Продукти       | `grocery`     | `ShoppingBasket`        | `#4AAFE8`  |
+| Ресторація     | `restaurant`  | `Restaurant`            | `#4659BE`  |
+| Дозвілля       | `theater`     | `TheaterComedy`         | `#F73579`  |
+| Транспорт      | `car`         | `DirectionsCar`         | `#FFA834`  |
+| Здоров'я       | `volunteer`   | `VolunteerActivism`     | `#48B456`  |
+| Подарунки      | `gift`        | `CardGiftcard`          | `#F34B4D`  |
+| Сім'я          | `family`      | `FamilyRestroom`        | `#7A48F2`  |
+| Покупки        | `shopping`    | `ShoppingCart`          | `#7B5947`  |
 | Робота         | `work`        | `Work`                  | `#1565C0`  |
 | Таксі          | `taxi`        | `LocalTaxi`             | `#FDD835`  |
 | АЗС/Пальне     | `gas_station` | `LocalGasStation`       | `#FF8F00`  |
@@ -121,7 +121,10 @@ Root category icon keys must be semantically specific — not generic fallbacks.
 
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→13 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→15 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+
+Migration 13→14: Deletes EXPENSE categories named "Фінанс*" — financial savings/investments are not expenses.
+Migration 14→15: Updates root category colors to match current design palette (more vibrant shades).
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 
@@ -157,8 +160,39 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 
 Also update: DB `version` in `@Database`, `addMigrations(...)` in `DatabaseModule.kt`, seed in `CategoryRepository`, auto-suggest rule in `CategoryStyleUtil`, and the icon table in `UI_CONTRACTS.md`.
 
-## ADR-019: No `graphicsLayer { clip = false }` On Dialog Siblings
+## ADR-021: LazyColumn Spacing Via `verticalArrangement`, Not Item Padding
+
+Never use `Modifier.height(N).padding(bottom = K)` on chip row items inside a `LazyColumn`. In Compose, `padding` inside a `height` constraint subtracts from the content area — 12dp of bottom padding on a 136dp row leaves only 124dp for content, clipping the spending text at the bottom of each chip.
+
+**Rule:** Use `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))` for inter-row spacing. Individual row items use only `Modifier.height(chipHeight)` — no bottom padding.
+
+This applies to `CategoriesGridContent` and any future screen that places fixed-height chip rows in a `LazyColumn`.
+
+## ADR-022: Category Filter In Transactions Includes Children
+
+When a root category is selected as a filter in `TransactionsListScreen`, the filter expands to include all direct child categories. This means selecting "Ресторація" also shows transactions from "Glovo", "Ресторани", "Кафе".
+
+Implementation in `filteredTransactions` inside `TransactionsListScreen.kt`:
+```kotlin
+val allCats = state.expenseCategories + state.incomeCategories
+val expandedCatIds = if (filterCategoryIds.isEmpty()) emptySet<Long>() else {
+    filterCategoryIds + allCats.filter { it.parentId in filterCategoryIds }.map { it.id }.toSet()
+}
+```
+`remember` keys include `state.expenseCategories` and `state.incomeCategories` to recompute when categories change.
+
+**Rule:** Do not change this to a DAO-level filter without ensuring child IDs are also fetched. The expansion is one level deep (grandchildren are not included).
+
+## ADR-023: No `graphicsLayer { clip = false }` On Dialog Siblings
 
 `graphicsLayer { clip = false }` forces a hardware layer on the composable. Android composites such layers above `Dialog` windows regardless of Compose z-ordering — any composable using this modifier will render visually above `CategoryActionSheet` or similar dialogs, breaking the scrim.
 
 **Rule:** Do not apply `graphicsLayer { clip = false }` (or any `graphicsLayer { ... }` block that sets `clip = false`) to composables that are siblings of, or ancestors of composables that launch, `Dialog` calls. If content genuinely needs to overflow its clip boundary alongside dialogs, place it in a full-screen root-level overlay `Box` instead.
+
+## ADR-024: AddCategoryChip Must Be A Standalone Centered Item
+
+The `+` (add category) chip must be placed as a dedicated `item(key="add_btn")` in the `LazyColumn` with `Arrangement.Center`. It must never be embedded inside a `[chip | + | chip]` row — that visual pattern misleads users into thinking the + is part of the category grid.
+
+Current dimensions: `Column(width=64dp)`, circle `Box(44dp)`, icon `18dp`.
+
+`DONUT_SECTION_HEIGHT` is sized to exactly 2 mid-column chips: `CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP`. This ensures the + button appears directly below the donut without extra blank space.

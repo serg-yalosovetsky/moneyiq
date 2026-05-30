@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.pixelrush.moneyiq.BuildConfig
 
 private val Context.settingsDataStore by preferencesDataStore(name = "app_settings")
 
@@ -98,8 +99,10 @@ class SettingsRepository @Inject constructor(
             driveBackupFolderUri   = p[KEY_DRIVE_BACKUP_FOLDER_URI] ?: "",
             driveBackupEnabled     = p[KEY_DRIVE_BACKUP_ENABLED] ?: false,
             driveBackupLastDate    = p[KEY_DRIVE_BACKUP_LAST_DATE] ?: 0L,
-            monoflowUrl            = p[KEY_MONOFLOW_URL] ?: "",
-            monoflowToken          = p[KEY_MONOFLOW_TOKEN] ?: "",
+            monoflowUrl            = p[KEY_MONOFLOW_URL]?.takeIf { it.isNotBlank() }
+                                        ?: if (BuildConfig.DEBUG) BuildConfig.DEBUG_MONOFLOW_URL else "",
+            monoflowToken          = p[KEY_MONOFLOW_TOKEN]?.takeIf { it.isNotBlank() }
+                                        ?: if (BuildConfig.DEBUG) BuildConfig.DEBUG_MONOFLOW_TOKEN else "",
             monoflowAutoSync       = p[KEY_MONOFLOW_AUTO_SYNC] ?: false,
             monoflowLastSyncMs     = p[KEY_MONOFLOW_LAST_SYNC] ?: 0L
         )

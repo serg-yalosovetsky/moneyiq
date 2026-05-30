@@ -134,6 +134,15 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Re-apply Ресторація subcategory icons with broader matching (TRIM + LIKE)
+        database.execSQL("UPDATE categories SET icon = 'delivery', colorHex = '#FF6F00' WHERE LOWER(TRIM(name)) LIKE '%food delivery%' OR LOWER(TRIM(name)) = 'glovo' OR LOWER(TRIM(name)) LIKE '%bolt food%' OR LOWER(TRIM(name)) LIKE '%uber eats%'")
+        database.execSQL("UPDATE categories SET icon = 'coffee',   colorHex = '#795548' WHERE LOWER(TRIM(name)) LIKE '%кафе%' OR LOWER(TRIM(name)) LIKE '%cafe%' OR LOWER(TRIM(name)) LIKE '%кав''ярн%'")
+        database.execSQL("UPDATE categories SET icon = 'restaurant', colorHex = '#E53935' WHERE LOWER(TRIM(name)) LIKE '%ресторан%' AND LOWER(TRIM(name)) != 'ресторація'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -148,12 +157,13 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_11_12,
     MIGRATION_12_13,
     MIGRATION_13_14,
-    MIGRATION_14_15
+    MIGRATION_14_15,
+    MIGRATION_15_16
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

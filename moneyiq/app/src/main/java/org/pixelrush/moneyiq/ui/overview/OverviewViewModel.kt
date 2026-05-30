@@ -74,9 +74,10 @@ data class OverviewUiState(
     val todayAmount:        Double               = 0.0,
     val weekAmount:         Double               = 0.0,
     val dayBars:            List<DayBar>         = emptyList(),
-    val categories:         List<OverviewCatRow> = emptyList(),
-    val totalExpenseBudget: Double               = 0.0,
-    val totalIncomeBudget:  Double               = 0.0
+    val categories:         List<OverviewCatRow>          = emptyList(),
+    val transactions:       List<TransactionWithDetails>  = emptyList(),
+    val totalExpenseBudget: Double                        = 0.0,
+    val totalIncomeBudget:  Double                        = 0.0
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -213,6 +214,7 @@ class OverviewViewModel @Inject constructor(
             weekAmount         = weekAmount,
             dayBars            = dayBars,
             categories         = catRows,
+            transactions       = monoTx,
             totalExpenseBudget = data.expCats.sumOf { it.budgetAmount },
             totalIncomeBudget  = data.incCats.sumOf { it.budgetAmount }
         )

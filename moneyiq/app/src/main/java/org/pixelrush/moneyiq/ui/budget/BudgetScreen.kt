@@ -76,8 +76,8 @@ fun BudgetScreen(
         )
 
         LazyColumn(
-            modifier       = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp)
+            modifier       = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 8.dp)
         ) {
             item {
                 BudgetSectionCard(
@@ -104,19 +104,17 @@ fun BudgetScreen(
                     onUpdateBudget      = viewModel::updateCategoryBudget
                 )
             }
-            item { Spacer(Modifier.height(8.dp)) }
-            item {
-                IncomeBudgetBar(
-                    incomeSection  = state.incomeSection,
-                    expenseTotal   = state.expenseSection.totalAmount,
-                    onClick = {
-                        val row = state.incomeSection.rows.firstOrNull { it.category.budgetAmount == 0.0 }
-                            ?: state.incomeSection.rows.firstOrNull()
-                        incomeBudgetRow = row
-                    }
-                )
-            }
         }
+        IncomeBudgetBar(
+            incomeSection = state.incomeSection,
+            expenseTotal  = state.expenseSection.totalAmount,
+            onClick = {
+                val row = state.incomeSection.rows.firstOrNull { it.category.budgetAmount == 0.0 }
+                    ?: state.incomeSection.rows.firstOrNull()
+                incomeBudgetRow = row
+            },
+            modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
+        )
     }
 
     incomeBudgetRow?.let { row ->
@@ -590,7 +588,8 @@ private fun SavingsSectionCard() {
 private fun IncomeBudgetBar(
     incomeSection: BudgetSectionData,
     expenseTotal:  Double,
-    onClick:       () -> Unit
+    onClick:       () -> Unit,
+    modifier:      Modifier = Modifier
 ) {
     val hasBudget     = incomeSection.totalBudget > 0.0
     val hasCategories = incomeSection.rows.isNotEmpty()
@@ -598,7 +597,7 @@ private fun IncomeBudgetBar(
     val overspendColor = Color(0xFFD81B60)
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(if (!hasBudget && hasCategories) Modifier.clickable(onClick = onClick) else Modifier),
         color = if (hasBudget && overspend > 0)

@@ -19,20 +19,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.components.dialogs.ConfirmationDialog
-import org.pixelrush.moneyiq.ui.components.dialogs.TextInputDialog
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
 
@@ -58,14 +65,15 @@ fun CategoryFormSheet(
     var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
     var archived by remember { mutableStateOf(existing?.archived ?: false) }
 
-    var showNameDialog    by remember { mutableStateOf(false) }
     var showIconPicker    by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showBudgetCalc    by remember { mutableStateOf(false) }
+    val nameFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
-    // Для нової категорії — одразу відкриваємо введення назви
+    // Для нової категорії — авто-фокус на полі назви
     LaunchedEffect(Unit) {
-        if (existing == null) showNameDialog = true
+        if (existing == null) nameFocusRequester.requestFocus()
     }
 
     // Авто-підказка стилю при введенні назви нової категорії
@@ -134,14 +142,30 @@ fun CategoryFormSheet(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                             )
                             Spacer(Modifier.height(6.dp))
-                            Text(
-                                text  = name.ifBlank { "Торкніться для введення" },
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (name.isBlank())
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                                        else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.clickable { showNameDialog = true }
+                            BasicTextField(
+                                value          = name,
+                                onValueChange  = { name = it },
+                                textStyle      = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color      = MaterialTheme.colorScheme.onSurface
+                                ),
+                                cursorBrush    = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine     = true,
+                                keyboardOptions   = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions   = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier       = Modifier.fillMaxWidth().focusRequester(nameFocusRequester),
+                                decorationBox  = { inner ->
+                                    Box {
+                                        if (name.isBlank()) {
+                                            Text(
+                                                "Введіть назву",
+                                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                            )
+                                        }
+                                        inner()
+                                    }
+                                }
                             )
                         }
                         // Велика кольорова іконка праворуч
@@ -307,18 +331,6 @@ fun CategoryFormSheet(
                 }
             }
         }
-    }
-
-    // ── Діалог назви ─────────────────────────────────────────────────────────
-    if (showNameDialog) {
-        TextInputDialog(
-            title        = if (existing != null) "Назва категорії" else "Нова категорія",
-            label        = "Назва",
-            initialValue = name,
-            allowDismiss = name.isNotBlank(),
-            onConfirm    = { name = it; showNameDialog = false },
-            onDismiss    = { showNameDialog = false }
-        )
     }
 
     // ── Пікер кольору та іконки ───────────────────────────────────────────────

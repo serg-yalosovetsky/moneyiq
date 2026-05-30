@@ -132,13 +132,15 @@ fun MainScreen(
         return
     }
 
-    // Жест «назад» — повертаємося на вкладку «Операції» (індекс 2), звідти — виходимо з додатку
+    // Жест «назад» — повертаємося на головну вкладку (налаштовується), звідти — виходимо з додатку
+    val homeTabIndex   = activeTabs.indexOfFirst { it.label == settings.homeScreen.label }
+        .takeIf { it >= 0 } ?: 0
     val txTabIndex     = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
     val budgetTabIndex = activeTabs.indexOfFirst { it.label == "Бюджет"   }.takeIf { it >= 0 } ?: -1
     val goBack: () -> Unit = {
-        if (currentPage != txTabIndex) scope.launch { pagerState.animateScrollToPage(txTabIndex) }
+        if (currentPage != homeTabIndex) scope.launch { pagerState.animateScrollToPage(homeTabIndex) }
     }
-    BackHandler(enabled = currentPage != txTabIndex) { goBack() }
+    BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
 
     ModalNavigationDrawer(
         drawerState     = drawerState,

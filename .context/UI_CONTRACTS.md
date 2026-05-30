@@ -37,21 +37,21 @@ The categories screen (`CategoriesScreen.kt`) is a high-sensitivity 1Money-like 
 ### Chip Dimensions (CRITICAL — do not change without audit)
 
 ```
-CHIP_WIDTH           = 86.dp
-CHIP_HEIGHT          = 124.dp   // must stay ≥120dp; clipping hides spending text
-CHIP_CIRCLE_SIZE     = 48.dp
-CHIP_WIDTH_COMPACT   = 74.dp
-CHIP_HEIGHT_COMPACT  = 108.dp
-CHIP_CIRCLE_COMPACT  = 40.dp
+CHIP_WIDTH              = 116.dp
+CHIP_HEIGHT             = 136.dp   // must stay ≥136dp; reducing clips spending text
+CHIP_CIRCLE_SIZE        = 60.dp
+CHIP_WIDTH_COMPACT      = 82.dp
+CHIP_HEIGHT_COMPACT     = 112.dp
+CHIP_CIRCLE_COMPACT     = 40.dp
+CATEGORY_VERTICAL_GAP   = 8.dp
+DONUT_SECTION_HEIGHT     = CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP  // = 280dp (2 chips + gap)
+SUBCATEGORY_PANEL_WIDTH  = 150.dp
+SUBCATEGORY_PANEL_HEIGHT = 76.dp
 ```
 
-Chip content height budget: name (28–40dp, wrap) + 11dp (budget or spacer) + 3dp + 48dp (icon circle) + 3dp + 12dp (spending) ≈ 105–117dp. CHIP_HEIGHT=124dp gives 120dp available after 4dp padding — sufficient for 2-line names at normal font scale.
+**CRITICAL spacing rule**: Never use `Modifier.height(N).padding(bottom = K)` on chip rows — padding inside a height constraint subtracts from content area and clips the spending text. Use `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))` for inter-row spacing and `Modifier.height(chipHeight)` on rows without bottom padding.
 
-The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, max=32.dp`), not a fixed height. Available text width = chipWidth − 4dp (2dp padding each side): 82dp normal, 70dp compact.
-
-If you reduce CHIP_HEIGHT below 120dp: the spending amount text at the bottom is clipped at any font scale > 1.0.
-
-CHIP_WIDTH/COMPACT were widened from 82/70 → 86/74dp to prevent "Ресторація" and "Транспорт" from wrapping at system font scale > 1.0. On 360dp screen with 8dp row padding: 4 × 86dp = 344dp = exact fill (SpaceBetween gives 0dp gaps). Do NOT exceed 86dp without auditing 360dp screens.
+The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, max=32.dp`), not a fixed height.
 
 ### Chip Visual Logic
 
@@ -92,16 +92,34 @@ allCategoriesForTab.filter { it.parentId != null }.forEach { child ->
 
 This happens inside `CategoriesGridContent`, NOT in the ViewModel.
 
-### Donut Chart Layout
+### Donut Chart Layout (1Money-style, as of 2026-05-30)
 
 - Always shows both expense (crimson) and income (teal) rings simultaneously
-- Donut center taps toggle `selectedTab` (EXPENSE/INCOME), which filters the chip grid below
-- `DONUT_SECTION_HEIGHT = 360.dp`; `SIDE_COLUMN_WIDTH = 90.dp` (constant kept, no longer drives layout)
-- **Category slot assignment** (collapsed mode, sorted by spending desc):
-  - Top row: positions 1–4 (`display[0..3]`), `Arrangement.SpaceBetween`, full screen width
-  - Donut: always full-width `Box(height = DONUT_SECTION_HEIGHT)` — no side columns
-  - Categories 5+ appear in rows of 4 below the donut (`extCats = display.drop(4)`)
-- Previously (before 2026-05-29) positions 5–10 flanked the donut in side columns; removed in favour of the full-width donut + grid-below layout
+- Donut center taps toggle `selectedTab` (EXPENSE/INCOME), which filters the chip grid
+- **All chips are the same size** — side column chips use the same `isCompact` value as top/bottom rows. No separate compact sizing for mid-section chips.
+- **Category slot assignment** (collapsed mode, `showSubcategories = false`, sorted by spending desc):
+
+```
+[0]     [1]      [2]      [3]     ← topRow (4 chips, SpaceBetween)
+[4]  [ DONUT (280dp) ]  [6]       ← mid rows 1-2: chipW col | donut | chipW col
+[5]  [               ]  [7]
+[8]  [      +        ]  [9]       ← mid row 3: midLeft3 | AddCategoryChip | midRight3
+[10]   [11]   [12]   [13]         ← extCats = display.drop(10), rows of 4
+...
+```
+
+- `topRow    = display.take(4)`
+- `midLeft   = [display[4], display[5]]` — left column beside donut, `Column(width=chipW, spacedBy=CATEGORY_VERTICAL_GAP)`
+- `midRight  = [display[6], display[7]]` — right column beside donut
+- `midLeft3  = display.getOrNull(8)` — 3rd left chip (Дозвілля-level), in `item(key="mid3_row")`
+- `midRight3 = display.getOrNull(9)` — 3rd right chip (Транспорт-level), same row as midLeft3
+- `extCats   = display.drop(10)` — remaining in rows of 4
+- Mid section: `Row { Column(chipW){ midLeft } + DonutChart(weight=1f, h=DONUT_SECTION_HEIGHT) + Column(chipW){ midRight } }`
+- Mid row 3: `Row(SpaceBetween, height=chipHeight, paddingTop=4dp) { Box(chipW){midLeft3} + Box(weight=1f, Center){AddCategoryChip} + Box(chipW){midRight3} }`
+- `DONUT_SECTION_HEIGHT = CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP` = **280dp**
+- `CATEGORY_VERTICAL_GAP = 8dp` — spacing between chips in side columns and between all grid rows
+
+**Subcategory mode** (`showSubcategories = true`): full-width donut at top, all categories in rows of 4 below.
 ### Expanded Subcategory Strip (`ExpandedCategoryStrip`)
 
 Shown below the row that contains the double-clicked parent chip.
@@ -111,11 +129,11 @@ Shown below the row that contains the double-clicked parent chip.
 - Only children with `spending > 0` appear (zero-amount subcategories filtered out)
 - Child icon circles: 44dp; icon 22dp; name 10sp; card background: parent color 8% alpha
 
-### Inline Subcategory Panel (`SideSubcategoryPanel`) — Removed 2026-05-29
+### Inline Subcategory Panel (`SideSubcategoryPanel`) — Dead Code
 
-`SideSubcategoryPanel` and the side-column layout were removed when the donut was made full-width.
-The composable still exists in `CategoriesWidgets.kt` but is no longer called from `CategoriesScreen.kt`.
-Historical bug-fix notes about this panel are preserved in `bug_fixes.md` for reference.
+`SideSubcategoryPanel` (in `CategoriesWidgets.kt`) and the wrapper functions `LocalSubcategoryPanel`/`TopSubcategoryPanelRow` (in `CategoriesScreen.kt`) exist in the codebase but `TopSubcategoryPanelRow` is never called — this code path is inactive. Active subcategory expansion uses `ExpandedCategoryStrip` instead.
+
+The mid-section **chip columns** (`midLeft`/`midRight`) flanking the donut are the current design and remain active.
 
 ### Same-Name Subcategory Deduplication
 
@@ -161,31 +179,31 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 | `phone` | `#3F51B5` indigo | зв'язок, мобільн, lifecell, kyivstar |
 | `beauty` | `#AD1457` dark-pink | краса, салон, манікюр, спа |
 | `clothes` | `#00838F` dark-cyan | одяг, взуття, fashion |
-| `family` | `#673AB7` purple | сім'я, дітям, дитяч |
+| `family` | `#7A48F2` purple | сім'я, дітям, дитяч |
 | `receipt` | `#546E7A` blue-grey | рахунки, bills, платіж, оплат |
-| `coffee` | `#795548` brown | кафе, кав'ярня, кава, coffee |
-| `restaurant` | `#5C6BC0` indigo | ресторан, ресторація, їдальня, food, pizza |
-| `grocery` | `#03A9F4` light-blue | продукти, атб, сільпо, фора |
-| `theater` | `#7B1FA2` grape-purple | дозвілл, розваг, театр, концерт, entertainment |
-| `movie` | `#7B1FA2` deep-purple | кіно, cinema, фільм, netflix |
+| `coffee` | `#7B5947` brown | кафе, кав'ярня, кава, coffee |
+| `restaurant` | `#4659BE` blue | ресторан, ресторація, їдальня, food, pizza |
+| `grocery` | `#4AAFE8` light-blue | продукти, атб, сільпо, фора |
+| `theater` | `#F73579` pink | дозвілл, розваг, театр, концерт, entertainment |
+| `movie` | `#F73579` pink | кіно, cinema, фільм, netflix |
 | `gaming` | `#607D8B` blue-grey | gaming, ігри, playstation, xbox, steam |
 | `telegram` | `#2196F3` blue | telegram, телеграм, viber, messenger |
 | `dating` | `#E91E63` pink | dating, tinder, bumble, знайомств |
 | `ticket` | `#AD1457` dark-pink | квиток, квитки |
 | `music` | `#AB47BC` purple | музик, spotify |
-| `shopping` | `#795548` brown | покупки, магазин, shopping |
+| `shopping` | `#7B5947` brown | покупки, магазин, shopping |
 | `taxi` | `#FDD835` yellow | таксі, taxi, uklon, bolt, uber |
 | `gas_station` | `#FF8F00` amber | азс, азц, заправк, wog, okko, socar |
-| `car` | `#00897B` teal | транспорт, авто, машин, автобус, паркінг |
+| `car` | `#FFA834` orange | транспорт, авто, машин, автобус, паркінг |
 | `home` | `#546E7A` blue-grey | комунальн, квартир, оренда, ремонт |
 | `work` | `#1565C0` dark-blue | зарплат, офіс, фриланс, дохід |
 | `school` | `#FF9800` orange | освіт, навчан, школа, курс |
-| `volunteer` | `#4CAF50` green | здоров, самопочутт |
+| `volunteer` | `#48B456` green | здоров, самопочутт |
 | `health` | `#43A047` dark-green | медицин, аптека, лікар, стоматолог |
 | `flight` | `#03A9F4` light-blue | відпочин, туризм, готель, booking |
 | `money` | `#F9A825` amber-dark | **фінанс**, інвестиц, банк, крипто, депозит |
 | `pets` | `#8D6E63` brown-light | тварин, кіт, собак, ветеринар |
-| `gift` | `#F44336` red | подарун, свят, birthday |
+| `gift` | `#F34B4D` red | подарун, свят, birthday |
 | `sports` | `#F44336` red | спорт, фітнес, gym, тренув |
 
 **Fallback**: unrecognised name → `category` key, color `#4CAF50` for INCOME or `#78909C` for EXPENSE.
@@ -200,7 +218,7 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 - `theater` → `movie` → `gaming`/`telegram`/`dating` → `ticket` — leisure specificity chain
 - `taxi` → `gas_station` → `car` — transport specificity chain
 
-Seeder defaults: "Дозвілля" root → `theater` (`#7B1FA2`); "Таксі" child → `taxi` (`#FDD835`).
+Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
 ## Transactions Screen
 
@@ -217,7 +235,7 @@ All composables are `internal` and remain in the same package — `TransactionsL
 
 ## Settings Screen
 
-`SettingsScreen` is a full-screen Compose overlay (not a NavGraph route). Internal pages: `MAIN`, `THEME`, `CURRENCY`.
+`SettingsScreen` is a full-screen Compose overlay (not a NavGraph route). Internal pages: `MAIN`, `THEME`, `CURRENCY`, `ABOUT`. `AboutPageContent` (in `SettingsSubScreens.kt`) shows the launcher icon (96dp), app name, `BuildConfig.VERSION_NAME`, a short description, and "© 2025 PixelRush" footer.
 
 Settings persisted via DataStore (`SettingsRepository` → `AppSettings`):
 - `themeMode`: `SYSTEM` / `LIGHT` / `DARK`

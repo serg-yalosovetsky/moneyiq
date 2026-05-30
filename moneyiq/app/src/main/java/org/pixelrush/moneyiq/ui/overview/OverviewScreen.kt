@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
+import org.pixelrush.moneyiq.ui.main.TransactionListItem
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
 
@@ -171,10 +172,8 @@ fun OverviewScreen(
                 )
             }
 
-            // Category list
-            if (state.categories.isEmpty()) {
-                item { EmptyCategories() }
-            } else {
+            // Category list or transaction fallback
+            if (state.categories.isNotEmpty()) {
                 items(state.categories) { row ->
                     CategoryRow(
                         row         = row,
@@ -182,6 +181,12 @@ fun OverviewScreen(
                         onClick     = { selectedCat = row }
                     )
                 }
+            } else if (state.transactions.isNotEmpty()) {
+                items(state.transactions) { tx ->
+                    TransactionListItem(tx = tx, onClick = {})
+                }
+            } else {
+                item { EmptyCategories() }
             }
 
             // ── Секція «Бюджет» внизу ────────────────────────────────────────

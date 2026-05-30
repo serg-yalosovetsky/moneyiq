@@ -73,6 +73,21 @@ android {
         buildConfig = true
     }
 
+    val debugMonoflowUrl   = localProps.getProperty("monoflow.url",   "")
+    val debugMonoflowToken = localProps.getProperty("monoflow.token", "")
+
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+            buildConfigField("String", "DEBUG_MONOFLOW_URL",   "\"$debugMonoflowUrl\"")
+            buildConfigField("String", "DEBUG_MONOFLOW_TOKEN", "\"$debugMonoflowToken\"")
+        }
+        release {
+            buildConfigField("String", "DEBUG_MONOFLOW_URL",   "\"\"")
+            buildConfigField("String", "DEBUG_MONOFLOW_TOKEN", "\"\"")
+        }
+    }
+
     testOptions {
         unitTests {
             isReturnDefaultValues = true

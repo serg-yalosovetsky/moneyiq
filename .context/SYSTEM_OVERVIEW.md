@@ -11,7 +11,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Modules
 
-- `data/db` - Room v13, entities (accounts, categories, transactions), DAOs, migrations 1→13, type converters.
+- `data/db` - Room v16, entities (accounts, categories, transactions), DAOs, migrations 1→16, type converters.
 - `data/repository` - AccountRepository, CategoryRepository, TransactionRepository, SelectedMonthRepository (shared period state), SettingsRepository (DataStore).
 - `di` - Hilt wiring for DAOs, database, and workers.
 - `ui/main` - `MainScreen` (app shell, HorizontalPager, bottom nav, drawer, shared top bar), `SharedMonthNavPill`, `MainViewModel`.
@@ -23,7 +23,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 - `ui/budget` - `BudgetScreen` (main + `BudgetTopBar`, `resolvedCatIcon`, chip/card composables), `BudgetSheets.kt` (`BudgetInputSheet`, `BudgetSettingsSheet`), `BudgetViewModel`.
 - `ui/overview` - `OverviewScreen` (main + all chart/stats composables), `OverviewSheets.kt` (`CategoryDetailSheet`), `OverviewViewModel`.
 - `ui/reports` - `ReportsScreen`, `ReportsViewModel`.
-- `ui/settings` - `SettingsScreen` (enum + `SettingsScreen` composable + `MainSettingsContent`), `SettingsSubScreens.kt` (`ThemePageContent`, `ColorPalette`, `CurrencyPageContent`, shared helpers, dialogs), `SettingsViewModel`. Static data in `ui/settings/data/`: `CurrencyData.kt` (`CurrencyDef`, `CURRENCIES_MAIN/OTHER/CRYPTO/ALL`) and `SettingsData.kt` (`ACCENT_COLORS`, `LANGUAGES`, `DAYS_OF_WEEK`, `CURRENCY_FORMAT_EXAMPLES`, `formatMoneyWithSettings`).
+- `ui/settings` - `SettingsScreen` (enum + `SettingsScreen` composable + `MainSettingsContent`), `SettingsSubScreens.kt` (`ThemePageContent`, `ColorPalette`, `CurrencyPageContent`, `AboutPageContent`, shared helpers, dialogs), `SettingsViewModel`. Static data in `ui/settings/data/`: `CurrencyData.kt` (`CurrencyDef`, `CURRENCIES_MAIN/OTHER/CRYPTO/ALL`) and `SettingsData.kt` (`ACCENT_COLORS`, `LANGUAGES`, `DAYS_OF_WEEK`, `CURRENCY_FORMAT_EXAMPLES`, `formatMoneyWithSettings`).
 - `ui/data` - `DataScreen` (main screen only), `DataWidgets.kt` (`MonoFlowSyncCard`, `DataSectionHeader`, `DataActionItem`, `DriveBackupItem`, `LocalBackupItem`, `pluralUk`, `ResetDataDialog`), `DataViewModel` (JSON import/export, backup; injects DAOs directly — TODO: migrate to repositories).
 - `ui/theme` - `Theme.kt` (colors incl. `BudgetExpenseColor`, `BudgetIncomeColor`), `Spacing.kt` (design tokens xs–xxl).
 - `ui/widget` - `BalanceWidget`, `ExpenseWidget` (Glance).
@@ -52,6 +52,19 @@ Covered:
 Commands:
 - Unit tests: `gradlew :app:testDebugUnitTest`
 - Instrumented: `gradlew connectedAndroidTest` (requires device/emulator)
+
+## CI/CD
+
+Two GitHub Actions workflows live in `.github/workflows/`:
+
+| File | Trigger | What it does |
+|---|---|---|
+| `build.yml` | push to `main`, PRs, tags `v*.*.*` | Unit tests → debug APK (on push) → signed release APK + GitHub Release (on tags) |
+| `ci.yml` | push to `main`, PRs | Compile check + unit tests (fast path) |
+
+Release signing uses secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. `SENTRY_AUTH_TOKEN` is required for release mapping uploads. All secrets live in GitHub Actions — never committed.
+
+`gradlew` must have the executable bit set in git (`git update-index --chmod=+x moneyiq/gradlew`); otherwise CI fails with `Permission denied`.
 
 ## Non-Runtime Context
 

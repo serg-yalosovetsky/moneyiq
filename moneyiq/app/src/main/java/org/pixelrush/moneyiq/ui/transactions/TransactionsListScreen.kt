@@ -88,7 +88,12 @@ fun TransactionsListScreen(
     var selectedDetailTx by remember { mutableStateOf<TransactionWithDetails?>(null) }
 
     // ── Клієнтська фільтрація ─────────────────────────────────────────────
-    val filteredTransactions = remember(state.transactions, filterQuery, filterTypes, filterAccountIds, filterCategoryIds) {
+    val filteredTransactions = remember(state.transactions, filterQuery, filterTypes, filterAccountIds, filterCategoryIds, state.expenseCategories, state.incomeCategories) {
+        val allCats = state.expenseCategories + state.incomeCategories
+        // Expand filterCategoryIds to include children of selected categories
+        val expandedCatIds = if (filterCategoryIds.isEmpty()) emptySet<Long>() else {
+            filterCategoryIds + allCats.filter { it.parentId in filterCategoryIds }.map { it.id }.toSet()
+        }
         state.transactions.filter { tx ->
             (filterQuery.isBlank() ||
                 tx.note.contains(filterQuery, ignoreCase = true) ||
@@ -96,7 +101,7 @@ fun TransactionsListScreen(
                 tx.accountName.contains(filterQuery, ignoreCase = true)) &&
             (filterTypes.isEmpty() || tx.type.name in filterTypes) &&
             (filterAccountIds.isEmpty() || tx.accountId in filterAccountIds) &&
-            (filterCategoryIds.isEmpty() || tx.categoryId in filterCategoryIds)
+            (expandedCatIds.isEmpty() || tx.categoryId in expandedCatIds)
         }
     }
 

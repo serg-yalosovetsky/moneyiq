@@ -55,15 +55,29 @@ Set-Location 'G:\code\one-money-clone\moneyiq'
 
 Convenience scripts at the repo root: `build-apk.bat`, `test.bat` — both set `JAVA_HOME` automatically.
 
-## Sentry Auth Token
+## local.properties Keys
 
-The Sentry Gradle plugin uploads ProGuard mappings during release builds and requires an auth token. It is **never committed to VCS**.
-
-Add to `moneyiq/local.properties` (gitignored):
+`moneyiq/local.properties` is gitignored and holds all local secrets:
 
 ```properties
-sentry.auth.token=<your token from sentry.io Settings → Auth Tokens>
+sentry.auth.token=<token from sentry.io Settings → Auth Tokens>
+monoflow.url=<MonoFlow sync base URL, e.g. https://mono.example.com>
+monoflow.token=<MonoFlow Bearer token>
+signing.storeFile=<absolute path to .keystore>
+signing.storePassword=<keystore password>
+signing.keyAlias=<key alias>
+signing.keyPassword=<key password>
 ```
+
+`build.gradle.kts` reads each key and falls back to the corresponding environment variable:
+- `sentry.auth.token` → `SENTRY_AUTH_TOKEN`
+- Signing keys → `SIGNING_STORE_FILE`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`
+
+`monoflow.url` and `monoflow.token` become `BuildConfig.DEBUG_MONOFLOW_URL` / `DEBUG_MONOFLOW_TOKEN` (empty string in release builds).
+
+## Sentry Auth Token
+
+The Sentry Gradle plugin uploads ProGuard mappings during release builds and requires an auth token. It is **never committed to VCS**. Set via `sentry.auth.token` in `local.properties` or the `SENTRY_AUTH_TOKEN` env var (see above).
 
 For CI set the `SENTRY_AUTH_TOKEN` environment variable. The `app/build.gradle.kts` reads `local.properties` first, then falls back to the env var.
 
@@ -74,6 +88,28 @@ https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4
 Org: `serg-yalosovetsky`, project: `one_money`.
 
 **Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `MoneyIQApp.onCreate()`.
+
+## CI/CD (GitHub Actions)
+
+Two workflows in `.github/workflows/`:
+
+- **`build.yml`** — triggers on push to `main`, PRs, and version tags (`v*.*.*`). Runs unit tests, then builds a debug APK (push to main), or a signed release APK + GitHub Release (on tags).
+- **`ci.yml`** — fast compile + unit test check on push/PRs.
+
+GitHub Actions secrets required for release:
+| Secret | Purpose |
+|---|---|
+| `KEYSTORE_BASE64` | Base64-encoded release keystore |
+| `STORE_PASSWORD` | Keystore password |
+| `KEY_ALIAS` | Key alias in the keystore |
+| `KEY_PASSWORD` | Key password |
+| `SENTRY_AUTH_TOKEN` | ProGuard mapping upload |
+
+**Important:** `gradlew` must have the executable bit in git. Fix with:
+```bash
+git update-index --chmod=+x moneyiq/gradlew
+```
+Without this, CI fails with `Permission denied: ./gradlew`.
 
 ## Known Build Warning
 

@@ -377,7 +377,8 @@ internal fun ExpandedCategoryStrip(
     spending:         Map<Long, Double>,
     onClickParent:    () -> Unit,
     onClickChild:     (CategoryEntity) -> Unit,
-    onLongClickChild: (CategoryEntity) -> Unit = {}
+    onLongClickChild: (CategoryEntity) -> Unit = {},
+    showParentHeader: Boolean = false
 ) {
     val parentColor = remember(parent.colorHex) {
         try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
@@ -395,6 +396,53 @@ internal fun ExpandedCategoryStrip(
         colors    = CardDefaults.cardColors(containerColor = parentColor.copy(alpha = 0.08f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
+        if (showParentHeader) {
+            val parentIconKey = if (parent.icon == "category")
+                suggestCategoryStyle(parent.name, parent.type).first else parent.icon
+            val parentSpend = spending[parent.id] ?: 0.0
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClickParent() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(parentColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        categoryIconFor(parentIconKey), null,
+                        tint     = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        parent.name,
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (parentSpend > 0.0) {
+                        Text(
+                            formatMoney(parentSpend) + " ₴",
+                            style      = MaterialTheme.typography.bodySmall,
+                            color      = parentColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(
+                color     = parentColor.copy(alpha = 0.15f),
+                thickness = 1.dp,
+                modifier  = Modifier.padding(horizontal = 8.dp)
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -463,17 +511,14 @@ internal fun AddCategoryChip(onClick: () -> Unit) {
 
     Column(
         modifier = Modifier
-            .size(width = CHIP_WIDTH, height = CHIP_HEIGHT)
+            .width(64.dp)
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp, horizontal = 2.dp),
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(28.dp))
-        Text("", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp))
-        Spacer(Modifier.height(3.dp))
         Box(
             modifier = Modifier
-                .size(CHIP_CIRCLE_SIZE)
+                .size(44.dp)
                 .clip(CircleShape)
                 .dashedCircleBorder(color = dashColor),
             contentAlignment = Alignment.Center
@@ -481,10 +526,10 @@ internal fun AddCategoryChip(onClick: () -> Unit) {
             Icon(
                 Icons.Default.Add, null,
                 tint     = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
-        Spacer(Modifier.height(3.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             "Додати",
             style     = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 12.sp),
@@ -513,7 +558,8 @@ internal fun DonutChart(
     totalIncome:  Double,
     selectedTab:  Int,
     onToggle:     () -> Unit,
-    modifier:     Modifier = Modifier
+    modifier:     Modifier = Modifier,
+    onAdd:        (() -> Unit)? = null
 ) {
     val emptyColor   = MaterialTheme.colorScheme.surfaceVariant
     val expenseColor = MaterialTheme.colorScheme.error
@@ -570,7 +616,9 @@ internal fun DonutChart(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(20.dp)
+                .align(Alignment.Center)
+                .offset(y = (-24).dp)
+                .padding(horizontal = 20.dp)
                 .clickable(onClick = onToggle)
         ) {
             Text(
@@ -598,6 +646,15 @@ internal fun DonutChart(
                 modifier = Modifier.size(14.dp),
                 tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
             )
+        }
+        onAdd?.let { addAction ->
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 28.dp)
+            ) {
+                AddCategoryChip(onClick = addAction)
+            }
         }
     }
 }
