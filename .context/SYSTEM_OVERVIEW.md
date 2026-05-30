@@ -11,7 +11,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Modules
 
-- `data/db` - Room v18, entities (accounts, categories, transactions), DAOs, migrations 1→18, type converters.
+- `data/db` - Room v15, entities (accounts, categories, transactions), DAOs, migrations 1→15, type converters.
 - `data/repository` - AccountRepository, CategoryRepository, TransactionRepository, SelectedMonthRepository (shared period state), SettingsRepository (DataStore).
 - `di` - Hilt wiring for DAOs, database, and workers.
 - `ui/main` - `MainScreen` (app shell, HorizontalPager, bottom nav, drawer, shared top bar), `SharedMonthNavPill`, `MainViewModel`.
