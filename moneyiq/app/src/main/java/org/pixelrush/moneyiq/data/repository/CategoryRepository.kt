@@ -40,6 +40,11 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
         )
         // Name-based overrides: force specific icons for well-known category names
         val nameOverrides = listOf(
+            // Utilities / internet / phone — must override even if ‘family’ (a valid key).
+            // "язок" is apostrophe-agnostic: matches "зв’язок", "зв’язок", "зв’язок".
+            "комунал"             to "home",
+            "язок"                to "phone",
+            "інтернет"            to "wifi",
             "взуття"              to "shoes",
             "взутт"               to "shoes",
             "rozetka"             to "store",
@@ -84,6 +89,31 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
                 dao.updateCategory(cat.copy(icon = newIcon))
             }
         }
+    }
+
+    suspend fun repairDefaultColors() {
+        val canonical = mapOf(
+            "продукти"   to "#4AAFE8",
+            "ресторація" to "#4659BE",
+            "дозвілля"   to "#F73579",
+            "транспорт"  to "#FFA834",
+            "здоров'я"   to "#48B456",
+            "подарунки"  to "#F34B4D",
+            "сім'я"      to "#7A48F2",
+            "покупки"    to "#7B5947",
+            "робота"     to "#1565C0",
+        )
+        dao.getAllCategoriesOnce()
+            .filter { it.parentId == null }  // всі кореневі, незалежно від isDefault
+            .forEach { cat ->
+                // нормалізуємо: замінюємо всі варіанти апострофа на стандартний
+                val key = cat.name.lowercase().trim()
+                    .replace("’", "'").replace("ʼ", "'").replace("`", "'")
+                val target = canonical[key]
+                if (target != null && !cat.colorHex.equals(target, ignoreCase = true)) {
+                    dao.updateCategory(cat.copy(colorHex = target))
+                }
+            }
     }
 
     suspend fun seedDefaults() {

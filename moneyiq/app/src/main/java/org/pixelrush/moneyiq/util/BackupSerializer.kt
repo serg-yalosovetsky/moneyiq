@@ -44,6 +44,7 @@ object BackupSerializer {
                 put("isDefault",      a.isDefault)
                 put("sortOrder",      a.sortOrder)
                 put("description",    a.description)
+                put("creditLimit",    a.creditLimit)
                 put("createdAt",      a.createdAt)
             })
         }
@@ -114,6 +115,7 @@ object BackupSerializer {
                 isDefault      = a.getBoolean("isDefault"),
                 sortOrder      = a.getInt("sortOrder"),
                 description    = a.optString("description", ""),
+                creditLimit    = a.optDouble("creditLimit", 0.0),
                 createdAt      = a.optLong("createdAt", System.currentTimeMillis())
             )
         }
@@ -146,8 +148,8 @@ object BackupSerializer {
                 type        = TransactionType.valueOf(t.getString("type")),
                 amount      = t.getDouble("amount"),
                 accountId   = t.getLong("accountId"),
-                toAccountId = if (t.isNull("toAccountId")) null else t.getLong("toAccountId"),
-                categoryId  = if (t.isNull("categoryId"))  null else t.getLong("categoryId"),
+                toAccountId = if (!t.has("toAccountId") || t.isNull("toAccountId")) null else t.getLong("toAccountId"),
+                categoryId  = if (!t.has("categoryId")  || t.isNull("categoryId"))  null else t.getLong("categoryId"),
                 note           = t.optString("note", ""),
                 date           = t.getLong("date"),
                 createdAt      = t.optLong("createdAt", System.currentTimeMillis()),

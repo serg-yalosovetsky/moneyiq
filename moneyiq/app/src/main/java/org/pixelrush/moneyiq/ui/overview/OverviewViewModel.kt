@@ -34,10 +34,13 @@ enum class OverviewMode { EXPENSE, INCOME }
 
 data class OverviewSelMonth(val year: Int, val month: Int)
 
+data class CategorySegment(val colorHex: String, val amount: Double)
+
 data class DayBar(
     val day:      Int,
     val amount:   Double,
-    val isFuture: Boolean
+    val isFuture: Boolean,
+    val segments: List<CategorySegment> = emptyList()
 )
 
 data class OverviewCatRow(
@@ -163,11 +166,22 @@ class OverviewViewModel @Inject constructor(
             (sel.year == today.get(Calendar.YEAR) && sel.month > today.get(Calendar.MONTH))
 
         val dayBars = (1..dim).map { day ->
-            val rng = rangeMs(day, day)
+            val rng   = rangeMs(day, day)
+            val dayTx = monoTx.filter { it.date in rng }
+            val dayTotal = dayTx.sumOf { it.amount }
+            val segMap = mutableMapOf<String, Double>()
+            dayTx.forEach { tx ->
+                val color = tx.categoryColor ?: "#9E9E9E"
+                segMap[color] = (segMap[color] ?: 0.0) + tx.amount
+            }
+            val segments = segMap.entries
+                .sortedByDescending { it.value }
+                .map { CategorySegment(it.key, it.value) }
             DayBar(
                 day      = day,
-                amount   = monoTx.filter { it.date in rng }.sumOf { it.amount },
-                isFuture = isFutureMonth || day > todayDay
+                amount   = dayTotal,
+                isFuture = isFutureMonth || day > todayDay,
+                segments = segments
             )
         }
 

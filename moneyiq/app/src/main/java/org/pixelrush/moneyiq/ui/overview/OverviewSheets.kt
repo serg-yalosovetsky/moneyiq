@@ -1,6 +1,7 @@
 ﻿package org.pixelrush.moneyiq.ui.overview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -31,8 +32,8 @@ internal fun CategoryDetailSheet(
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Space to let the FAB peek above
-            Spacer(Modifier.height(20.dp))
+            // Space for floating icon (top half in drag handle, bottom half in content)
+            Spacer(Modifier.height(46.dp))
 
             // Category name (large, white)
             Text(
@@ -187,21 +188,23 @@ internal fun CategoryDetailSheet(
             }
         }
 
-        // ── FAB-style category icon at top-right ──────────────────────────────
+        // ── Іконка категорії (виступає за верхній край) ──────────────────────────────
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 20.dp)
-                .size(56.dp)
+                .offset(y = (-28).dp)
+                .size(72.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.22f)),
+                .background(MaterialTheme.colorScheme.surface)
+                .border(2.dp, catColor.copy(alpha = 0.25f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector        = categoryIconFor(cat.icon),
                 contentDescription = null,
-                modifier           = Modifier.size(30.dp),
-                tint               = Color.White
+                modifier           = Modifier.size(36.dp),
+                tint               = catColor
             )
         }
     }

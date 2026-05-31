@@ -43,3 +43,55 @@ cd moneyiq; .\gradlew :app:assembleDebug
 ```
 
 If compile fails with a cache error, add `--rerun-tasks`.
+
+If compile fails with R.jar file lock error, run `.\gradlew --stop` to kill all Gradle daemons, then retry.
+
+## Shell Environment
+
+Default shell: Windows PowerShell.
+
+Before generating commands, always identify the target environment:
+- Windows PowerShell
+- WSL Bash
+- Remote Linux Bash
+
+Do not mix PowerShell and Bash syntax.
+
+PowerShell specifics:
+- Use `$env:VAR` for environment variables
+- Use backtick `` ` `` for line continuation
+- Use PowerShell here-strings (`@'...'@`) for multiline strings passed to git
+
+Avoid Bash heredocs (`<< EOF`) in PowerShell — they cause parse errors.
+
+For complex scripts, write a script file first, then execute it.
+
+## Editing Discipline
+
+For files larger than 200 lines or structurally complex files:
+
+1. Read the target file first.
+2. Output a numbered plan before editing: file path, exact intended change, verification command.
+3. Prefer a single clean rewrite over many partial edits.
+4. After risky edits, run `.\gradlew :app:compileDebugKotlin` before continuing.
+
+If two consecutive edits produce unexpected results: STOP. Do not continue patching. Ask the user before proceeding.
+
+## Bug Log
+
+Before fixing any compile/runtime error:
+1. Check `.context/bug-log.md` for similar symptoms.
+2. Avoid known-bad approaches listed there.
+
+After every non-trivial fix, append to `.context/bug-log.md`:
+- Symptom, Root cause, Fix, Files changed, Verification command, Date.
+
+## Risky Operations
+
+For SSH, networking, router, firewall, credentials, or deploy changes — before executing anything, output:
+1. Exact sequence of commands.
+2. What could break access.
+3. Rollback path.
+4. How to verify success.
+
+Wait for explicit user approval before executing.

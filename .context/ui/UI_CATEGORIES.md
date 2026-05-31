@@ -90,28 +90,120 @@ Happens inside `CategoriesGridContent`, NOT in the ViewModel.
 
 ## QuickExpenseSheet — Panel Layout
 
-Opens on single-tap of a category chip. Two-panel header (80dp):
+Opens on single-tap of a category chip. No drag handle (`dragHandle = {}`).
 
-| Type | Left panel | Right panel |
-|---|---|---|
-| **EXPENSE** | Account (indigo `#3949AB` bg) — tappable | Category (category color bg) — tappable → `onDismiss()` |
-| **INCOME** | Category (category color bg) — tappable → `onDismiss()` | Account (indigo bg) — tappable |
+**Header structure** (`BoxWithConstraints`, total height = 40 + 80 = 120dp):
 
-Account panel tappable only when `accounts.size > 1`. Category panel tapping calls `onDismiss()` (back to grid).
+```
+BoxWithConstraints(fillMaxWidth) {
+    val halfW  = maxWidth / 2
+    val iconD  = 80.dp    // category circle
+    val badgeD = 48.dp    // account badge
+    val stripH = 40.dp    // icon protrusion above panels
 
-**`onSave` signature (6 parameters):**
+    Column {
+        Row(height=40dp) {              // color strip — no white gap
+            Spacer(weight=1f, bg=surface)   // left half matches left panel
+            Spacer(weight=1f, bg=catColor)  // right half matches right panel
+        }
+        Row(height=80dp) {
+            Box(weight=1f, bg=surface, clickable=showAccSheet) { ... }   // left panel
+            Box(weight=1f, bg=catColor, clickable=showCatPicker) { ... } // right panel
+        }
+    }
+
+    // Account badge — top-right of left panel; protrudes 40dp above panels
+    Box(size=48dp, align=TopStart, offset(x = halfW - 48.dp - 8.dp),
+        clip=RoundedCornerShape(12.dp), bg=surfaceVariant) { Icon(CreditCard, 24dp) }
+
+    // Category circle — top-right of whole header; protrudes 40dp above panels
+    Box(size=80dp, align=TopEnd, offset(x=-12dp),
+        clip=CircleShape, bg=catColor, clickable=showCatPicker) { Icon(cat, 40dp, tint=onCatColor) }
+}
+```
+
+**Panel text alignment:** both panels have `Column(align=BottomStart)`. Left panel: `padding(horizontal=12.dp, vertical=8.dp)`. Right panel: `padding(start=12.dp, end=24.dp, top=8.dp, bottom=8.dp)`.
+
+**Color strip rule:** The 40dp strip above panels must use split colors matching the panels below — never leave it as `surface` alone. Without the strip the sheet background shows as a white gap. Do not restore `padding(top=...)` on the panels Row.
+
+**Protrusion rule:** Icons sit at `y=0` of the `BoxWithConstraints` — they span from the strip top into the panels. `ModalBottomSheet` clips at the sheet boundary, so negative-y offsets are invisible; all protrusion must be achieved via the strip.
+
+Account panel: tappable only when `accounts.size > 1`. Category panel: `categories.isNotEmpty()` → `showCatPicker`. Account is always left, category always right.
+
+**`onSave` signature (7 parameters):**
 ```kotlin
 onSave: (accountId: Long, amount: Double, note: String, date: Long,
-         repeatMode: String, reminderMode: String) -> Unit
+         repeatMode: String, reminderMode: String, categoryId: Long) -> Unit
 ```
+`categoryId` supports in-sheet category switching.
+
+**Notes field:** `textStyle = bodySmall`, placeholder `FontStyle.Italic`, `TextAlign.Center`, `alpha = 0.4f`.
+
+**Confirm button:** `confirmColor = catColor` (matches category). Not always green.
 
 **Zero-amount UX:** `if (amt > 0.0)` guard. When amount = 0 and user presses ✓, `amountError = true` triggers 600ms red flash (`animateColorAsState`). Do not remove the guard.
 
 **Repeat/reminder:** `repeatMode`/`reminderMode` are local state from `CalcDateSheet → RepeatDialog / ReminderDialog`. Forwarded to `CategoriesViewModel.recordTransaction` / `TransactionsListViewModel.recordTransaction`. See `ADR_LOG.md#ADR-042` for full repeat automation.
 
-**Currency:** `selectedCurrency` synced from `selectedAccount?.currency`. ₴ key → `CurrencyPickerSheet`.
+**Currency:** `selectedCurrency` synced from `selectedAccount?.currency`. ₴ key → `CurrencyBottomSheet`.
 
-**Rule:** Do not merge EXPENSE/INCOME panel layouts. Alignment anchors differ between variants — always use the `isIncome` branch.
+**Rule:** `onSave` has 7 parameters. Do not revert to 6.
+
+## CategoryActionSheet — Floating Icon
+
+`CategoryActionSheet` is a full-screen `Dialog` (not `ModalBottomSheet`) so the icon can overflow **above** the colored card edge.
+
+**Structure:**
+```
+Box(fillMaxSize) {
+    Box(scrim)
+    Box(align=BottomStart, fillMaxWidth) {        // panel container — does NOT clip children
+        Column(fillMaxWidth) {
+            Column(clip=RoundedCornerShape(20dp), bg=catColor) {
+                Spacer(40.dp)                     // space for icon bottom half (36dp) + 4dp gap
+                Text(category.name, headlineMedium, Bold)
+                ...stats rows...
+            }
+            Row(bg=surface) { CatActionButton × 3 }
+        }
+        // Floating icon — sibling of Column, not inside clipped header
+        Box(
+            align = TopEnd, padding(end=20dp),
+            offset(y = (-36).dp),   // half of 72dp → top half above card edge into scrim
+            size=72dp, CircleShape,
+            bg = MaterialTheme.colorScheme.surface,
+            border = 2dp catColor.copy(alpha=0.25f)
+        ) { Icon(tint=catColor, size=36dp) }
+    }
+}
+```
+
+**Rule:** The icon must be OUTSIDE the `Column(clip)` as a sibling child of the panel `Box`. The panel `Box` does not call `clipToBounds()`, so the icon drawn above its top edge remains visible over the scrim.
+
+**Rule:** `Spacer(40.dp)` at the top of the header Column content — 36dp for icon's bottom half + 4dp gap — so the category name is not obscured.
+
+**Rule:** Icon background = `MaterialTheme.colorScheme.surface` (solid white in light mode) + thin `catColor` border. Do NOT use `onCatColor.copy(alpha=0.15f)` — the icon circle must be visually distinct from the colored card.
+
+## CategoryActionSheet — Action Buttons Row
+
+Three action buttons (`Редагувати`, `Бюджет`, `Операції`) live in a white `Row` below the coloured header. Each button is a `CatActionButton` (52dp circle + `labelSmall` label).
+
+Padding: `start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp + navigationBottom`.
+`navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()` ensures the row clears the system navigation bar on gesture-nav devices.
+
+**Rule:** Do not reduce `bottom` below `32.dp + navigationBottom` — buttons must not sit flush against the navigation bar.
+
+## CategoryActionSheet — Spending Progress Bar
+
+Progress bar in the coloured header uses a custom `BoxWithConstraints` (not `LinearProgressIndicator`):
+
+- Track: `onCatColor.copy(alpha = 0.28f)` background, 16dp height, `RoundedCornerShape(8.dp)`.
+- Fill: `onCatColor` fill at `fillMaxWidth(progress)`.
+- Label `"$percent%"` overlaid via `Modifier.offset(x = ...)`:
+  - `fillWidth = maxWidth * clamped`; if `fillWidth >= 44.dp` (`showInside = true`) → label sits just before the right edge of fill, color = `catColor` (contrasts with `onCatColor` fill).
+  - If `fillWidth < 44.dp` → label sits just after the fill in the track area, color = `onCatColor`.
+
+**Rule:** Do not replace with `LinearProgressIndicator` — it puts the label to the right of the bar. The `BoxWithConstraints` implementation keeps the label at the fill/track boundary.
 
 ## CategoryActionSheet Data
 

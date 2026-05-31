@@ -693,7 +693,7 @@ transactions.nextRepeatDate: INTEGER (nullable Long)
 
 **Rule:** Баланс счёта в воркере обновляется inline (дублирует логику `TransactionRepository.addTransaction`). При изменении логики баланса в репозитории — синхронизировать с воркером.
 
-**Rule:** `QuickExpenseSheet.onSave` имеет 6 параметров. `TransferQuickSheet` и `AddTransactionScreen` используют свои независимые save-пути и не включают repeat (Transfer и AddTx form — отдельный UX).
+**Rule:** `QuickExpenseSheet.onSave` имеет **7 параметров** (`categoryId: Long` добавлен последним). `TransferQuickSheet` и `AddTransactionScreen` используют свои независимые save-пути и не включают repeat (Transfer и AddTx form — отдельный UX).
 
 **Rule:** `BackupSerializer` сериализует новые поля. При восстановлении из старого бэкапа (без полей) используются `optString/optLong` с дефолтами `"NEVER"` / `null` — обратная совместимость гарантирована.
 
@@ -733,26 +733,39 @@ else
 
 **Rule:** `onConfirm` in `BudgetInputSheet` always passes both amount AND currency. Any new caller must handle both params.
 
-## ADR-045: QuickExpenseSheet — Category Panel Click + Currency (2026-05-31)
+## ADR-045: QuickExpenseSheet — Category Panel + Currency + In-Sheet Category Picker (2026-05-31, updated 2026-06-01)
 
-`QuickExpenseSheet` (`ui/categories/CategorySheets.kt`) was the actual screen behind the "add transaction" quick entry (opened by tapping a category chip in the categories grid or transactions list). Not `AddTransactionScreen`, which is a separate full-screen navigation destination.
+`QuickExpenseSheet` (`ui/categories/CategorySheets.kt`) is the quick-entry transaction sheet opened by tapping a category chip in the categories grid or `TransactionsListScreen`. Not `AddTransactionScreen`, which is a separate full-screen navigation destination.
 
-**Changes:**
+**Category panel (current state as of 2026-06-01):**
+- `CatPanel` has `.clickable(enabled = categories.isNotEmpty()) { showCatPicker = true }`.
+- Tapping it opens an **inline ModalBottomSheet** category picker — does NOT dismiss the sheet.
+- Picker shows root categories grouped into "Витрати" / "Доходи" with icon + checkmark on currently selected.
+- On selection: `selectedCategory = cat` — header color/icon/name update immediately.
+- `var selectedCategory by remember(category) { mutableStateOf(category) }` tracks the in-sheet choice.
+- `onSave` receives `selectedCategory.id` as `categoryId: Long` (7th parameter).
 
-**1. Category panel clickable**
-- `CatPanel` (the right colored panel showing category name/icon) now has `.clickable { onDismiss() }`.
-- Tapping it dismisses the sheet, returning the user to the categories grid to pick a different category.
+**`onSave` signature (7 parameters):**
+```kotlin
+onSave: (accountId: Long, amount: Double, note: String, date: Long,
+         repeatMode: String, reminderMode: String, categoryId: Long) -> Unit
+```
+Callers resolve: `categories.firstOrNull { it.id == categoryId } ?: initialCat`.
 
-**2. Currency support**
+**`categories: List<CategoryEntity>` parameter** (default `emptyList()`):
+- Passed by both `CategoriesScreen` (`state.expenseCategories + state.incomeCategories`) and `TransactionsListScreen` (same).
+- When empty: category panel is NOT clickable (no picker available).
+
+**Currency support:**
 - `var selectedCurrency` initialised from `selectedAccount?.currency ?: "UAH"`.
 - `LaunchedEffect(selectedAccount?.currency)` syncs when account changes.
-- `val currencySymbol = CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency`
-- `calc.displayExpr(currencySymbol)` — amount display uses correct symbol.
-- `SharedCalcKeypad(currencySymbol = currencySymbol, onCurrencyClick = { showCurrencyPicker = true }, ...)` — ₴ key highlighted and interactive.
-- `CurrencyPickerSheet` shown when `showCurrencyPicker = true`.
-- Imports added: `CurrencyPickerSheet`, `CURRENCIES_ALL`.
+- `currencySymbol` derived from `CURRENCIES_ALL`.
+- `SharedCalcKeypad(onCurrencyClick = { showCurrencyPicker = true }, ...)` — ₴ key highlighted.
+- `CurrencyBottomSheet` (ModalBottomSheet) shown when `showCurrencyPicker = true`. NOT Dialog — see ADR-051.
 
 **Rule:** Always check `CategorySheets.kt / QuickExpenseSheet` (not `AddTransactionScreen`) when debugging the quick-entry transaction sheet opened from the categories grid or `TransactionsListScreen`.
+
+**Rule:** `onSave` has 7 parameters. Do not revert to 6.
 
 ## ADR-046: Light Theme surfaceVariant Lightened (2026-05-31)
 
@@ -814,3 +827,245 @@ ghostY = chipCenters[draggingId].y − containerRootPos.y + dragOffset.y − chi
 **Rule:** In `EditCategoriesScreen`, always pass `onChipLongClick = {}` (not a form-opening lambda) so the edit form does not interfere with drag. Tap opens the form; long press starts drag.
 
 **Rule:** Do not use `onLongClick = {}` (empty lambda) when a gesture detector in a parent box needs the long press. Use `onLongClick = null` to fully disable `combinedClickable`'s long-press handling.
+
+## ADR-049: QuickExpenseSheet Visual Redesign (2026-06-01)
+
+**Problem:** The sheet had a white drag-handle strip at top, small (34dp) category icons, blue-background account panel, right-aligned category text, green-only confirm button.
+
+**Changes (`CategorySheets.kt` — `QuickExpenseSheet`):**
+
+1. **Drag handle removed:** `dragHandle = {}` — no white strip, sheet content starts at the rounded corners.
+
+2. **Header restructured** (total height: 32dp top gap + 80dp row = 112dp `Box`):
+   - **Left panel** (account): `MaterialTheme.colorScheme.surface` bg (white). Small 28dp card icon (surfaceVariant rounded box + CreditCard icon) at TopStart. Label + account name at BottomStart.
+   - **Right panel** (category): `catColor` bg. Label + category name at BottomStart, left-aligned. End padding `68.dp` reserves space for floating icon.
+   - **Floating icon**: 64dp `CircleShape`, `catColor` bg, positioned `align(Alignment.TopEnd).offset(x = -12.dp)` at `y = 0` of the outer `Box`. Since the `Box` has `padding(top = 32.dp)` on the Row, the icon's bottom half overlaps the Row — creating the visual effect of the icon "protruding above" the panel row.
+
+3. **Notes field:** `textStyle = bodySmall`, placeholder uses `FontStyle.Italic`, `TextAlign.Center`, `alpha = 0.4f`.
+
+4. **Confirm button color = `catColor`:** `SharedCalcKeypad(confirmColor = catColor, ...)`. Was always green (`Color(0xFF4CAF50)`).
+
+5. **`accountColor = Color(0xFF3949AB)` removed** — no longer used.
+
+**Rule:** The account panel background is `MaterialTheme.colorScheme.surface` (not a hardcoded color). Do not restore a colored account panel without a product decision.
+
+**Rule:** The floating 64dp icon is at `y = 0` inside the header `Box`, overlapping with the `padding(top = 32.dp)` Row. Do not add a negative `offset(y = ...)` — that clips at the ModalBottomSheet boundary.
+
+**Rule:** `confirmColor` in `SharedCalcKeypad` must equal `catColor` in `QuickExpenseSheet` so the confirm button matches the active category.
+
+## ADR-050: CategoryActionSheet Icon Spacer Reduced (2026-06-01)
+
+**Problem:** There was 40dp of whitespace between the floating icon and the category name in `CategoryActionSheet`, making the header feel empty.
+
+**Fix (`CategorySheets.kt`, inside the colored header `Column`):**
+```kotlin
+Spacer(Modifier.height(16.dp))  // was: 40.dp
+```
+
+The floating icon (72dp, `offset(y = -36.dp)`) extends 36dp into the card and card padding is 20dp — so minimum needed clearance is 36 - 20 = 16dp. 40dp was over-reserved.
+
+**Rule:** The spacer in `CategoryActionSheet`'s colored header is 16dp. Do not increase it unless the icon size or offset changes.
+
+## ADR-051: CurrencyBottomSheet — ModalBottomSheet Variant For Screen-Level Currency Pickers (2026-06-01)
+
+**Problem:** `CurrencyPickerSheet` (Dialog with `usePlatformDefaultWidth = false`) fails to appear when used from a regular navigation screen (`AddTransactionScreen`, `QuickExpenseSheet`). Tap → `showCurrencyPicker = true` → Dialog is rendered but immediately dismissed before the user sees it. Root cause: Android dispatches `ACTION_UP` to the new Dialog window before `Surface(fillMaxSize)` renders, touching the transparent margin → `dismissOnClickOutside = true` fires. Setting `dismissOnClickOutside = false` did not fully solve the issue.
+
+**Solution:** Added `CurrencyBottomSheet` to `ui/components/currency/CurrencyPicker.kt` — same 3-tab currency list but wrapped in `ModalBottomSheet(skipPartiallyExpanded = true, fillMaxHeight(0.92f))`.
+
+**Usage:**
+| Caller | Component | Reason |
+|---|---|---|
+| `AddTransactionScreen` | `CurrencyBottomSheet` | Screen-level composable — Dialog fails |
+| `QuickExpenseSheet` | `CurrencyBottomSheet` | Screen-level composable — Dialog fails |
+| `BudgetInputSheet` | `CurrencyPickerSheet` (Dialog) | Already inside a ModalBottomSheet — Dialog works; nested ModalBottomSheet renders behind parent |
+| `AccountFormSheet` | `CurrencyPickerSheet` (Dialog) | Already inside a ModalBottomSheet — Dialog works |
+
+**Rule:** Use `CurrencyBottomSheet` when the currency picker is opened from a **navigation screen** (not from inside a ModalBottomSheet). Use `CurrencyPickerSheet` Dialog only from **inside an existing ModalBottomSheet** — a nested sheet renders behind its parent (see ADR-040 fix note in `BudgetInputSheet`).
+
+**Rule:** Do not replace `CurrencyPickerSheet` with `CurrencyBottomSheet` in `BudgetInputSheet` or `AccountFormSheet` — a ModalBottomSheet nested inside another ModalBottomSheet is invisible to the user.
+
+## ADR-052: Floating Icon Pattern — Dialog vs ModalBottomSheet (2026-06-01)
+
+**Context:** Category detail sheets use a floating icon at the top-right with different overflow behavior depending on the container.
+
+### CategoryActionSheet (custom Dialog — CategorySheets.kt)
+
+The panel is a plain `Box(align=BottomStart)` with no `clipToBounds()`, so the icon overflows ABOVE the card.
+
+- Icon: sibling child of content `Column` inside the panel `Box`
+- `offset(y = -36.dp)` (half of 72dp) → top half in scrim area, visible over the dim overlay
+- Header column starts with `Spacer(16.dp)` to clear the icon's bottom half inside the card
+
+**Rule:** Icon must NOT be inside `Column(clip=RoundedCornerShape(...))` — the clip cuts it. It must be a sibling overlay inside the outer unclipped `Box`.
+
+### CategoryDetailSheet (ModalBottomSheet — OverviewSheets.kt)
+
+Sheet shape clips anything above its top rounded corners. Icon stays within sheet bounds.
+
+- Icon: `align=TopEnd`, `offset(y = -28.dp)`, 72dp — extends into drag-handle area (same `containerColor`)
+- Style: `MaterialTheme.colorScheme.surface` bg + 2dp `catColor` border + `catColor` tint
+- Content column starts with `Spacer(46.dp)` to clear the icon
+
+**Rule:** For ModalBottomSheet, negative y offset must not exceed drag-handle height or the icon will be clipped.
+
+## ADR-053: SharedMonthNavPill Current-Month Color (2026-06-01)
+
+**Problem:** Single crimson accent gave no visual signal whether the user is viewing the current period.
+
+**Decision:** Two accent constants in `SharedMonthPill.kt`:
+
+```kotlin
+private val PILL_ACCENT  = Color(0xFFD81B60)  // crimson — past/future months
+private val PILL_CURRENT = Color(0xFF4B6BEF)  // indigo-blue — current calendar month
+```
+
+Detection:
+```kotlin
+val isCurrentMonth = appMonth.mode == PeriodMode.MONTH &&
+                     appMonth.month == today.get(Calendar.MONTH) &&
+                     appMonth.year  == today.get(Calendar.YEAR)
+val pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
+```
+
+`pillColor` drives pill background (`copy(alpha=0.12f)`), badge fill, label text, and dropdown icon.
+
+**Rule:** Only `PeriodMode.MONTH` matching the current calendar month → `PILL_CURRENT`. All other modes and past/future months → `PILL_ACCENT`.
+
+## ADR-054: Overview Bar Chart — Stacked Category Colors + Thinner Bars (2026-06-01)
+
+**Problem:** `SpendingChart` drew each day's bar as a single solid `accentColor` (pink/teal). The chart gave no visual breakdown of which categories drove spending on a given day.
+
+**Changes:**
+
+### OverviewViewModel.kt — new data model
+
+```kotlin
+data class CategorySegment(val colorHex: String, val amount: Double)
+
+data class DayBar(
+    val day:      Int,
+    val amount:   Double,
+    val isFuture: Boolean,
+    val segments: List<CategorySegment> = emptyList()   // sorted largest first
+)
+```
+
+`buildState` now groups each day's transactions by `tx.categoryColor` (from `TransactionWithDetails.categoryColor: String?`) and sorts segments by `amount DESC`. No new DAO query — `monoTx` (already fetched) carries `categoryColor` via the JOIN in `TransactionDao`.
+
+Fallback: transactions without a category (`categoryColor == null`) use `"#9E9E9E"` (grey).
+
+### OverviewScreen.kt — SpendingChart
+
+**Thinner bars:** `gap` changed from `slotW * 0.15f` to `slotW * 0.45f` → bar width ~55% of slot (was ~85%).
+
+**Stacked drawing:** Replaced `drawRect(accentColor, ...)` with a loop from bottom to top:
+```kotlin
+var currentBottom = h
+segments.forEach { seg ->
+    val segColor = Color(parseColor(seg.colorHex))  // or accentColor on parse failure
+    val segH   = (h - barTop) * (seg.amount / bar.amount).toFloat()
+    drawRect(segColor, topLeft = Offset(barL, currentBottom - segH), size = Size(barW, segH))
+    currentBottom -= segH
+}
+```
+Largest segment at the bottom; smaller segments stack upward. Income mode / empty segments → fallback single `accentColor` bar.
+
+**Rule:** `DayBar.segments` are sorted largest-first by the ViewModel. `SpendingChart` draws them in order → the first segment is always the bottom one. Do not sort in `SpendingChart`.
+
+**Rule:** `SpendingChart` does not re-parse category color from `OverviewCatRow`. It uses `seg.colorHex` already stored in `DayBar.segments`. These are the raw hex strings from `CategoryEntity.colorHex` via the DAO JOIN — always `#RRGGBB` format.
+
+## ADR-055: Sentry Enabled In All Environments (2026-06-01)
+
+Sentry captures events in both `debug` and `production` builds. Environment label distinguishes them in the dashboard.
+
+**Configuration (`MoneyIQApp.kt`):**
+```kotlin
+options.isEnabled   = true          // explicit — not just default
+options.environment = if (BuildConfig.DEBUG) "debug" else "production"
+options.sampleRate  = 1.0           // 100% error events
+options.tracesSampleRate = 1.0      // 100% performance traces
+options.isDebug     = BuildConfig.DEBUG  // verbose SDK logs in debug only
+```
+
+**Rule:** Do not add `if (BuildConfig.DEBUG) return` or `options.isEnabled = false` in debug builds. Capturing debug-environment events is intentional for development feedback.
+
+**Dashboard tip:** In Sentry UI → Environment filter, select "All Environments" or "debug" to see development events. Default filter is often "production" only.
+
+## ADR-056: repairDefaultColors() — Canonical Root Category Colors On Startup (2026-06-01)
+
+`CategoryRepository.repairDefaultColors()` enforces canonical `colorHex` values for the 9 default root expense categories on every app start. Called from `MoneyIQApp.seedInitialData()` alongside `repairIconKeys()`.
+
+**Why:** `seedDefaults()` runs only when the category table is empty. Users who imported data from a backup or ran the app before seed colors were locked end up with different colors. `repairDefaultColors()` fixes this idempotently.
+
+**Canonical colors:**
+| Category | colorHex |
+|---|---|
+| Продукти | `#4AAFE8` |
+| Ресторація | `#4659BE` |
+| Дозвілля | `#F73579` |
+| Транспорт | `#FFA834` |
+| Здоров'я | `#48B456` |
+| Подарунки | `#F34B4D` |
+| Сім'я | `#7A48F2` |
+| Покупки | `#7B5947` |
+| Робота | `#1565C0` |
+
+**Filter:** matches ALL root categories (`parentId == null`) by name — does NOT filter by `isDefault`. Reason: imported categories may have `isDefault = false` even if they are the canonical roots.
+
+**Apostrophe normalization:** keys use standard `'` — the filter normalizes `ʼ` and `` ` `` variants before lookup.
+
+**Rule:** To change a canonical root color, update both `seedDefaults()` and the `canonical` map in `repairDefaultColors()`. They must agree.
+
+## ADR-057: BackupSerializer — Defensive Null Handling And creditLimit Field (2026-06-01)
+
+Two bug fixes to `util/BackupSerializer.kt`:
+
+**1. Nullable field null-check pattern:**
+
+Old (broken for old backups without the key):
+```kotlin
+toAccountId = if (t.isNull("toAccountId")) null else t.getLong("toAccountId")
+```
+`JSONObject.isNull(key)` returns `false` when the key is absent entirely — then `getLong()` throws `JSONException`.
+
+New (defensive):
+```kotlin
+toAccountId = if (!t.has("toAccountId") || t.isNull("toAccountId")) null else t.getLong("toAccountId")
+categoryId  = if (!t.has("categoryId")  || t.isNull("categoryId"))  null else t.getLong("categoryId")
+```
+
+**Rule:** For any nullable Long field in BackupSerializer, always check `has()` before `isNull()` before `getLong()`.
+
+**2. creditLimit serialization:**
+
+`AccountEntity.creditLimit: Double` was not serialized before this fix. On export it was silently dropped; on import it defaulted to `0.0`.
+
+Fix: added `put("creditLimit", a.creditLimit)` in `serialize` and `creditLimit = a.optDouble("creditLimit", 0.0)` in `deserialize`.
+
+**Rule:** When adding a new field to any entity, update both `serialize` and `deserialize` in `BackupSerializer`. Use `opt*` methods in `deserialize` for backward compatibility with old backups.
+
+## ADR-058: SharedMonthNavPill Redesign — Icons, Typography, Text Case (2026-06-01)
+
+**Changes to `ui/main/SharedMonthPill.kt`:**
+
+| Element | Before | After |
+|---|---|---|
+| Nav arrows icon | `KeyboardDoubleArrowLeft/Right` (double «») | `KeyboardArrowLeft/Right` (single ‹›) |
+| Nav arrows tint | `onSurface.copy(alpha=0.45f)` (gray) | `pillColor` (matches pill accent) |
+| Nav arrows size | 32dp | 28dp |
+| Month label font | `titleSmall + Bold` | `bodyLarge + SemiBold` |
+| Month label text | `MONTH_NAMES_UA` (UPPERCASE) | `MONTH_NAMES_UA_FULL` (Title Case) |
+| TODAY/WEEK/DAY/RANGE | `.uppercase()` applied | `.uppercase()` removed |
+| "ВІД ПОЧАТКУ" | uppercase | "Від початку" |
+| Dropdown icon | `ArrowDropDown` (triangle ▾) | `ExpandMore` (thinner chevron ∨) |
+
+**Changes to `ui/main/MainScreen.kt` — SharedTopBar:**
+
+| Element | Before | After |
+|---|---|---|
+| Balance font | `titleLarge + Bold` | `headlineMedium + Bold` |
+| User icon | `Icons.Outlined.Person` | `Icons.Filled.Person` |
+
+**Rule:** Nav arrows use `pillColor` (which is `PILL_CURRENT` for current month, `PILL_ACCENT` otherwise) — they always match the pill.
+
+**Rule:** Month text uses `MONTH_NAMES_UA_FULL` (Title Case). Do not reintroduce `MONTH_NAMES_UA` (UPPERCASE) or `.uppercase()` calls in `pillLabelFor()`.

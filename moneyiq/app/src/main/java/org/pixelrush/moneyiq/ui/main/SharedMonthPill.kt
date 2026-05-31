@@ -32,7 +32,8 @@ import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
 import org.pixelrush.moneyiq.data.repository.PeriodMode
 import java.util.*
 
-private val PILL_ACCENT = Color(0xFFD81B60)
+private val PILL_ACCENT   = Color(0xFFD81B60)
+private val PILL_CURRENT  = Color(0xFF4B6BEF)  // current-month blue
 
 private class Ref<T>(var value: T)
 
@@ -47,32 +48,32 @@ private class Ref<T>(var value: T)
 internal fun pillLabelFor(a: AppMonth): String {
     val today = Calendar.getInstance()
     return when (a.mode) {
-        PeriodMode.MONTH -> "${MONTH_NAMES_UA[a.month]} ${a.year}"
+        PeriodMode.MONTH -> "${MONTH_NAMES_UA_FULL[a.month]} ${a.year}"
         PeriodMode.TODAY -> {
             val d = today.get(Calendar.DAY_OF_MONTH)
-            val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)].uppercase()
+            val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)]
             "$d $m"
         }
         PeriodMode.WEEK -> {
             val cal = Calendar.getInstance()
             cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-            val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
+            val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]}"
             cal.add(Calendar.DAY_OF_MONTH, 6)
-            val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
+            val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]}"
             "$s — $e"
         }
         PeriodMode.YEAR  -> "${a.year}"
-        PeriodMode.ALL   -> "ВІД ПОЧАТКУ"
+        PeriodMode.ALL   -> "Від початку"
         PeriodMode.DAY   -> {
             val cal = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
             val d = cal.get(Calendar.DAY_OF_MONTH)
-            val m = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()
+            val m = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]
             "$d $m ${cal.get(Calendar.YEAR)}"
         }
         PeriodMode.RANGE -> {
             val s = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
             val e = Calendar.getInstance().apply { timeInMillis = a.toMillis }
-            val fmt = { c: Calendar -> "${c.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)].uppercase()}" }
+            val fmt = { c: Calendar -> "${c.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)]}" }
             "${fmt(s)} — ${fmt(e)}"
         }
     }
@@ -100,6 +101,12 @@ fun SharedMonthNavPill(
 
     val pillLabel = pillLabelFor(appMonth)
     val pillBadge = pillBadgeFor(appMonth, daysInPeriod)
+
+    val today = remember { Calendar.getInstance() }
+    val isCurrentMonth = appMonth.mode == PeriodMode.MONTH &&
+                         appMonth.month == today.get(Calendar.MONTH) &&
+                         appMonth.year  == today.get(Calendar.YEAR)
+    val pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
 
     // Track swipe direction without extra recompositions (plain Ref, not MutableState)
     val prevRef    = remember { Ref(appMonth) }
@@ -134,17 +141,17 @@ fun SharedMonthNavPill(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Icon(
-            Icons.Default.KeyboardDoubleArrowLeft, null,
-            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            Icons.Default.KeyboardArrowLeft, null,
+            tint     = pillColor,
             modifier = Modifier
-                .size(32.dp)
+                .size(28.dp)
                 .clickable(onClick = onPrev)
-                .padding(4.dp)
+                .padding(2.dp)
         )
 
         Surface(
             shape    = RoundedCornerShape(50.dp),
-            color    = PILL_ACCENT.copy(alpha = 0.12f),
+            color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
             modifier = Modifier.clickable { showSheet = true }
         ) {
             // Animate only the inner content; the pill capsule shape stays static
@@ -165,24 +172,31 @@ fun SharedMonthNavPill(
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Surface(shape = CircleShape, color = PILL_ACCENT) {
+                    Surface(
+                        shape  = RoundedCornerShape(8.dp),
+                        color  = Color.Transparent,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                        )
+                    ) {
                         Text(
                             badge,
-                            modifier   = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                            modifier   = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style      = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color      = Color.White
+                            color      = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Text(
                         label,
-                        style      = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color      = PILL_ACCENT
+                        style      = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.onSurface
                     )
                     Icon(
-                        Icons.Default.ArrowDropDown, null,
-                        tint     = PILL_ACCENT,
+                        Icons.Default.ExpandMore, null,
+                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -190,12 +204,12 @@ fun SharedMonthNavPill(
         }
 
         Icon(
-            Icons.Default.KeyboardDoubleArrowRight, null,
-            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            Icons.Default.KeyboardArrowRight, null,
+            tint     = pillColor,
             modifier = Modifier
-                .size(32.dp)
+                .size(28.dp)
                 .clickable(onClick = onNext)
-                .padding(4.dp)
+                .padding(2.dp)
         )
     }
 }

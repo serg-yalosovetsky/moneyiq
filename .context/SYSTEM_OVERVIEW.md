@@ -31,11 +31,11 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 - `ui/theme` - `Theme.kt` (colors incl. `BudgetExpenseColor`, `BudgetIncomeColor`), `Spacing.kt` (design tokens xs–xxl).
 - `ui/widget` - `BalanceWidget`, `ExpenseWidget` (Glance).
 - `workers` - `NotificationWorker` (daily notification, self-reschedules), `DriveBackupWorker`, `MonoFlowSyncWorker`, `RepeatTransactionWorker` (nightly at 00:01 — creates due repeat transactions, fires reminder notifications, reschedules itself; also triggered once on app start via `MoneyIQApp`).
-- `util` - `BackupSerializer` (JSON import/export; includes `repeatMode`/`reminderMode`/`nextRepeatDate`), `CsvExporter`, `CategoryStyleUtil` (keyword→icon/color auto-suggest), `RepeatUtil.kt` (`calculateNextRepeatDate`, `startOfDay`, `reminderOffsetDays`).
+- `util` - `BackupSerializer` (JSON import/export; fields: all account/category/transaction columns incl. `creditLimit`, `repeatMode`, `reminderMode`, `nextRepeatDate`; uses `has()+isNull()` guard for nullable longs for backward compat with old backups), `CsvExporter`, `CategoryStyleUtil` (keyword→icon/color auto-suggest), `RepeatUtil.kt` (`calculateNextRepeatDate`, `startOfDay`, `reminderOffsetDays`).
 
 ## Main Flows
 
-- App startup seeds default categories if the category table is empty.
+- App startup seeds default categories if the category table is empty. `repairIconKeys()` and `repairDefaultColors()` run on every startup to fix icon/color drift from imports or old seed data.
 - Users manage accounts and categories, then record transactions against them.
 - Transaction add/update/delete mutates account balances in `TransactionRepository`.
 - Period-aware screens read monthly or selected-period aggregates from DAOs/repositories.

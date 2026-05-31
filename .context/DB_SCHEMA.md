@@ -2,7 +2,7 @@
 
 Room database: `AppDatabase`
 
-Current version: `28`
+Current version: `29`
 
 Entities:
 
@@ -106,5 +106,6 @@ Indices:
 - `25 -> 26`: data migration — inserts default income categories (`Зарплата`/`work`/`#4CAF50`, `Фриланс`/`laptop`/`#26A69A`, `Інше`/`category`/`#78909C`) using conditional INSERT … WHERE NOT EXISTS, so existing categories are never duplicated
 - `26 -> 27`: **structural** — adds `accounts.creditLimit REAL NOT NULL DEFAULT 0.0`
 - `27 -> 28`: **structural** — adds `transactions.repeatMode TEXT NOT NULL DEFAULT 'NEVER'`, `transactions.reminderMode TEXT NOT NULL DEFAULT 'NEVER'`, `transactions.nextRepeatDate INTEGER` (nullable)
+- `28 -> 29`: data migration — fixes root-level imported categories stuck on `family` icon: `home`/`#546E7A` (LIKE `%комунал%`), `phone`/`#3F51B5` (LIKE `%зв%язок%`, apostrophe-agnostic), `wifi`/`#00BCD4` (= `інтернет`). Unconditional — no icon guard, since `family` is a valid key and prior name-based migrations were bypassed when these categories were imported after migration.
 
 Any schema change must add a migration and update this file.

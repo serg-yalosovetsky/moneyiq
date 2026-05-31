@@ -183,5 +183,5 @@ fun MoneyIQTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    MaterialTheme(colorScheme = colorScheme, typography = InterTypography, content = content)
 }

@@ -267,6 +267,17 @@ val MIGRATION_25_26 = object : Migration(25, 26) {
     }
 }
 
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix root-level categories imported from MonoBank that got assigned 'family' icon
+        // instead of their correct functional icons. Unconditional — these names always
+        // map to these icons regardless of what was stored previously.
+        database.execSQL("UPDATE categories SET icon = 'home',  colorHex = '#546E7A' WHERE LOWER(TRIM(name)) LIKE '%комунал%'")
+        database.execSQL("UPDATE categories SET icon = 'phone', colorHex = '#3F51B5' WHERE LOWER(TRIM(name)) LIKE '%зв%язок%'")
+        database.execSQL("UPDATE categories SET icon = 'wifi',  colorHex = '#00BCD4' WHERE LOWER(TRIM(name)) = 'інтернет'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -294,12 +305,13 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_24_25,
     MIGRATION_25_26,
     MIGRATION_26_27,
-    MIGRATION_27_28
+    MIGRATION_27_28,
+    MIGRATION_28_29
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 28,
+    version = 29,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

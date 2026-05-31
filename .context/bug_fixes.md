@@ -424,6 +424,22 @@ c.name.trim().lowercase() != cat.name.trim().lowercase()
 
 ---
 
+### QuickExpenseSheet — White Strip + Icon Protrusion Redesign (2026-06-01)
+
+**Symptom (original):** A white gap appeared at the top of `QuickExpenseSheet` before the header panels. Both icons were too small and did not protrude above the panels.
+
+**Root cause:** The header Row had `.padding(top = 32dp)` to reserve space for the floating icon, but the `ModalBottomSheet` `containerColor = surface` showed through as a white strip. The category icon (64dp) partially overlapped that white area; the credit card badge (28dp) was inside the left panel.
+
+**Final fix:** Replaced `Box { Row(...) }` with `BoxWithConstraints { Column { strip + Row } + overlays }`:
+1. **Color strip (40dp):** `Row` with two `Spacer`s — left = `surface`, right = `catColor` — seamlessly continues panel colors upward. No white gap.
+2. **Category circle (80dp, was 64dp):** overlay in `BoxWithConstraints`, `align(TopEnd)`, `offset(x=-12dp)`. Starts at y=0, spans 40dp into the strip and 40dp into the panel below.
+3. **Account badge (48dp, was 28dp square inside panel):** overlay at `align(TopStart)`, `offset(x = halfW - 48.dp - 8.dp)`. Positioned above the right edge of the left panel; same strip protrusion.
+4. Neither icon is inside the panels anymore.
+
+**Regression rule:** The `BoxWithConstraints` header must keep the 40dp split-color strip. Do not restore a plain `padding(top=...)` on the panels Row — the sheet `containerColor` would show through. Do not move the icons back inside the panels.
+
+---
+
 ## Verification Checklist
 
 - Kotlin compile passes.

@@ -385,7 +385,7 @@ private fun SpendingChart(
                 val h         = size.height
                 val count     = dayBars.size.coerceAtLeast(1)
                 val slotW     = w / count
-                val gap       = (slotW * 0.15f).coerceIn(0.5f, 3.dp.toPx())
+                val gap       = (slotW * 0.45f).coerceIn(1f, 6.dp.toPx())
                 val barW      = (slotW - gap).coerceAtLeast(1f)
                 val dashPE    = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
                 val hatchStep = 9.dp.toPx()
@@ -426,11 +426,28 @@ private fun SpendingChart(
                             }
                         }
                         bar.amount > 0 -> {
-                            drawRect(
-                                color   = accentColor,
-                                topLeft = Offset(barL, barTop),
-                                size    = Size(barW, h - barTop)
-                            )
+                            if (bar.segments.isNotEmpty()) {
+                                var currentBottom = h
+                                bar.segments.forEach { seg ->
+                                    val segColor = try {
+                                        Color(android.graphics.Color.parseColor(seg.colorHex))
+                                    } catch (_: Exception) { accentColor }
+                                    val segH   = (h - barTop) * (seg.amount / bar.amount).toFloat()
+                                    val segTop = currentBottom - segH
+                                    drawRect(
+                                        color   = segColor,
+                                        topLeft = Offset(barL, segTop),
+                                        size    = Size(barW, segH.coerceAtLeast(0f))
+                                    )
+                                    currentBottom = segTop
+                                }
+                            } else {
+                                drawRect(
+                                    color   = accentColor,
+                                    topLeft = Offset(barL, barTop),
+                                    size    = Size(barW, h - barTop)
+                                )
+                            }
                         }
                     }
                 }

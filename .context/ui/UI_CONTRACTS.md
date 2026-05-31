@@ -25,12 +25,39 @@ Bottom tabs: `Рахунки`, `Категорії`, `Операції`, `Бюд
 
 ## Shared Top Bar
 
-`SharedTopBar` displays total balance and page-specific action buttons:
-- Accounts: add account
-- Categories: toggle category compactness
-- Transactions: search
-- Budget: budget settings
-- Overview/other: settings (⚙)
+`SharedTopBar` (`MainScreen.kt`) — Row layout, left avatar / center balance / right action.
+
+**Left:** 44dp circle (`surfaceVariant` bg), `Icons.Filled.Person` (22dp, `onSurfaceVariant`). Clickable → drawer.
+
+**Center:** Column — "Всі рахунки" (`labelSmall`, `onSurface 55%`) + balance (`headlineMedium + Bold`, `onSurface`, ellipsis).
+
+**Right action** (context-aware by page):
+| Page | Icon | Action |
+|---|---|---|
+| 0 Accounts | `Add` | onPlusClick |
+| 1 Categories | `Outlined.Edit` | onEditCategories |
+| 2 Transactions | `Search` | onSearchTx |
+| 3 Budget | `Outlined.Speed` | onBudgetSettings |
+| other | `Outlined.Settings` | onSettings |
+
+## Shared Month Nav Pill
+
+`SharedMonthNavPill` (`SharedMonthPill.kt`) — Row with left/right arrows + center pill.
+
+**Arrows:** `Icons.Default.KeyboardArrowLeft/Right` (28dp), tint = `pillColor`.
+
+**Pill colors:**
+```kotlin
+PILL_ACCENT  = Color(0xFFD81B60)   // crimson — past/future months
+PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
+pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
+```
+
+**Pill content:** badge (`labelMedium + Bold`, white on `pillColor` circle) + label (`bodyLarge + SemiBold`, `pillColor`) + `ExpandMore` icon (18dp).
+
+**Month text source:** always `MONTH_NAMES_UA_FULL` (Title Case: "Травень 2026"). Never use `MONTH_NAMES_UA` (UPPERCASE) or `.uppercase()` in `pillLabelFor()`.
+
+**Click:** opens `PeriodSelectorSheet` (7 period modes: Month, Today, Week, Year, All, Day, Range).
 
 ## Settings Screen
 
@@ -87,6 +114,21 @@ Fires only when `|deltaX| > |deltaY| * 1.7` (predominantly horizontal).
 `AppMonth` modes: `MONTH`, `TODAY`, `WEEK`, `YEAR`, `ALL`, `DAY`, `RANGE`. `computeRange(AppMonth)` → `Pair<Long, Long>`.
 
 **Rule:** Do not give individual screens their own month state. All navigation goes through this repository.
+
+## SharedMonthNavPill — Current Month Color
+
+Two pill accent colors are defined in `SharedMonthPill.kt`:
+
+```kotlin
+private val PILL_ACCENT  = Color(0xFFD81B60)   // crimson — past/future months
+private val PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
+```
+
+`isCurrentMonth = appMonth.mode == PeriodMode.MONTH && appMonth.month == today.month && appMonth.year == today.year`
+
+When `isCurrentMonth` is true, `pillColor = PILL_CURRENT`; otherwise `pillColor = PILL_ACCENT`. The pill background (`pillColor.copy(alpha=0.12f)`), badge circle fill, badge text, label text, and dropdown arrow all use `pillColor` — no element uses a hardcoded accent.
+
+**Rule:** Only `PeriodMode.MONTH` pointing at the current calendar month gets the blue color. All other modes (TODAY, WEEK, YEAR, ALL, DAY, RANGE) and past/future months keep the crimson `PILL_ACCENT`.
 
 ## Text And Locale
 

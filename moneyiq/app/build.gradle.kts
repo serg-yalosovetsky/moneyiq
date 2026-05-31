@@ -23,8 +23,8 @@ android {
         applicationId = "org.pixelrush.moneyiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.1.0"
         multiDexKeepProguard = file("multidex-keep.pro")
     }
 
@@ -110,6 +110,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
+    implementation(libs.compose.ui.text.google.fonts)
     debugImplementation(libs.compose.ui.tooling)
 
     // Navigation

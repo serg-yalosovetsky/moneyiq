@@ -477,7 +477,7 @@ fun SharedTopBar(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Outlined.Person, null,
+                Icons.Filled.Person, null,
                 tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp)
             )
@@ -497,7 +497,7 @@ fun SharedTopBar(
             )
             Text(
                 formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleLarge,
+                style      = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color      = MaterialTheme.colorScheme.onSurface,
                 maxLines   = 1,

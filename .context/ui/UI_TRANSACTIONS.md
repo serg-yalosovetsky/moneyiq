@@ -116,3 +116,15 @@ Tapping a fallback transaction row is a no-op. `OverviewUiState.transactions` ho
 **Category row icons:** call `categoryIconFor(row.icon)` from `CategoryIcons.kt` (48 keys). Do not add a local icon mapper in `OverviewScreen.kt`.
 
 **Category Detail Sheet:** tapping a category row opens `CategoryDetailSheet` (`OverviewSheets.kt`) as `ModalBottomSheet` with category color as container.
+
+### SpendingChart — Stacked Category Bars
+
+`DayBar` carries `segments: List<CategorySegment>` — each segment has `colorHex` and `amount`, sorted largest-first by the ViewModel (`buildState`).
+
+**Bar width:** `gap = slotW * 0.45f` → bar occupies ~55% of each day slot (thinner columns with visible gaps).
+
+**Drawing order:** Loop starts at `currentBottom = h` and draws each segment upward. First segment (largest amount) anchors the bottom; smaller segments stack on top.
+
+**Fallback:** If `segments.isEmpty()` (income with no category, or uncategorised transactions) → single `accentColor` bar.
+
+**Rule:** `SpendingChart` draws segments in the order they arrive in `DayBar.segments`. Do not re-sort in the composable — sorting is the ViewModel's responsibility.
