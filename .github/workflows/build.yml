@@ -73,15 +73,15 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > app/release.keystore
+            echo "SIGNING_STORE_FILE=${{ github.workspace }}/moneyiq/app/release.keystore" >> $GITHUB_ENV
+            echo "SIGNING_STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "SIGNING_KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "SIGNING_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           fi
 
       - name: Build release APK
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SIGNING_STORE_FILE: ${{ github.workspace }}/moneyiq/app/release.keystore
-          SIGNING_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease --no-daemon
 
       - name: Rename APK
