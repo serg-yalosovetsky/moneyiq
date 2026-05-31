@@ -201,7 +201,7 @@ fun CategoriesScreen(
         CategoryFormSheet(
             existing    = cat,
             defaultType = cat.type,
-            onSave      = { name, type, color, icon, budget, period, archived ->
+            onSave      = { name, type, color, icon, budget, period, archived, currency ->
                 viewModel.update(cat.copy(
                     name         = name,
                     type         = type,
@@ -209,7 +209,8 @@ fun CategoriesScreen(
                     icon         = icon,
                     budgetAmount = budget,
                     budgetPeriod = period,
-                    archived     = archived
+                    archived     = archived,
+                    currencyCode = currency
                 ))
                 editCategory = null
             },
@@ -224,8 +225,8 @@ fun CategoriesScreen(
         CategoryFormSheet(
             existing    = null,
             defaultType = defaultType,
-            onSave      = { name, type, color, icon, budget, period, _ ->
-                viewModel.add(name, type, color, icon, budget, period)
+            onSave      = { name, type, color, icon, budget, period, _, currency ->
+                viewModel.add(name, type, color, icon, budget, period, currency)
                 showAddSheet = false
             },
             onDismiss   = { showAddSheet = false }

@@ -140,7 +140,8 @@ internal fun ColorPalette(selected: Color, onSelect: (Color) -> Unit) {
 internal fun CurrencyPageContent(
     selected: String,
     onSelect: (String) -> Unit,
-    onClose:  () -> Unit
+    onClose:  () -> Unit,
+    title:    String = "Валюта за замовчуванням"
 ) {
     var tabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Основні валюти", "Інші валюти", "Криптовалюти")
@@ -162,7 +163,7 @@ internal fun CurrencyPageContent(
                 Icon(Icons.Default.Close, contentDescription = "Закрити")
             }
             Text(
-                "Валюта за замовчуванням",
+                title,
                 style     = MaterialTheme.typography.titleLarge,
                 modifier  = Modifier.padding(start = 4.dp)
             )

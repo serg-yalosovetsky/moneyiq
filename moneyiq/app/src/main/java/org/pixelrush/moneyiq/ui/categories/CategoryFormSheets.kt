@@ -43,6 +43,10 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.components.dialogs.ConfirmationDialog
+import org.pixelrush.moneyiq.ui.settings.CurrencyPageContent
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_CRYPTO
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_MAIN
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_OTHER
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
 
@@ -51,7 +55,7 @@ import org.pixelrush.moneyiq.util.suggestCategoryStyle
 fun CategoryFormSheet(
     existing:    CategoryEntity?,
     defaultType: TransactionType = TransactionType.EXPENSE,
-    onSave:      (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean) -> Unit,
+    onSave:      (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
     onDelete:    (() -> Unit)? = null,
     onDismiss:   () -> Unit
 ) {
@@ -65,12 +69,14 @@ fun CategoryFormSheet(
                 ?.let { it.toBigDecimal().stripTrailingZeros().toPlainString() } ?: ""
         )
     }
-    var period   by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
-    var archived by remember { mutableStateOf(existing?.archived ?: false) }
+    var period        by remember { mutableStateOf(existing?.budgetPeriod ?: "MONTHLY") }
+    var archived      by remember { mutableStateOf(existing?.archived ?: false) }
+    var currencyCode  by remember { mutableStateOf(existing?.currencyCode ?: "UAH") }
 
-    var showIconPicker    by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showBudgetCalc    by remember { mutableStateOf(false) }
+    var showIconPicker     by remember { mutableStateOf(false) }
+    var showDeleteConfirm  by remember { mutableStateOf(false) }
+    var showBudgetCalc     by remember { mutableStateOf(false) }
+    var showCurrencyPicker by remember { mutableStateOf(false) }
     val nameFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -103,7 +109,7 @@ fun CategoryFormSheet(
     fun doSave() {
         if (name.isNotBlank()) {
             val b = budget.replace(",", ".").toDoubleOrNull() ?: 0.0
-            onSave(name, type, colorHex, iconKey, b, period, archived)
+            onSave(name, type, colorHex, iconKey, b, period, archived, currencyCode)
             onDismiss()
         }
     }
@@ -249,6 +255,9 @@ fun CategoryFormSheet(
 
                 // Валюта
                 item {
+                    val allCurrencies = CURRENCIES_MAIN + CURRENCIES_OTHER + CURRENCIES_CRYPTO
+                    val currencyDef = allCurrencies.firstOrNull { it.code == currencyCode }
+                    val currencyLabel = currencyDef?.let { "${it.name} – ${it.symbol}" } ?: currencyCode
                     ListItem(
                         leadingContent  = {
                             Icon(Icons.Outlined.AttachMoney, null,
@@ -258,11 +267,11 @@ fun CategoryFormSheet(
                         headlineContent  = { Text("Валюта категорії") },
                         supportingContent = {
                             Text(
-                                "Українська гривня – ₴",
+                                currencyLabel,
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                             )
                         },
-                        modifier = Modifier.clickable {}
+                        modifier = Modifier.clickable { showCurrencyPicker = true }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }
@@ -391,6 +400,24 @@ fun CategoryFormSheet(
             },
             onDismiss = { showBudgetCalc = false }
         )
+    }
+
+    // ── Вибір валюти ─────────────────────────────────────────────────────────
+    if (showCurrencyPicker) {
+        Dialog(
+            onDismissRequest = { showCurrencyPicker = false },
+            properties       = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            CurrencyPageContent(
+                title    = "Валюта категорії",
+                selected = currencyCode,
+                onSelect = { code ->
+                    currencyCode = code
+                    showCurrencyPicker = false
+                },
+                onClose  = { showCurrencyPicker = false }
+            )
+        }
     }
 }
 
@@ -574,7 +601,7 @@ fun EditCategoriesScreen(
     monthIncome:       Map<Long, Double>    = emptyMap(),
     totalExpense:      Double               = 0.0,
     totalIncome:       Double               = 0.0,
-    onSave:   (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, existing: CategoryEntity?) -> Unit,
+    onSave:   (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String, existing: CategoryEntity?) -> Unit,
     onDelete: (CategoryEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -641,6 +668,7 @@ fun EditCategoriesScreen(
                     )
                 }
 
+                val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                 CategoriesGridContent(
                     categories          = categories,
                     allCategoriesForTab = allCats,
@@ -649,7 +677,7 @@ fun EditCategoriesScreen(
                     totalIncome         = totalIncome,
                     selectedTab         = selectedTab,
                     onToggleTab         = { selectedTab = if (selectedTab == 0) 1 else 0 },
-                    bottomPadding       = 0.dp,
+                    bottomPadding       = navBarPadding + 16.dp,
                     onChipClick         = { cat -> editCategory = cat },
                     onAdd               = { showAddSheet = true },
                     showSubcategories   = showSubcategories
@@ -662,8 +690,8 @@ fun EditCategoriesScreen(
         CategoryFormSheet(
             existing    = cat,
             defaultType = cat.type,
-            onSave      = { name, type, color, icon, budget, period, arch ->
-                onSave(name, type, color, icon, budget, period, arch, cat)
+            onSave      = { name, type, color, icon, budget, period, arch, currency ->
+                onSave(name, type, color, icon, budget, period, arch, currency, cat)
                 editCategory = null
             },
             onDelete    = { onDelete(cat); editCategory = null },
@@ -675,8 +703,8 @@ fun EditCategoriesScreen(
         CategoryFormSheet(
             existing    = null,
             defaultType = defaultType,
-            onSave      = { name, type, color, icon, budget, period, _ ->
-                onSave(name, type, color, icon, budget, period, false, null)
+            onSave      = { name, type, color, icon, budget, period, _, currency ->
+                onSave(name, type, color, icon, budget, period, false, currency, null)
                 showAddSheet = false
             },
             onDismiss   = { showAddSheet = false }

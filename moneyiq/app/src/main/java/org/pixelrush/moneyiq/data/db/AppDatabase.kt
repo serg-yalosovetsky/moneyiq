@@ -181,6 +181,28 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
     }
 }
 
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE categories ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'UAH'")
+    }
+}
+
+val MIGRATION_21_22 = object : Migration(21, 22) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix user-created categories that received wrong icons via old suggestCategoryStyle
+        database.execSQL("UPDATE categories SET icon = 'delivery' WHERE LOWER(name) LIKE '%кур%єр%' OR LOWER(name) LIKE '%кур%ер%' OR LOWER(name) LIKE '%доставк%'")
+        database.execSQL("UPDATE categories SET icon = 'clothes'  WHERE LOWER(name) = 'одяг' OR LOWER(name) = 'взуття'")
+        database.execSQL("UPDATE categories SET icon = 'school'   WHERE LOWER(name) LIKE '%освіт%' OR LOWER(name) LIKE '%навчан%'")
+        database.execSQL("UPDATE categories SET icon = 'devices'  WHERE LOWER(name) IN ('техніка', 'гаджети', 'електроніка') AND icon NOT IN ('devices', 'gaming')")
+        database.execSQL("UPDATE categories SET icon = 'doctor'   WHERE LOWER(name) LIKE '%стоматол%' OR LOWER(name) LIKE '%стоматолог%'")
+        database.execSQL("UPDATE categories SET icon = 'sports'   WHERE LOWER(name) LIKE '%спортивн%'")
+        database.execSQL("UPDATE categories SET icon = 'parking'  WHERE LOWER(name) LIKE '%паркуван%'")
+        database.execSQL("UPDATE categories SET icon = 'percent'  WHERE LOWER(name) LIKE '%процент%' OR LOWER(name) LIKE '%відсоток%'")
+        database.execSQL("UPDATE categories SET icon = 'percent'  WHERE LOWER(name) LIKE '%податок%' OR LOWER(name) LIKE '%податки%' OR LOWER(name) LIKE '%пдв%'")
+        database.execSQL("UPDATE categories SET icon = 'gavel'    WHERE LOWER(name) LIKE '%штраф%' OR LOWER(name) LIKE '%пеня%'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -200,12 +222,14 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_16_17,
     MIGRATION_17_18,
     MIGRATION_18_19,
-    MIGRATION_19_20
+    MIGRATION_19_20,
+    MIGRATION_20_21,
+    MIGRATION_21_22
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 20,
+    version = 22,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

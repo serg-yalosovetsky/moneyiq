@@ -293,7 +293,7 @@ fun MainScreen(
             monthIncome       = categoriesState.monthIncome,
             totalExpense      = categoriesState.totalExpense,
             totalIncome       = categoriesState.totalIncome,
-            onSave = { name, type, color, icon, budget, period, archived, existing ->
+            onSave = { name, type, color, icon, budget, period, archived, currency, existing ->
                 if (existing != null) {
                     categoriesViewModel.update(
                         existing.copy(
@@ -303,11 +303,12 @@ fun MainScreen(
                             icon         = icon,
                             budgetAmount = budget,
                             budgetPeriod = period,
-                            archived     = archived
+                            archived     = archived,
+                            currencyCode = currency
                         )
                     )
                 } else {
-                    categoriesViewModel.add(name, type, color, icon, budget, period)
+                    categoriesViewModel.add(name, type, color, icon, budget, period, currency)
                 }
             },
             onDelete  = { categoriesViewModel.delete(it) },

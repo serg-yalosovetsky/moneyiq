@@ -96,12 +96,14 @@ class CategoriesViewModel @Inject constructor(
     fun toggleSubcategories()               { _showSubcategories.value = !_showSubcategories.value }
 
     fun add(
-        name:   String,
-        type:   TransactionType,
-        color:  String,
-        icon:   String  = "category",
-        budget: Double  = 0.0,
-        period: String  = "MONTHLY"
+        name:         String,
+        type:         TransactionType,
+        color:        String,
+        icon:         String = "category",
+        budget:       Double = 0.0,
+        period:       String = "MONTHLY",
+        currencyCode: String = "UAH",
+        parentId:     Long?  = null
     ) {
         viewModelScope.launch {
             repo.save(
@@ -111,7 +113,9 @@ class CategoriesViewModel @Inject constructor(
                     colorHex     = color,
                     icon         = icon,
                     budgetAmount = budget,
-                    budgetPeriod = period
+                    budgetPeriod = period,
+                    currencyCode = currencyCode,
+                    parentId     = parentId
                 )
             )
         }

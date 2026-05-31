@@ -24,5 +24,6 @@ data class CategoryEntity(
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
     val archived: Boolean = false,
-    val parentId: Long? = null          // null = широка (root) категорія
+    val parentId: Long? = null,         // null = широка (root) категорія
+    val currencyCode: String = "UAH"
 )
