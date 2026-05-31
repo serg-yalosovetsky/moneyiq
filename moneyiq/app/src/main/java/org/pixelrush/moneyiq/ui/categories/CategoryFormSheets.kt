@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,6 +37,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.activity.compose.BackHandler
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.components.calculator.*
@@ -70,6 +73,13 @@ fun CategoryFormSheet(
     var showBudgetCalc    by remember { mutableStateOf(false) }
     val nameFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var isNameFocused by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isNameFocused) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
 
     // Для нової категорії — авто-фокус на полі назви
     LaunchedEffect(Unit) {
@@ -108,7 +118,14 @@ fun CategoryFormSheet(
                 TopAppBar(
                     title = { Text(if (existing != null) "Категорія" else "Нова категорія") },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = {
+                            if (isNameFocused) {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                            } else {
+                                onDismiss()
+                            }
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
                         }
                     },
@@ -152,8 +169,14 @@ fun CategoryFormSheet(
                                 cursorBrush    = SolidColor(MaterialTheme.colorScheme.primary),
                                 singleLine     = true,
                                 keyboardOptions   = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions   = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                modifier       = Modifier.fillMaxWidth().focusRequester(nameFocusRequester),
+                                keyboardActions   = KeyboardActions(onDone = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                }),
+                                modifier       = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(nameFocusRequester)
+                                    .onFocusChanged { isNameFocused = it.isFocused },
                                 decorationBox  = { inner ->
                                     Box {
                                         if (name.isBlank()) {
@@ -555,12 +578,15 @@ fun EditCategoriesScreen(
     onDelete: (CategoryEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedTab  by remember { mutableIntStateOf(0) }
-    var editCategory by remember { mutableStateOf<CategoryEntity?>(null) }
-    var showAddSheet by remember { mutableStateOf(false) }
+    var selectedTab       by remember { mutableIntStateOf(0) }
+    var editCategory      by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showAddSheet      by remember { mutableStateOf(false) }
+    var showSubcategories by remember { mutableStateOf(false) }
 
-    val categories  = if (selectedTab == 0) expenseCategories.filter { !it.archived }
-                      else incomeCategories.filter { !it.archived }
+    val allCats  = if (selectedTab == 0) expenseCategories.filter { !it.archived }
+                   else incomeCategories.filter { !it.archived }
+    val categories = if (showSubcategories) allCats.filter { it.parentId != null }
+                     else allCats.filter { it.parentId == null }
     val spending    = if (selectedTab == 0) monthSpending else monthIncome
     val defaultType = if (selectedTab == 0) TransactionType.EXPENSE else TransactionType.INCOME
 
@@ -576,6 +602,20 @@ fun EditCategoriesScreen(
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
+                        }
+                    },
+                    actions = {
+                        TextButton(
+                            onClick = { showSubcategories = !showSubcategories }
+                        ) {
+                            Text(
+                                if (showSubcategories) "Категорії" else "Субкатегорії",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (showSubcategories)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
                         }
                     }
                 )
@@ -602,15 +642,17 @@ fun EditCategoriesScreen(
                 }
 
                 CategoriesGridContent(
-                    categories    = categories,
-                    spending      = spending,
-                    totalExpense  = totalExpense,
-                    totalIncome   = totalIncome,
-                    selectedTab   = selectedTab,
-                    onToggleTab   = { selectedTab = if (selectedTab == 0) 1 else 0 },
-                    bottomPadding = 0.dp,
-                    onChipClick   = { cat -> editCategory = cat },
-                    onAdd         = { showAddSheet = true }
+                    categories          = categories,
+                    allCategoriesForTab = allCats,
+                    spending            = spending,
+                    totalExpense        = totalExpense,
+                    totalIncome         = totalIncome,
+                    selectedTab         = selectedTab,
+                    onToggleTab         = { selectedTab = if (selectedTab == 0) 1 else 0 },
+                    bottomPadding       = 0.dp,
+                    onChipClick         = { cat -> editCategory = cat },
+                    onAdd               = { showAddSheet = true },
+                    showSubcategories   = showSubcategories
                 )
             }
         }
