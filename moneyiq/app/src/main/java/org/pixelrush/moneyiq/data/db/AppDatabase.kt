@@ -203,6 +203,25 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
     }
 }
 
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET icon = 'home',  colorHex = '#546E7A' WHERE LOWER(name) LIKE '%комунал%'")
+        database.execSQL("UPDATE categories SET icon = 'phone', colorHex = '#3F51B5' WHERE LOWER(REPLACE(name, '''', '''')) LIKE '%зв_язок%'")
+        database.execSQL("UPDATE categories SET icon = 'wifi',  colorHex = '#00BCD4' WHERE LOWER(name) = 'інтернет'")
+    }
+}
+
+val MIGRATION_23_24 = object : Migration(23, 24) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fix Здоров'я root stuck on 'health' (cross) icon from old import/seed
+        database.execSQL("UPDATE categories SET icon = 'volunteer', colorHex = '#48B456' WHERE LOWER(name) LIKE '%здоров%' AND parentId IS NULL AND icon IN ('health', 'doctor')")
+        // Fix Спорт stuck on 'health' icon — must come before the broad health fix
+        database.execSQL("UPDATE categories SET icon = 'sports' WHERE LOWER(name) = 'спорт' AND icon IN ('health', 'doctor', 'volunteer')")
+        // Any remaining root-level categories still carrying the old 'health' cross icon
+        database.execSQL("UPDATE categories SET icon = 'volunteer', colorHex = '#48B456' WHERE icon = 'health' AND parentId IS NULL")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -224,12 +243,14 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_18_19,
     MIGRATION_19_20,
     MIGRATION_20_21,
-    MIGRATION_21_22
+    MIGRATION_21_22,
+    MIGRATION_22_23,
+    MIGRATION_23_24
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 22,
+    version = 24,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
