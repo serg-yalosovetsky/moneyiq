@@ -158,13 +158,26 @@ class DataViewModel @Inject constructor(
                     return cat.copy(icon = "restaurant", colorHex = "#E53935")
             }
         }
+        // Fix wrong icons regardless of parentId
+        when {
+            // Спорт stuck on health/doctor cross
+            n == "спорт" && cat.icon in listOf("health", "doctor") ->
+                return cat.copy(icon = "sports", colorHex = "#F44336")
+            // Здоров'я root stuck on health cross
+            n.contains("здоров") && cat.parentId == null && cat.icon in listOf("health", "doctor") ->
+                return cat.copy(icon = "volunteer", colorHex = "#48B456")
+            // Any root category still carrying the old 'health' cross
+            cat.icon == "health" && cat.parentId == null ->
+                return cat.copy(icon = "volunteer", colorHex = "#48B456")
+        }
         if (cat.icon == "category") {
             val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
             return cat.copy(icon = icon, colorHex = color)
         }
         return when (cat.icon) {
-            "movie"  -> if (cat.colorHex != "#9C27B0") cat.copy(colorHex = "#9C27B0") else cat
-            "coffee" -> if (cat.colorHex != "#795548") cat.copy(colorHex = "#795548") else cat
+            "movie"   -> if (cat.colorHex != "#9C27B0") cat.copy(colorHex = "#9C27B0") else cat
+            "coffee"  -> if (cat.colorHex != "#795548") cat.copy(colorHex = "#795548") else cat
+            "sports"  -> if (cat.colorHex != "#F44336") cat.copy(colorHex = "#F44336") else cat
             else -> cat
         }
     }
