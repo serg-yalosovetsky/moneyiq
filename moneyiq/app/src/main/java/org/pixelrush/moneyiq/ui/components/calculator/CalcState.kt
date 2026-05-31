@@ -51,6 +51,7 @@ class CalcStateHolder(initial: Double = 0.0) {
                 pendingVal = 0.0
             }
             "⌫" -> currentStr = if (currentStr.length <= 1) "0" else currentStr.dropLast(1)
+            "C" -> { currentStr = "0"; pendingOp = null; pendingVal = 0.0 }
             "," -> {
                 if ("," !in currentStr && "." !in currentStr)
                     currentStr = if (currentStr == "0") "0," else "$currentStr,"

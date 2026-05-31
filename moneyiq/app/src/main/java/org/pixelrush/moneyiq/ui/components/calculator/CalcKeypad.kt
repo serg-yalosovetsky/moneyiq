@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,14 +71,32 @@ fun SharedCalcKeypad(
                     .clip(RoundedCornerShape(10.dp)).background(keyBg)
                     .clickable { calc.onKey("⌫") },
                 contentAlignment = Alignment.Center
-            ) { Icon(Icons.AutoMirrored.Filled.Backspace, null, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Icons.AutoMirrored.Outlined.Backspace, null, modifier = Modifier.size(20.dp)) }
         }
         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
             QKey("×", Modifier.weight(1f), isOp = true, bg = opBg) { calc.onKey("×") }
             QKey("4", Modifier.weight(1f), bg = keyBg) { calc.onKey("4") }
             QKey("5", Modifier.weight(1f), bg = keyBg) { calc.onKey("5") }
             QKey("6", Modifier.weight(1f), bg = keyBg) { calc.onKey("6") }
-            if (row2ExtraKey != null) row2ExtraKey() else Spacer(Modifier.weight(1f))
+            if (row2ExtraKey != null) {
+                row2ExtraKey()
+            } else {
+                Box(
+                    modifier = Modifier
+                        .weight(1f).fillMaxHeight()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(keyBg)
+                        .clickable { calc.onKey("C") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "C",
+                        fontSize   = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
         Row(
             modifier              = Modifier.weight(2f).fillMaxWidth(),
