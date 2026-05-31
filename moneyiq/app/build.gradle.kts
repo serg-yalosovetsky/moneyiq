@@ -94,6 +94,12 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    lint {
+        // Workaround for IncompatibleClassChangeError in NonNullableMutableLiveDataDetector
+        // caused by version incompatibility between androidx.lifecycle lint and Kotlin Analysis API
+        disable += "NullSafeMutableLiveData"
+    }
 }
 
 dependencies {
