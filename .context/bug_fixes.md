@@ -19,6 +19,18 @@
 
 ## Known Bugs Fixed
 
+### OverviewSheets — Unresolved Reference `iconVectorFor` (2026-05-31)
+
+**Symptom:** Build failed: `Unresolved reference 'iconVectorFor'` in `OverviewSheets.kt:200`.
+
+**Root cause:** A parallel session used the non-existent name `iconVectorFor` instead of the correct `categoryIconFor` from `ui/categories/CategoryIcons.kt`, and omitted the required import.
+
+**Fix:** Replaced `iconVectorFor(cat.icon)` with `categoryIconFor(cat.icon)` and added `import org.pixelrush.moneyiq.ui.categories.categoryIconFor`.
+
+**Regression rule:** The only function for resolving icon keys to `ImageVector` is `categoryIconFor(iconName: String)` in `CategoryIcons.kt`. There is no `iconVectorFor`, `iconFor`, or similar alias. Always import it explicitly — wildcard imports from `ui.categories` do not expose `internal` members.
+
+---
+
 ### Category Icons Wrong for Комунальні / Зв'язок / Інтернет (2026-05-31)
 
 **Symptom:** Комунальні, Зв'язок, and Інтернет categories showed the `family` icon (group of people) instead of `home`, `phone`, `wifi`.
