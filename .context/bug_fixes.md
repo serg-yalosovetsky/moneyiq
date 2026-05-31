@@ -19,6 +19,30 @@
 
 ## Known Bugs Fixed
 
+### Category Icons Wrong for Комунальні / Зв'язок / Інтернет (2026-05-31)
+
+**Symptom:** Комунальні, Зв'язок, and Інтернет categories showed the `family` icon (group of people) instead of `home`, `phone`, `wifi`.
+
+**Root cause:** Categories were created in an older app version where `suggestCategoryStyle` or the seed data assigned wrong icons. Prior migrations 9→10 and 10→11 fixed them by exact name match, but user databases with slight name variations or created after those migrations ran were not covered.
+
+**Fix:** MIGRATION_22_23 — broad LIKE-match update: `LOWER(name) LIKE '%комунал%'` → `home`/`#546E7A`; `LOWER(REPLACE(name,...)) LIKE '%зв_язок%'` → `phone`/`#3F51B5`; `LOWER(name) = 'інтернет'` → `wifi`/`#00BCD4`.
+
+**Regression rule:** Any icon fix for root utility categories must use `LOWER(name) LIKE` patterns (not exact name match) to survive user-entered name variants.
+
+---
+
+### Category Icons Wrong for Здоров'я / Спорт (2026-05-31)
+
+**Symptom:** Здоров'я root category showed the `health` (hospital cross) icon instead of `volunteer` (heart). Спорт showed `health` instead of `sports`.
+
+**Root cause:** The `health` icon key was removed from `suggestCategoryStyle` rules (replaced by `pharmacy`/`doctor`), but existing DB rows still had `icon = 'health'`. The new icon picker and category form showed the wrong icon.
+
+**Fix:** MIGRATION_23_24 — updates `Здоров'я`-matching root categories (`parentId IS NULL`) and `Спорт` from `health`/`doctor` → correct icons. Falls back: any remaining root with `icon = 'health'` → `volunteer`/`#48B456`.
+
+**Regression rule:** When removing an icon key from `suggestCategoryStyle`, add a data migration to fix existing DB rows that still have that key.
+
+---
+
 ### CategoryFormSheet — Keyboard Not Dismissed / Back Closes Dialog (2026-05-31)
 
 **Symptom:** Tapping the `←` back arrow while the name field was focused closed the entire dialog instead of hiding the keyboard. The Enter/Done key also failed to dismiss the keyboard.
