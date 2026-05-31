@@ -19,6 +19,18 @@
 
 ## Known Bugs Fixed
 
+### TypePickerSheet — "Інше" Account Type Clipped At Bottom (2026-05-31)
+
+**Symptom:** Account type picker showed all 6 types (Готівка, Карта, Заощадження, Інвестиції, Борговий, Інше) but "Інше" was half-visible — the sheet stopped at the partial-expand stop point.
+
+**Root cause:** `ModalBottomSheet(onDismissRequest = onDismiss)` without a `sheetState` argument defaults to the standard half-expanded state, which doesn't leave enough room for 6 list items.
+
+**Fix:** Added `sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)` to `TypePickerSheet` in `AccountPickerSheets.kt`.
+
+**Regression rule:** Any `ModalBottomSheet` with a known fixed number of items that might not fit half-screen must use `skipPartiallyExpanded = true`. Apply this whenever content height is predictable and always exceeds the partial-expand threshold.
+
+---
+
 ### OverviewSheets — Unresolved Reference `iconVectorFor` (2026-05-31)
 
 **Symptom:** Build failed: `Unresolved reference 'iconVectorFor'` in `OverviewSheets.kt:200`.
