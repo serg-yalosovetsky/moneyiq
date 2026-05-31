@@ -94,22 +94,28 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 18):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 25):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
 | Продукти       | `grocery`     | `ShoppingBasket`        | `#4AAFE8`  |
 | Ресторація     | `restaurant`  | `Restaurant`            | `#4659BE`  |
 | Дозвілля       | `theater`     | `TheaterComedy`         | `#F73579`  |
-| Транспорт      | **`bus`**     | **`DirectionsBus`**     | `#FFA834`  |
-| Здоров'я       | `volunteer`   | `VolunteerActivism`     | `#48B456`  |
+| Транспорт      | `bus`         | `DirectionsBus`         | `#FFA834`  |
+| Здоров'я       | `volunteer`   | `HealthAndSafety`       | `#48B456`  |
 | Подарунки      | `gift`        | `CardGiftcard`          | `#F34B4D`  |
 | Сім'я          | `family`      | `FamilyRestroom`        | `#7A48F2`  |
 | Покупки        | `shopping`    | `ShoppingCart`          | `#7B5947`  |
 | Робота         | `work`        | `Work`                  | `#1565C0`  |
 | Таксі          | `taxi`        | `LocalTaxi`             | `#FDD835`  |
-| Паркінг/Авто   | `car`         | `DirectionsCar`         | `#FF7043`  |
+| Авто           | `car`         | `DirectionsCar`         | `#FF7043`  |
+| Паркінг        | `parking`     | `LocalParking`          | `#78909C`  |
 | АЗС/Пальне     | `gas_station` | `LocalGasStation`       | `#FF8F00`  |
+| Оренда         | `key`         | `Key`                   | `#9C27B0`  |
+| Фриланс        | `laptop`      | `Laptop`                | `#26A69A`  |
+| Аптека         | `pharmacy`    | `Medication`            | `#43A047`  |
+| Лікар/Медицина | `doctor`      | `MedicalServices`       | `#D81B60`  |
+| Спорт          | `sports`      | `DirectionsRun`         | `#F44336`  |
 | Кіно (child)   | `movie`       | `Movie`                 | `#9C27B0`  |
 | Gaming (child) | `gaming`      | `SportsEsports`         | `#607D8B`  |
 | Зв'язок        | `phone`       | `PhoneAndroid`          | `#3F51B5`  |
@@ -119,19 +125,34 @@ Root category icon keys must be semantically specific — not generic fallbacks.
 | Food delivery  | `delivery`    | `LocalShipping`         | `#FF6F00`  |
 | Ресторани      | `restaurant`  | `Restaurant`            | `#E53935`  |
 | Кафе           | `coffee`      | `LocalCafe`             | `#795548`  |
+| Штрафи         | `gavel`       | `Gavel`                 | `#BF360C`  |
+| Проценти/ПДВ   | `percent`     | `Percent`               | `#F9A825`  |
 
-**Transport icon split** (migration 17→18, 2026-05-31): `bus`/`DirectionsBus` for public transport ("Транспорт", "автобус", "метро", "маршрутка") vs `car`/`DirectionsCar` for personal vehicle ("авто", "машина", "паркінг"). Previously both mapped to `car` making Транспорт and Таксі look identical.
+**Icon distinctness rule** (migration 19→20, 2026-05-31): Every commonly-used subcategory has a distinct icon. Аптека→`pharmacy` (Medication pill), Лікар→`doctor` (MedicalServices cross), Спорт→`sports` (DirectionsRun — running figure). Паркінг→`parking` separate from Авто (`car`). Оренда→`key`. Фриланс→`laptop`.
+
+**Volunteer icon** (2026-05-31): `volunteer` key uses `Icons.Outlined.HealthAndSafety` (shield with cross/heart — clearly "health & safety"). Changed from `FavoriteBorder` (generic heart) and before that from `VolunteerActivism`.
+
+**Sports icon** (2026-05-31): `sports` key uses `Icons.Outlined.DirectionsRun` (running figure). Changed from `FitnessCenter` (dumbbell) to better distinguish from "gym" and to be more universally recognisable as physical activity.
+
+**Transport icon split** (migration 17→18): `bus`/`DirectionsBus` for public transport vs `car`/`DirectionsCar` for personal vehicle.
 
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→18 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→25 backfill existing DB rows. The old `health` key is kept as a legacy entry in `iconColorMap` only — do not use it for new categories or seeds.
 
-Migration 12→13: Deletes EXPENSE categories named "Фінанс*" — financial savings/investments are not expenses.
-Migration 13→14: Updates root category colors to match current design palette (more vibrant shades).
-Migration 14→15: Single authoritative subcategory icon fix — `parentId IS NOT NULL` guard on all UPDATEs, `LOWER(TRIM(name)) LIKE` matching. Sets `delivery`/`#FF6F00` for food delivery apps; `coffee`/`#795548` for кафе variants; `restaurant`/`#E53935` for ресторани variants (root "ресторація" excluded). Also fixes `iconColorMap` bugs: `movie`→`#9C27B0`, `coffee`→`#795548` for any existing categories with wrong colors.
-Migration 15→16: Fixes `money` icon for any remaining "Фінанс*" categories (safety net after delete migration).
-Migration 16→17: Re-applies Ресторація subcategory icons with exact name matching (bypasses SQLite Cyrillic LOWER() bug).
-Migration 17→18: Sets `bus` icon for root "Транспорт" category (`parentId IS NULL AND name = 'Транспорт'`).
+Migration 12→13: Deletes EXPENSE categories named "Фінанс*".
+Migration 13→14: Root category color palette refresh.
+Migration 14→15: Subcategory icon fix (delivery/coffee/restaurant, parentId guard, TRIM+LIKE).
+Migration 15→16: `money` icon safety net for remaining "Фінанс*".
+Migration 16→17: Subcategory icons via exact name matching.
+Migration 17→18: `bus` for root Транспорт.
+Migration 18→19: Fixes placeholder `category` icons for money/celebration/theater.
+Migration 19→20: Distinct icons for pharmacy/doctor/parking/gas_station/key/laptop/sports.
+Migration 20→21: Structural — adds `currencyCode TEXT NOT NULL DEFAULT 'UAH'` to categories.
+Migration 21→22: Bulk icon fixes for existing rows: delivery/clothes/school/devices/doctor/sports/parking/percent/gavel.
+Migration 22→23: Utilities icons: home/phone/wifi.
+Migration 23→24: Здоров'я root `volunteer`/`#48B456`; Спорт→`sports`; remaining `health` roots→`volunteer`.
+Migration 24→25: **Unconditional** fix for Дозвілля (`theater`/`#F73579`) and Розваги (`celebration`/`#FF6D00`) — no `icon = 'category'` guard because imported data via REPLACE strategy can silently overwrite prior migration results.
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 
@@ -145,6 +166,7 @@ Current companion file map:
 | `ui.budget` | `BudgetScreen.kt` | `BudgetSheets.kt` |
 | `ui.categories` | `CategoriesScreen.kt` | `CategoriesWidgets.kt` |
 | `ui.categories` | `CategorySheets.kt` | `CategoryFormSheets.kt` |
+| `ui.categories` | `CategoriesScreen.kt` | `EditCategoriesScreen.kt` |
 | `ui.data` | `DataScreen.kt` | `DataWidgets.kt` |
 | `ui.overview` | `OverviewScreen.kt` | `OverviewSheets.kt` |
 | `ui.settings` | `SettingsScreen.kt` | `SettingsSubScreens.kt` |
@@ -165,7 +187,11 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 }
 ```
 
-Also update: DB `version` in `@Database`, `addMigrations(...)` in `DatabaseModule.kt`, seed in `CategoryRepository`, auto-suggest rule in `CategoryStyleUtil`, and the icon table in `UI_CONTRACTS.md`.
+Also update: DB `version` in `@Database`, `ALL_MIGRATIONS` array in `AppDatabase.kt`, seed in `CategoryRepository`, auto-suggest rule in `CategoryStyleUtil`, and the icon table in `UI_CONTRACTS.md`.
+
+**REPLACE strategy risk:** `insertCategories` uses `@Insert(onConflict = OnConflictStrategy.REPLACE)`. Importing a backup or syncing data that has `icon = 'category'` silently overwrites correctly migrated icons — subsequent app launches do NOT re-run already-completed migrations.
+
+**Rule for import-resilient fixes:** When a named category could be re-imported with a wrong icon, **omit the `AND icon = 'category'` guard**. Use an unconditional `UPDATE ... WHERE LOWER(TRIM(name)) = 'xxx'` (see migration 24→25: Дозвілля/Розваги).
 
 ## ADR-021: LazyColumn Spacing Via `verticalArrangement`, Not Item Padding
 
@@ -259,13 +285,17 @@ projectedSavings  = incomeBudget - projectedExpenses
 
 Forecast is shown only when `daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0` (i.e., current month with some spend data). Past/future months show only actual savings. This is intentionally simple linear extrapolation — do not replace with complex models without a product decision.
 
-## ADR-030: EditCategoriesScreen Defaults To Root Categories Only (2026-05-31)
+## ADR-030: EditCategoriesScreen Reuses CategoriesGridContent Without Badges (2026-05-31, updated 2026-05-31)
 
-`EditCategoriesScreen` (the "Редагувати категорії" full-screen dialog) shows only **root categories** by default (`parentId == null`). A toggle button in `TopAppBar` actions switches to showing only child categories (`parentId != null`).
+`EditCategoriesScreen` lives in `CategoryFormSheets.kt` (not a separate file). It is the full-screen "Редагувати категорії / Редагувати субкатегорії" overlay and reuses `CategoriesGridContent` directly.
 
-This matches the user mental model: root categories are the primary management object; subcategories are secondary. Showing all categories at once in a flat grid is visually noisy and confusing.
-
-`allCategoriesForTab` (all non-archived categories of the tab type) is always passed separately to `CategoriesGridContent` for badge count and budget aggregation purposes, even when `categories` is filtered.
+Key constraints:
+- `childCounts = emptyMap()` is always passed — suppresses all +N subcategory badges.
+- Chip tap and long-press both open `CategoryFormSheet` for editing (not `QuickExpenseSheet`).
+- The "Субкатегорії" `TextButton` in the top bar toggles `showSubcategories`. **Title is context-sensitive**: `"Редагувати субкатегорії"` when `showSubcategories = true`, `"Редагувати категорії"` otherwise.
+- Subcategory mode uses **the same orbital layout** as category mode (donut centred, chips surrounding). `showChildBadge = !showSubcategories` throughout `CategoriesGridContent` — badges hidden for subcategories.
+- `topRow/midLeft/midRight/extCats` in `CategoriesGridContent` are now computed unconditionally from `display` (no `if (!showSubcategories)` guard). The if/else branch that rendered a full-width donut for subcategory mode was removed.
+- The screen receives all data as parameters from `MainScreen` (no own ViewModel); mutations go through callbacks.
 
 ## ADR-031: Budget Savings Header Shows Budget-Based Savings, Not Cash-Flow Savings
 
@@ -296,7 +326,7 @@ New subcategory creation flow: caller sets `addSubcategoryTo = parent`, opens a 
 
 **Rule:** Do not add a nested subcategory level (subcategory of a subcategory). One level of hierarchy is the product constraint.
 
-**Rule:** Do not revert to passing all categories as `categories` — the filtered list is intentional. Bottom padding for the dialog's `CategoriesGridContent` must include `WindowInsets.navigationBars` to prevent the last row from being hidden.
+**Rule:** Do not add nested subcategory levels (subcategory of a subcategory). One level of hierarchy is the product constraint.
 
 ## ADR-025: Overview List Falls Back To Transactions When No Categories
 
@@ -311,3 +341,39 @@ New subcategory creation flow: caller sets `addSubcategoryTo = parent`, opens a 
 **`OverviewUiState`** carries `transactions: List<TransactionWithDetails>` populated from `monoTx` (mode-filtered transactions for the period).
 
 **Rule:** Do not remove the transaction fallback without also fixing the header total to exclude uncategorised transactions. Tapping a fallback transaction row is intentionally a no-op — if navigation to `TransactionDetailSheet` is added later, ensure the CategoryDetailSheet bottom sheet state is not inadvertently triggered.
+
+## ADR-033: DonutChart Switches To Subcategory View When Parent Is Expanded (2026-05-31)
+
+When a root category with children is double-tapped (subcategory expansion strip is shown), the `DonutChart` in the mid-section must show only the **subcategory spending breakdown** instead of the full category list.
+
+**Implementation** (in `CategoriesGridContent`, just before the DonutChart call):
+
+```kotlin
+val hasExpandedStrip = expandedCat != null && expandedChildren.isNotEmpty()
+val donutCats    = if (hasExpandedStrip) expandedChildren else categories
+val donutExpense = if (hasExpandedStrip && selectedTab == 0)
+    expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalExpense
+val donutIncome  = if (hasExpandedStrip && selectedTab == 1)
+    expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalIncome
+DonutChart(
+    categories   = donutCats,
+    spending     = spending,
+    totalExpense = donutExpense,
+    totalIncome  = donutIncome,
+    ...
+)
+```
+
+`expandedChildren` is already computed for the expansion strip (same-name-dedup applied). The donut uses the same `spending` map as the chips — no separate data fetch needed.
+
+**Visual contract:** When subcategory strip is visible, the donut ring shows slices for each child category proportional to their individual spending. The center label totals reflect only child spending for the active tab. When the strip is dismissed, the donut reverts to showing all root categories.
+
+**Rule:** Do not pass the full `categories` list to DonutChart when `hasExpandedStrip == true`. Passing all categories while showing a strip makes the donut misleading — the expanded parent's slice stays dominant and the children are invisible in the ring.
+
+## ADR-034: Overview Screen Uses `categoryIconFor` From `CategoryIcons.kt` (2026-05-31)
+
+`OverviewScreen.kt` previously had its own local `iconVectorFor()` function with only 13 icon mappings. Any icon name not in that list fell back to `Icons.Default.Category` — causing wrong icons for "Переказ" (transfer), "Доставка" (delivery), "AliExpress" (aliexpress), "Електроніка" (devices), and others.
+
+**Fix:** Removed `iconVectorFor()` from `OverviewScreen.kt`. Now calls `categoryIconFor(iconName)` from `org.pixelrush.moneyiq.ui.categories.CategoryIcons`, which covers all 48 icon keys. `categoryIconFor` was changed from `internal` to `public` to allow cross-package access.
+
+**Rule:** Do not add a new local icon mapper in any screen file. Always call `categoryIconFor()` from `CategoryIcons.kt`. If a new icon key is added to the app, add it to `CATEGORY_ICONS_LIST` in `CategoryIcons.kt` — that is the single source of truth for all icon name → vector mappings.

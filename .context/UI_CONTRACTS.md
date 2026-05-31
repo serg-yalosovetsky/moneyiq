@@ -291,9 +291,14 @@ The `TopAppBar` title in `CategoryFormSheet` is context-sensitive:
 The "Підкатегорії" section is **only rendered for root categories** (`existing != null && existing.parentId == null`):
 
 1. Existing children are displayed as icon rows (color circle + name) via `items(children)`.
-2. **"Додати підкатегорію"** button shown only when `onAddSubcategory != null` (callback provided by caller).
-3. Clicking "Додати підкатегорію" invokes `onAddSubcategory()` → caller opens a new `CategoryFormSheet` with `forParentId = parent.id`.
-4. New subcategory is saved with `parentId` set, enforcing single-parent uniqueness at the DB level.
+2. Each child row has a **trailing `LinkOff` icon button** (shown only when `onDetachSubcategory != null`). Tapping it calls `onDetachSubcategory(child)` → caller sets `child.parentId = null`, promoting the subcategory to a root category. The category is **not deleted** — it becomes available to be added to any other parent.
+3. **"Додати підкатегорію"** button shown only when `onAddSubcategory != null` (callback provided by caller).
+4. Clicking "Додати підкатегорію" invokes `onAddSubcategory()` → caller opens a new `CategoryFormSheet` with `forParentId = parent.id`.
+5. New subcategory is saved with `parentId` set, enforcing single-parent uniqueness at the DB level.
+
+**`onDetachSubcategory` wiring:**
+- `CategoriesScreen.kt`: `viewModel.update(child.copy(parentId = null))`
+- `CategoryFormSheets.kt` / `EditCategoriesScreen.kt`: delegate through `onSave(child.name, …, child.copy(parentId = null))` so `MainScreen` calls `categoriesViewModel.update(existing.copy(…))` — `parentId = null` is preserved because `existing` already has it set to null.
 
 Child categories (`existing.parentId != null`) do **not** show the "Підкатегорії" section at all — subcategories cannot have sub-subcategories.
 
@@ -448,6 +453,10 @@ This ensures that income/expense amounts shown in the toggle header always corre
 ### Category Detail Sheet
 
 Tapping a category row opens `CategoryDetailSheet` (`OverviewSheets.kt`) as a `ModalBottomSheet` with the category color as container. Not available from transaction rows.
+
+### Category Row Icons
+
+Category rows in the list section call `categoryIconFor(row.icon)` from `org.pixelrush.moneyiq.ui.categories.CategoryIcons`. This is the same mapping used by `CategoriesScreen` and `CategoryFormSheet` — 48 icon keys total. Do not add a local icon mapper in `OverviewScreen.kt` (see ADR-034).
 
 ## Transactions Screen
 

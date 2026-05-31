@@ -222,6 +222,14 @@ val MIGRATION_23_24 = object : Migration(23, 24) {
     }
 }
 
+val MIGRATION_24_25 = object : Migration(24, 25) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Unconditional fix — imported data can overwrite prior migrations via REPLACE strategy
+        database.execSQL("UPDATE categories SET icon = 'theater',     colorHex = '#F73579' WHERE LOWER(TRIM(name)) = 'дозвілля'  AND parentId IS NULL")
+        database.execSQL("UPDATE categories SET icon = 'celebration', colorHex = '#FF6D00' WHERE LOWER(TRIM(name)) LIKE '%розваг%'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -245,12 +253,13 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_20_21,
     MIGRATION_21_22,
     MIGRATION_22_23,
-    MIGRATION_23_24
+    MIGRATION_23_24,
+    MIGRATION_24_25
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 24,
+    version = 25,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

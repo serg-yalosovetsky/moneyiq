@@ -11,6 +11,7 @@
 - As a user, I can see spending grouped by categories for the selected period.
 - As a user, I can add, edit, archive, and delete categories.
 - As a user, I can use root categories and subcategories.
+- As a user, I can detach a subcategory from its parent (making it a root category) without deleting it, so it can be added to a different parent later.
 - As a user, I can quickly add an expense/income from a category chip.
 
 ## Transactions

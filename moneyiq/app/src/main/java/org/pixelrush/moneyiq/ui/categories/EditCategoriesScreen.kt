@@ -121,13 +121,18 @@ fun EditCategoriesScreen(
     editCategory?.let { cat ->
         val children = allCategoriesForTab.filter { it.parentId == cat.id && !it.archived }
         CategoryFormSheet(
-            existing         = cat,
-            children         = children,
-            defaultType      = cat.type,
-            onAddSubcategory = {
+            existing             = cat,
+            children             = children,
+            defaultType          = cat.type,
+            onAddSubcategory     = if (cat.parentId == null) ({
                 editCategory = null
                 addSubcategoryFor = cat
-            },
+            }) else null,
+            onDetachSubcategory  = if (cat.parentId == null) ({ child ->
+                onSave(child.name, child.type, child.colorHex, child.icon,
+                       child.budgetAmount, child.budgetPeriod, child.archived,
+                       child.currencyCode, child.copy(parentId = null))
+            }) else null,
             onSave    = { name, type, color, icon, budget, period, archived, currency ->
                 onSave(name, type, color, icon, budget, period, archived, currency, cat)
                 editCategory = null

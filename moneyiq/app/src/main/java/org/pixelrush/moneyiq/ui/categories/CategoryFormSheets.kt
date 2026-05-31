@@ -54,14 +54,15 @@ import org.pixelrush.moneyiq.util.suggestCategoryStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFormSheet(
-    existing:         CategoryEntity?,
-    forParentId:      Long?                 = null,
-    children:         List<CategoryEntity>  = emptyList(),
-    onAddSubcategory: (() -> Unit)?         = null,
-    defaultType:      TransactionType       = TransactionType.EXPENSE,
-    onSave:           (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
-    onDelete:         (() -> Unit)?         = null,
-    onDismiss:        () -> Unit
+    existing:              CategoryEntity?,
+    forParentId:           Long?                      = null,
+    children:              List<CategoryEntity>       = emptyList(),
+    onAddSubcategory:      (() -> Unit)?              = null,
+    onDetachSubcategory:   ((CategoryEntity) -> Unit)? = null,
+    defaultType:           TransactionType            = TransactionType.EXPENSE,
+    onSave:                (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
+    onDelete:              (() -> Unit)?              = null,
+    onDismiss:             () -> Unit
 ) {
     var name     by remember { mutableStateOf(existing?.name     ?: "") }
     var type     by remember { mutableStateOf(existing?.type     ?: defaultType) }
@@ -344,7 +345,17 @@ fun CategoryFormSheet(
                                     )
                                 }
                             },
-                            headlineContent = { Text(child.name) }
+                            headlineContent = { Text(child.name) },
+                            trailingContent = if (onDetachSubcategory != null) ({
+                                IconButton(onClick = { onDetachSubcategory(child) }) {
+                                    Icon(
+                                        Icons.Outlined.LinkOff,
+                                        contentDescription = "Прибрати з підкатегорій",
+                                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }) else null
                         )
                         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     }
@@ -668,7 +679,7 @@ fun EditCategoriesScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text("Редагувати категорії") },
+                    title = { Text(if (showSubcategories) "Редагувати субкатегорії" else "Редагувати категорії") },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
@@ -733,12 +744,17 @@ fun EditCategoriesScreen(
         val catChildren = (if (cat.type == TransactionType.EXPENSE) expenseCategories else incomeCategories)
             .filter { it.parentId == cat.id }
         CategoryFormSheet(
-            existing         = cat,
-            children         = catChildren,
-            onAddSubcategory = if (cat.parentId == null && onAddSubcategory != null)
-                                   ({ addSubcategoryTo = cat }) else null,
-            defaultType      = cat.type,
-            onSave           = { name, type, color, icon, budget, period, arch, currency ->
+            existing             = cat,
+            children             = catChildren,
+            onAddSubcategory     = if (cat.parentId == null && onAddSubcategory != null)
+                                       ({ addSubcategoryTo = cat }) else null,
+            onDetachSubcategory  = if (cat.parentId == null) ({ child ->
+                onSave(child.name, child.type, child.colorHex, child.icon,
+                       child.budgetAmount, child.budgetPeriod, child.archived,
+                       child.currencyCode, child.copy(parentId = null))
+            }) else null,
+            defaultType          = cat.type,
+            onSave               = { name, type, color, icon, budget, period, arch, currency ->
                 onSave(name, type, color, icon, budget, period, arch, currency, cat)
                 editCategory = null
             },

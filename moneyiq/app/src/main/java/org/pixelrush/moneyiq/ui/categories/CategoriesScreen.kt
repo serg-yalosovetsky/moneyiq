@@ -201,11 +201,14 @@ fun CategoriesScreen(
     editCategory?.let { cat ->
         val catChildren = allCategoriesForTab.filter { it.parentId == cat.id }
         CategoryFormSheet(
-            existing         = cat,
-            children         = catChildren,
-            onAddSubcategory = if (cat.parentId == null) ({ addSubcategoryTo = cat }) else null,
-            defaultType      = cat.type,
-            onSave           = { name, type, color, icon, budget, period, archived, currency ->
+            existing             = cat,
+            children             = catChildren,
+            onAddSubcategory     = if (cat.parentId == null) ({ addSubcategoryTo = cat }) else null,
+            onDetachSubcategory  = if (cat.parentId == null) ({ child ->
+                viewModel.update(child.copy(parentId = null))
+            }) else null,
+            defaultType          = cat.type,
+            onSave               = { name, type, color, icon, budget, period, archived, currency ->
                 viewModel.update(cat.copy(
                     name         = name,
                     type         = type,
@@ -504,10 +507,10 @@ internal fun CategoriesGridContent(
     val display = sorted
 
     // Layout: top 4 | [left2 | donut | right2] | + | ext rows of 4
-    val topRow   = if (!showSubcategories) display.take(4)         else emptyList()
-    val midLeft  = if (!showSubcategories) display.drop(4).take(2) else emptyList()
-    val midRight = if (!showSubcategories) display.drop(6).take(2) else emptyList()
-    val extCats  = if (!showSubcategories) display.drop(8)         else display
+    val topRow   = display.take(4)
+    val midLeft  = display.drop(4).take(2)
+    val midRight = display.drop(6).take(2)
+    val extCats  = display.drop(8)
 
     val expandedCat = if (expandedCategoryId != null && !showSubcategories)
         display.find { it.id == expandedCategoryId } else null
@@ -558,38 +561,6 @@ internal fun CategoriesGridContent(
             }
         }
 
-        if (showSubcategories) {
-            // Subcategory mode: full-width donut at top, all cats in rows below
-            item(key = "donut_sub") {
-                DonutChart(
-                    categories   = categories,
-                    spending     = spending,
-                    totalExpense = totalExpense,
-                    totalIncome  = totalIncome,
-                    selectedTab  = selectedTab,
-                    onToggle     = onToggleTab,
-                    modifier     = Modifier.fillMaxWidth().height(DONUT_SECTION_HEIGHT).padding(8.dp)
-                )
-            }
-            display.chunked(4).forEach { rowCats ->
-                item(key = rowCats.firstOrNull()?.id) {
-                    CategoryGridRow(
-                        rowCats           = rowCats,
-                        spending          = spending,
-                        displayBudgets    = displayBudgets,
-                        childCounts       = childCounts,
-                        parentColors      = parentColors,
-                        expandedId        = expandedCategoryId,
-                        showChildBadge    = false,
-                        isCompact         = isCompact,
-                        onChipClick       = onChipClick,
-                        onChipLongClick   = onChipLongClick,
-                        onChipDoubleClick = onChipDoubleClick,
-                        modifier          = Modifier.height(chipHeight)
-                    )
-                }
-            }
-        } else {
             // ── Top row: 4 chips ───────────────────────────────────────────
             if (topRow.isNotEmpty()) {
                 item(key = "top_row") {
@@ -601,7 +572,7 @@ internal fun CategoriesGridContent(
                             childCounts       = childCounts,
                             parentColors      = parentColors,
                             expandedId        = expandedCategoryId,
-                            showChildBadge    = true,
+                            showChildBadge    = !showSubcategories,
                             isCompact         = isCompact,
                             inlineStripShown  = topStripShown,
                             onChipClick       = onChipClick,
@@ -645,7 +616,7 @@ internal fun CategoriesGridContent(
                                         childCounts       = childCounts,
                                         parentColors      = parentColors,
                                         expandedId        = expandedCategoryId,
-                                        showChildBadge    = true,
+                                        showChildBadge    = !showSubcategories,
                                         isCompact         = isCompact,
                                         inlineStripShown  = midStripShown,
                                         onChipClick       = onChipClick,
@@ -683,7 +654,7 @@ internal fun CategoriesGridContent(
                                         childCounts       = childCounts,
                                         parentColors      = parentColors,
                                         expandedId        = expandedCategoryId,
-                                        showChildBadge    = true,
+                                        showChildBadge    = !showSubcategories,
                                         isCompact         = isCompact,
                                         inlineStripShown  = midStripShown,
                                         onChipClick       = onChipClick,
@@ -720,7 +691,7 @@ internal fun CategoriesGridContent(
                             childCounts       = childCounts,
                             parentColors      = parentColors,
                             expandedId        = expandedCategoryId,
-                            showChildBadge    = true,
+                            showChildBadge    = !showSubcategories,
                             isCompact         = isCompact,
                             inlineStripShown  = rowStripShown,
                             onChipClick       = onChipClick,
@@ -742,7 +713,6 @@ internal fun CategoriesGridContent(
                     }
                 }
             }
-        }
 
     }
 }

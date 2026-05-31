@@ -68,5 +68,5 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "spa"          to Icons.Outlined.Spa,
 )
 
-internal fun categoryIconFor(iconName: String): ImageVector =
+fun categoryIconFor(iconName: String): ImageVector =
     CATEGORY_ICONS_LIST.firstOrNull { it.first == iconName }?.second ?: Icons.Outlined.Category

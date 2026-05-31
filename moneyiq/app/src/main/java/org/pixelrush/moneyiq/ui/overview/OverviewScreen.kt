@@ -24,7 +24,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,27 +33,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.TransactionListItem
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
-
-// ── Icon mapper ───────────────────────────────────────────────────────────────
-
-internal fun iconVectorFor(iconName: String): ImageVector = when (iconName) {
-    "restaurant"     -> Icons.Default.Restaurant
-    "directions_car" -> Icons.Default.DirectionsCar
-    "shopping_cart"  -> Icons.Default.ShoppingCart
-    "home"           -> Icons.Default.Home
-    "movie"          -> Icons.Default.Movie
-    "local_hospital" -> Icons.Default.LocalHospital
-    "checkroom"      -> Icons.Default.Checkroom
-    "phone"          -> Icons.Default.Phone
-    "school"         -> Icons.Default.School
-    "work"           -> Icons.Default.Work
-    "laptop"         -> Icons.Default.Laptop
-    "trending_up"    -> Icons.AutoMirrored.Filled.TrendingUp
-    "card_giftcard"  -> Icons.Default.CardGiftcard
-    "directions_bus" -> Icons.Default.DirectionsBus
-    else             -> Icons.Default.Category
-}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -584,7 +564,7 @@ private fun CategoryRow(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = iconVectorFor(row.icon),
+                    imageVector = categoryIconFor(row.icon),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint     = catColor
