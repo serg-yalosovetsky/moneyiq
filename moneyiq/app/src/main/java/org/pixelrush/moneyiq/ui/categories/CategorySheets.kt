@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +62,8 @@ fun CategoryActionSheet(
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
         catch (_: Exception) { Color(0xFF4361EE) }
     }
+    val isLightBg  = catColor.luminance() > 0.5f
+    val onCatColor = if (isLightBg) Color(0xFF1C1B1F) else Color.White
     val percent  = if (totalInPeriod > 0.0) (spending / totalInPeriod * 100).toInt() else 0
     val progress = if (totalInPeriod > 0.0) (spending / totalInPeriod).coerceIn(0.0, 1.0).toFloat() else 0f
     val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -105,20 +108,20 @@ fun CategoryActionSheet(
                             category.name,
                             style      = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color      = Color.White,
+                            color      = onCatColor,
                             modifier   = Modifier.weight(1f)
                         )
                         Box(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f))
-                                .border(2.dp, Color.White.copy(alpha = 0.45f), CircleShape),
+                                .background(onCatColor.copy(alpha = 0.15f))
+                                .border(2.dp, onCatColor.copy(alpha = 0.35f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 categoryIconFor(category.icon), null,
-                                tint     = Color.White,
+                                tint     = onCatColor,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -127,13 +130,13 @@ fun CategoryActionSheet(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             txCountLabel(txCount),
-                            color = Color.White.copy(alpha = 0.85f),
+                            color = onCatColor.copy(alpha = 0.85f),
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
                             "${formatMoney(spending)} ₴",
-                            color      = Color.White,
+                            color      = onCatColor,
                             fontWeight = FontWeight.Bold,
                             style      = MaterialTheme.typography.titleLarge
                         )
@@ -149,13 +152,13 @@ fun CategoryActionSheet(
                                 .weight(1f)
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
-                            color      = Color.White,
-                            trackColor = Color.White.copy(alpha = 0.28f)
+                            color      = onCatColor,
+                            trackColor = onCatColor.copy(alpha = 0.28f)
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "$percent%",
-                            color      = Color.White,
+                            color      = onCatColor,
                             fontWeight = FontWeight.Bold,
                             style      = MaterialTheme.typography.bodyLarge
                         )
@@ -164,13 +167,13 @@ fun CategoryActionSheet(
                     Row(Modifier.fillMaxWidth()) {
                         Text(
                             pillLabel,
-                            color = Color.White.copy(0.8f),
+                            color = onCatColor.copy(0.8f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
                             "${formatMoney(totalInPeriod)} ₴",
-                            color      = Color.White.copy(0.8f),
+                            color      = onCatColor.copy(0.8f),
                             fontWeight = FontWeight.Medium,
                             style      = MaterialTheme.typography.bodyMedium
                         )
@@ -246,7 +249,10 @@ fun QuickExpenseSheet(
         try { Color(android.graphics.Color.parseColor(category.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
-    val accountColor = Color(0xFF3949AB)  // indigo — колір панелі рахунку
+    val isCatLight    = catColor.luminance() > 0.5f
+    val onCatColor    = if (isCatLight) Color(0xFF1C1B1F) else Color.White
+    val displayColor  = if (isCatLight) Color(0xFF37474F) else catColor
+    val accountColor  = Color(0xFF3949AB)  // indigo — колір панелі рахунку
     val isIncome     = category.type == TransactionType.INCOME
 
     // ── Стан калькулятора ──────────────────────────────────────────────────
@@ -290,83 +296,75 @@ fun QuickExpenseSheet(
                 .fillMaxWidth()
                 .height(sheetH)
         ) {
-            // ── 1. Панелі рахунку / категорії ─────────────────────────────
+            // ── 1. Панелі: для витрат [рахунок|категорія], для доходів [категорія|рахунок]
             Row(modifier = Modifier.fillMaxWidth().height(80.dp)) {
 
-                // Ліва панель — рахунок (темно-синя)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(accountColor)
-                        .clickable { if (accounts.size > 1) showAccSheet = true }
-                ) {
-                    // Іконка рахунку (вгорі праворуч)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 8.dp, end = 8.dp)
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    }
-                    // Текст: «З рахунку» + назва
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 12.dp, bottom = 8.dp)
-                    ) {
-                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                        Text(
-                            selectedAccount?.name ?: "—",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                // Панель категорії (catColor bg)
+                @Composable
+                fun CatPanel(labelText: String, textAlign: Alignment.Horizontal, modifier: Modifier) {
+                    Box(modifier = modifier.fillMaxHeight().background(catColor)) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(top = 8.dp, start = 8.dp)
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(onCatColor.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(categoryIconFor(category.icon), null, tint = onCatColor, modifier = Modifier.size(18.dp))
+                        }
+                        Column(
+                            modifier = Modifier
+                                .align(if (textAlign == Alignment.End) Alignment.BottomEnd else Alignment.BottomStart)
+                                .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                            horizontalAlignment = textAlign
+                        ) {
+                            Text(labelText, style = MaterialTheme.typography.labelSmall, color = onCatColor.copy(alpha = 0.7f))
+                            Text(category.name, style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold, color = onCatColor,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
 
-                // Права панель — категорія (колір категорії)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(catColor)
-                ) {
-                    // Іконка категорії (вгорі зліва)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(top = 8.dp, start = 8.dp)
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.25f)),
-                        contentAlignment = Alignment.Center
+                // Панель рахунку (accountColor bg, тапається)
+                @Composable
+                fun AccPanel(labelText: String, textAlign: Alignment.Horizontal, modifier: Modifier) {
+                    Box(modifier = modifier.fillMaxHeight().background(accountColor)
+                        .clickable { if (accounts.size > 1) showAccSheet = true }
                     ) {
-                        Icon(categoryIconFor(category.icon), null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp)
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Column(
+                            modifier = Modifier
+                                .align(if (textAlign == Alignment.End) Alignment.BottomEnd else Alignment.BottomStart)
+                                .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                            horizontalAlignment = textAlign
+                        ) {
+                            Text(labelText, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                            Text(selectedAccount?.name ?: "—", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold, color = Color.White,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
-                    // Текст: «До категорії» + назва
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 12.dp, bottom = 8.dp),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text("До категорії", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                        Text(
-                            category.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                }
+
+                if (isIncome) {
+                    CatPanel("З категорії", Alignment.Start, Modifier.weight(1f))
+                    AccPanel("На рахунок",  Alignment.End,   Modifier.weight(1f))
+                } else {
+                    AccPanel("З рахунку",   Alignment.Start, Modifier.weight(1f))
+                    CatPanel("До категорії", Alignment.End,  Modifier.weight(1f))
                 }
             }
 
@@ -380,13 +378,13 @@ fun QuickExpenseSheet(
                 Text(
                     if (isIncome) "Дохід" else "Витрата",
                     style = MaterialTheme.typography.labelMedium,
-                    color = catColor
+                    color = displayColor
                 )
                 Text(
                     text       = displayText,
                     fontSize   = 34.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = catColor,
+                    color      = displayColor,
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis
                 )
