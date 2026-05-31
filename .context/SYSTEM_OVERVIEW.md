@@ -11,7 +11,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Modules
 
-- `data/db` - Room v18, entities (accounts, categories, transactions), DAOs, migrations 1→18, type converters.
+- `data/db` - Room v27, entities (accounts `+creditLimit`, categories, transactions), DAOs, migrations 1→27, type converters.
 - `data/repository` - AccountRepository, CategoryRepository, TransactionRepository, SelectedMonthRepository (shared period state), SettingsRepository (DataStore).
 - `di` - Hilt wiring for DAOs, database, and workers.
 - `ui/main` - `MainScreen` (app shell, HorizontalPager, bottom nav, drawer, shared top bar), `SharedMonthNavPill`, `MainViewModel`.
@@ -20,7 +20,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 - `ui/components/calculator` - shared cross-screen components: `CalcState.kt` (`CalcStateHolder`, `rememberCalcState`), `CalcKeypad.kt` (`SharedCalcKeypad`, `AmountCalculatorSheet`), `CalcDateSheet.kt` (`CalcDateSheet`, `FullDatePickerDialog`, `AccountPickerSheet`, repeat/reminder dialogs).
 - `ui/components/dialogs` - generic reusable AlertDialog composables: `TextInputDialog.kt` (single-line text input with optional enforce-fill mode), `ConfirmationDialog.kt` (destructive/neutral confirmation with optional icon). Both `internal`.
 - `ui/transactions` - `TransactionsListScreen`, `AddTransactionScreen`, `TransactionViewModel`, `TransactionsListViewModel`. Sheet/dialog composables in dedicated files: `TxSearchScreen.kt` (`TxSearchScreen`, `SearchSectionHeader`, `TypeFilterCard`, `ColoredFilterChip`), `CategoryPickerSheet.kt` (`CategoryPickerSheet`, `CategoryPickerCell`, `AccountPickerRow`), `TransferQuickSheet.kt`, `TransactionDetailSheet.kt`.
-- `ui/budget` - `BudgetScreen` (main + `BudgetTopBar`, `resolvedCatIcon`, chip/card composables), `BudgetSheets.kt` (`BudgetInputSheet`, `BudgetSettingsSheet`), `BudgetViewModel`.
+- `ui/budget` - `BudgetScreen` (main + `BudgetTopBar`, `resolvedCatIcon`, chip/card composables), `BudgetSheets.kt` (`BudgetInputSheet`, `IncomeBudgetInputSheet`, `BudgetSettingsSheet`), `BudgetViewModel` (injects `SettingsRepository` for global income budget).
 - `ui/overview` - `OverviewScreen` (main + all chart/stats composables), `OverviewSheets.kt` (`CategoryDetailSheet`), `OverviewViewModel`.
 - `ui/reports` - `ReportsScreen`, `ReportsViewModel`.
 - `ui/settings` - `SettingsScreen` (enum + `SettingsScreen` composable + `MainSettingsContent`), `SettingsSubScreens.kt` (`ThemePageContent`, `ColorPalette`, `CurrencyPageContent`, `AboutPageContent`, shared helpers, dialogs), `SettingsViewModel`. Static data in `ui/settings/data/`: `CurrencyData.kt` (`CurrencyDef`, `CURRENCIES_MAIN/OTHER/CRYPTO/ALL`) and `SettingsData.kt` (`ACCENT_COLORS`, `LANGUAGES`, `DAYS_OF_WEEK`, `CURRENCY_FORMAT_EXAMPLES`, `formatMoneyWithSettings`).
@@ -55,16 +55,16 @@ Commands:
 
 ## CI/CD
 
-Two GitHub Actions workflows live in `.github/workflows/`:
+One GitHub Actions workflow: `.github/workflows/build.yml`
 
-| File | Trigger | What it does |
-|---|---|---|
-| `build.yml` | push to `main`, PRs, tags `v*.*.*` | Unit tests → debug APK (on push) → signed release APK + GitHub Release (on tags) |
-| `ci.yml` | push to `main`, PRs | Compile check + unit tests (fast path) |
+| Trigger | Jobs |
+|---|---|
+| push to `main` or PR | `test` (unit tests only) |
+| tag `v*.*.*` | `test` → `release` (signed APK + GitHub Release) |
 
-Release signing uses secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. `SENTRY_AUTH_TOKEN` is required for release mapping uploads. All secrets live in GitHub Actions — never committed.
+Release signing uses secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. `SENTRY_AUTH_TOKEN` is optional — when absent, `includeSourceContext` is disabled and the build still succeeds. All secrets live in GitHub Actions — never committed.
 
-`gradlew` must have the executable bit set in git (`git update-index --chmod=+x moneyiq/gradlew`); otherwise CI fails with `Permission denied`.
+`gradlew` already has the executable bit in git (`100755`). Each job also runs `chmod +x gradlew` as a safety step.
 
 ## Non-Runtime Context
 
