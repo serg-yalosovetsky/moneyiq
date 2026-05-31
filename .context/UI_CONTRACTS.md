@@ -122,7 +122,28 @@ This happens inside `CategoriesGridContent`, NOT in the ViewModel.
 - `DONUT_SECTION_HEIGHT = CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP` = **280dp**
 - `CATEGORY_VERTICAL_GAP = 8dp` — spacing between chips in side columns and between all grid rows
 
-**Subcategory mode** (`showSubcategories = true`): full-width donut at top, all categories in rows of 4 below.
+**Subcategory mode** (`showSubcategories = true`): **same orbital layout as category mode** (donut in centre, chips surrounding). `showChildBadge = !showSubcategories` — badges hidden because subcategories have no children. `topRow/midLeft/midRight/extCats` are computed from `display` unconditionally (no `showSubcategories` guard on those variables).
+
+### Donut Subcategory Focus
+
+When a root category with children is double-tapped and `hasExpandedStrip == true` (expansion strip is visible), the DonutChart **switches to showing only the subcategory breakdown**:
+
+```kotlin
+val hasExpandedStrip = expandedCat != null && expandedChildren.isNotEmpty()
+val donutCats    = if (hasExpandedStrip) expandedChildren else categories
+val donutExpense = if (hasExpandedStrip && selectedTab == 0)
+    expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalExpense
+val donutIncome  = if (hasExpandedStrip && selectedTab == 1)
+    expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalIncome
+```
+
+- `donutCats` = child categories (same-name-dedup already applied via `expandedChildren`)
+- `donutExpense`/`donutIncome` = sum of child spending for the active tab; full total otherwise
+- The `spending` map is shared — no extra data fetch required
+- When the expansion strip is dismissed, the donut reverts to showing all root categories
+
+**Rule:** Do not pass `categories` (all roots) to DonutChart when `hasExpandedStrip == true`. The parent category's large slice would dominate the ring and the individual subcategory proportions would be invisible.
+
 ### Expanded Subcategory Strip (`ExpandedCategoryStrip`)
 
 Triggered by double-click on a chip. The chip row and its strip are **one LazyColumn item** — wrapped in a `Column` so no `CATEGORY_VERTICAL_GAP` appears between them.
@@ -184,7 +205,7 @@ If content genuinely needs to escape clip bounds and coexist with Dialogs, use a
 
 When creating a new category (existing == null), `CategoryFormSheet` runs a `LaunchedEffect(name)` that calls `suggestCategoryStyle(name, type)` if name ≥ 3 chars AND user hasn't manually picked an icon (iconKey == "category"). Once the user touches the icon picker, auto-suggest stops firing.
 
-`CATEGORY_ICONS_LIST` in `CategoryIcons.kt` is the canonical set of valid icon keys. `suggestCategoryStyle` in `CategoryStyleUtil.kt` has 36 rules checked top-to-bottom — all rules and their colors:
+`CATEGORY_ICONS_LIST` in `CategoryIcons.kt` is the canonical set of valid icon keys. `suggestCategoryStyle` in `CategoryStyleUtil.kt` has 38 rules checked top-to-bottom — all rules and their colors:
 
 | Key | Color | Top matching keywords |
 |---|---|---|
@@ -200,11 +221,12 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 | `clothes` | `#00838F` dark-cyan | одяг, взуття, fashion |
 | `family` | `#7A48F2` purple | сім'я, дітям, дитяч |
 | `receipt` | `#546E7A` blue-grey | рахунки, bills, платіж, оплат |
-| `coffee` | `#7B5947` brown | кафе, кав'ярня, кава, coffee |
+| `coffee` | `#795548` brown | кафе, кав'ярня, кава, coffee |
 | `restaurant` | `#4659BE` blue | ресторан, ресторація, їдальня, food, pizza |
 | `grocery` | `#4AAFE8` light-blue | продукти, атб, сільпо, фора |
-| `theater` | `#F73579` pink | дозвілл, розваг, театр, концерт, entertainment |
-| `movie` | `#F73579` pink | кіно, cinema, фільм, netflix |
+| `celebration` | `#FF6D00` orange | розваг, свят, party, вечірк, банкет |
+| `theater` | `#F73579` pink | дозвілл, театр, концерт, шоу, entertainment, festival |
+| `movie` | `#9C27B0` purple | кіно, cinema, фільм, netflix |
 | `gaming` | `#607D8B` blue-grey | gaming, ігри, playstation, xbox, steam |
 | `telegram` | `#2196F3` blue | telegram, телеграм, viber, messenger |
 | `dating` | `#E91E63` pink | dating, tinder, bumble, знайомств |
@@ -219,24 +241,35 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 | `work` | `#1565C0` dark-blue | зарплат, офіс, фриланс, дохід |
 | `school` | `#FF9800` orange | освіт, навчан, школа, курс |
 | `volunteer` | `#48B456` green | здоров, самопочутт |
-| `health` | `#43A047` dark-green | медицин, аптека, лікар, стоматолог |
+| `pharmacy` | `#43A047` dark-green | аптека, ліки, medication, таблетк, препарат |
+| `doctor` | `#D81B60` pink-red | медицин, лікар, клінік, стоматолог, hospital |
 | `flight` | `#03A9F4` light-blue | відпочин, туризм, готель, booking |
 | `money` | `#F9A825` amber-dark | **фінанс**, інвестиц, банк, крипто, депозит |
 | `pets` | `#8D6E63` brown-light | тварин, кіт, собак, ветеринар |
-| `gift` | `#F34B4D` red | подарун, свят, birthday |
+| `gift` | `#F34B4D` red | подарун, birthday |
 | `sports` | `#F44336` red | спорт, фітнес, gym, тренув |
+| `gavel` | `#BF360C` deep-orange | штраф, пеня, санкц, fine, penalty |
+| `percent` | `#F9A825` amber | процент, відсоток, податок, пдв, interest, tax |
 
 **Fallback**: unrecognised name → `category` key, color `#4CAF50` for INCOME or `#78909C` for EXPENSE.
+
+**Notes on recent rule changes:**
+- `health` key **removed** from rules. Replaced by two specific rules: `pharmacy` (аптека/ліки) and `doctor` (медицина/лікар/стоматолог). `health` is kept as a legacy entry in `iconColorMap` only for DB backward compatibility.
+- `celebration` **added** (2026-05-31): matches "розваг", "свят", "party", "вечірк" — must appear **before** `theater` (which no longer matches "розваг").
+- `gavel` and `percent` **added** (2026-05-31): штрафи/пені and проценти/податки.
+- `movie` color corrected to `#9C27B0` (purple), not pink.
 
 **Critical rule orderings** (do not reorder these pairs):
 - `wifi` before `phone` — both match "інтернет"-related terms
 - `coffee` before `restaurant` — кафе more specific
 - `grocery` before `shopping` — продукти more specific
-- `receipt` before `home` — "рахунки/оплат" more specific than generic home; "комунальн" was moved from `receipt` → `home` (2026-05-29), backed by migration 10→11
-- Ресторація subcategory icons (migration 12→13): "food delivery"/"glovo" → `delivery` `#FF6F00`; "ресторани" → `restaurant` `#E53935`; "кафе" → `coffee` `#795548` — all three had inherited the parent's orange restaurant icon
+- `receipt` before `home` — "рахунки/оплат" more specific than generic home
+- `celebration` before `theater` — "розваг" and "свят" go to celebration, not broad leisure
+- `volunteer` before `pharmacy` before `doctor` — wellness → pills → medical (specificity chain)
 - `clothes` before `shopping` — одяг more specific
 - `theater` → `movie` → `gaming`/`telegram`/`dating` → `ticket` — leisure specificity chain
 - `taxi` → `gas_station` → `bus` → `car` — transport specificity chain (`bus`=public, `car`=personal vehicle)
+- `gavel` and `percent` after `sports` (bottom of list) — narrow keyword sets, low false-positive risk
 
 Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
@@ -276,15 +309,71 @@ Category name is edited via an **inline `BasicTextField`** directly inside the f
 
 `TextInputDialog` remains available in `ui/components/dialogs` and is still used in other screens (e.g., account name editing).
 
-### EditCategoriesScreen — Parent/Subcategory Toggle (added 2026-05-31)
+### EditCategoriesScreen (added 2026-05-31)
 
-`EditCategoriesScreen` (in `CategoryFormSheets.kt`, opened via "Редагувати категорії" pencil button) now has a toggle in `TopAppBar` actions:
+`EditCategoriesScreen` lives in its own file `EditCategoriesScreen.kt` (not `CategoryFormSheets.kt`). It is opened via the pencil icon in `SharedTopBar` on the Categories tab and is a full-screen `Box` overlay inside `MainScreen` (same pattern as `SettingsScreen`).
 
-- **Default**: shows only root categories (`parentId == null`)
-- **Toggle button label**: "Субкатегорії" when showing parents; "Категорії" when showing children
-- When toggled to subcategories mode: shows only child categories (`parentId != null`)
-- `allCategoriesForTab` is always passed as `allCategoriesForTab` to `CategoriesGridContent` for badge counts and budget aggregation
-- `bottomPadding = WindowInsets.navigationBars + 16.dp` — prevents last row from being hidden behind the navigation bar
+**Layout:**
+- Stateful top bar: ← back button + context-sensitive title (`"Редагувати субкатегорії"` when `showSubcategories = true`, `"Редагувати категорії"` otherwise) + "Субкатегорії" `TextButton`
+- `TabRow` with two tabs: ↓ Витрати / ⊕ Доходи (icons `ArrowCircleDown` / `AddCircleOutline`)
+- `CategoriesGridContent` below — same donut chart and category colors as the main Categories screen
+
+**Key differences from `CategoriesScreen`:**
+- `childCounts = emptyMap()` — suppresses all +N subcategory badges
+- `onChipClick` and `onChipLongClick` both open `CategoryFormSheet` for editing (not `QuickExpenseSheet`)
+- "+" (`onAdd`) opens `CategoryFormSheet` with `existing = null` to create a new top-level category
+- "Субкатегорії" button toggles `showSubcategories` state → passed to `CategoriesGridContent` (same flag as the main screen's subcategory toggle)
+
+**Add subcategory flow (from within `CategoryFormSheet`):**
+When the user taps "Додати підкатегорію" inside an edit form, `editCategory` is cleared and `addSubcategoryFor` is set. A second `CategoryFormSheet(forParentId = parent.id)` opens, and on save calls `onAddSubcategory(...)`.
+
+**Data flow:**
+`EditCategoriesScreen` receives its data as parameters from `MainScreen` (using `categoriesViewModel.state`). It does not own a ViewModel — all mutations go through callbacks (`onSave`, `onDelete`, `onAddSubcategory`) that call `categoriesViewModel` directly in `MainScreen`.
+
+## SharedCalcKeypad (`ui/components/calculator/CalcKeypad.kt`)
+
+`SharedCalcKeypad` is the shared 5-column calculator layout used across budget, transaction, transfer, and amount-picker screens.
+
+### Key Layout
+
+```
+Row 1: ÷  |  7  |  8  |  9  |  ⌫  (backspace — Outlined icon)
+Row 2: ×  |  4  |  5  |  6  |  [row2ExtraKey or C]
+Row 3: −  |  1  |  2  |  3  |  [= or ✓] (rows 3-4 share weight=2f)
+Row 4: +  |  ₴  |  0  |  ,  |
+```
+
+### `row2ExtraKey` parameter
+
+`row2ExtraKey: (@Composable RowScope.() -> Unit)?` — optional 5th key in row 2.
+
+| Caller | row2ExtraKey value |
+|---|---|
+| `AddTransactionScreen` | tab-to-date / date chip |
+| `TransactionDetailSheet` | date chip |
+| `TransferQuickSheet` | "to account" button |
+| `CategorySheets` (quick expense) | account picker |
+| `BudgetSheets` | not provided → **C button** |
+| `AmountCalculatorSheet` | not provided → **C button** |
+
+When `row2ExtraKey == null`, a **"C" (Clear) button** is shown in red. Tapping "C" calls `calc.onKey("C")` which resets `currentStr = "0"`, `pendingOp = null`, `pendingVal = 0.0` — clearing the full expression including any pending arithmetic operation.
+
+**Rule**: Do not pass `row2ExtraKey` unless a genuine context-specific action is needed in that slot. The default "C" clear button is the correct behaviour for standalone amount/budget pickers.
+
+### CalcStateHolder key handling
+
+| Key | Effect |
+|---|---|
+| `0-9` | Append digit (max 12 chars; max 2 decimal places) |
+| `,` | Append decimal separator if not already present |
+| `+` `−` `×` `÷` | Store pending op and current value; start new operand |
+| `=` | Evaluate pending op; clear `pendingOp` |
+| `⌫` | Drop last character; falls back to "0" when single digit |
+| `C` | Full reset: `currentStr="0"`, `pendingOp=null`, `pendingVal=0.0` |
+
+### Backspace Icon
+
+Backspace uses `Icons.AutoMirrored.Outlined.Backspace` (outlined, not filled). Do not revert to `Filled.Backspace`.
 
 ## Budget Screen
 
