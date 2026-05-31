@@ -230,6 +230,29 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
     }
 }
 
+val MIGRATION_25_26 = object : Migration(25, 26) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Insert Зарплата income category if no income category with similar name exists
+        database.execSQL("""
+            INSERT INTO categories (name, type, colorHex, icon, budgetAmount, budgetPeriod, isDefault, sortOrder, archived, parentId, currencyCode)
+            SELECT 'Зарплата', 'INCOME', '#4CAF50', 'work', 0.0, 'MONTHLY', 1, 1, 0, NULL, 'UAH'
+            WHERE NOT EXISTS (SELECT 1 FROM categories WHERE type = 'INCOME' AND LOWER(name) LIKE '%зарплат%')
+        """.trimIndent())
+        // Insert Фриланс if missing
+        database.execSQL("""
+            INSERT INTO categories (name, type, colorHex, icon, budgetAmount, budgetPeriod, isDefault, sortOrder, archived, parentId, currencyCode)
+            SELECT 'Фриланс', 'INCOME', '#26A69A', 'laptop', 0.0, 'MONTHLY', 1, 2, 0, NULL, 'UAH'
+            WHERE NOT EXISTS (SELECT 1 FROM categories WHERE type = 'INCOME' AND LOWER(name) LIKE '%фриланс%')
+        """.trimIndent())
+        // Insert Інше income if no fallback income category exists
+        database.execSQL("""
+            INSERT INTO categories (name, type, colorHex, icon, budgetAmount, budgetPeriod, isDefault, sortOrder, archived, parentId, currencyCode)
+            SELECT 'Інше', 'INCOME', '#78909C', 'category', 0.0, 'MONTHLY', 1, 3, 0, NULL, 'UAH'
+            WHERE NOT EXISTS (SELECT 1 FROM categories WHERE type = 'INCOME' AND (LOWER(name) LIKE '%інше%' OR LOWER(name) LIKE '%інший%'))
+        """.trimIndent())
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -254,12 +277,13 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_21_22,
     MIGRATION_22_23,
     MIGRATION_23_24,
-    MIGRATION_24_25
+    MIGRATION_24_25,
+    MIGRATION_25_26
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 25,
+    version = 26,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
