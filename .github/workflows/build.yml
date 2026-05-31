@@ -67,24 +67,32 @@ jobs:
       - name: Decode keystore
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > app/release.keystore
-            echo "SIGNING_STORE_FILE=${{ github.workspace }}/moneyiq/app/release.keystore" >> $GITHUB_ENV
-            echo "SIGNING_STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "SIGNING_KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "SIGNING_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Missing signing secrets. Required: KEYSTORE_BASE64, STORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD." >&2
+            exit 1
           fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > app/release.keystore
+          echo "SIGNING_STORE_FILE=${{ github.workspace }}/moneyiq/app/release.keystore" >> $GITHUB_ENV
+          echo "SIGNING_STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
+          echo "SIGNING_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
 
       - name: Build release APK
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: ./gradlew :app:assembleRelease --no-daemon
 
+      - name: Verify APK signature
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}.apk || true
+             app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}-signed.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -93,8 +101,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           make_latest: true
           generate_release_notes: true
-          files: |
-            moneyiq/app/build/outputs/apk/release/*.apk
+          files: moneyiq/app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}-signed.apk
           body: |
             ## MoneyIQ ${{ github.ref_name }}
 

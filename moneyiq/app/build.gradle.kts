@@ -39,10 +39,23 @@ android {
     val keyPass: String? = System.getenv("SIGNING_KEY_PASSWORD")
         ?: localProps.getProperty("signing.keyPassword")
 
-    if (storeFilePath != null) {
+    val hasReleaseSigning = listOf(storeFilePath, storePass, keyAliasVal, keyPass)
+        .all { !it.isNullOrBlank() }
+    val requestedReleaseBuild = gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains("Release", ignoreCase = true)
+    }
+
+    if (requestedReleaseBuild && !hasReleaseSigning) {
+        throw GradleException(
+            "Release signing is required. Set SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
+                "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD, or matching signing.* values in local.properties."
+        )
+    }
+
+    if (hasReleaseSigning) {
         signingConfigs {
             create("release") {
-                storeFile     = file(storeFilePath)
+                storeFile     = file(storeFilePath!!)
                 storePassword = storePass
                 keyAlias      = keyAliasVal
                 keyPassword   = keyPass
@@ -54,7 +67,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (storeFilePath != null)
+            signingConfig = if (hasReleaseSigning)
                 signingConfigs.getByName("release") else null
         }
     }

@@ -73,6 +73,8 @@ import org.pixelrush.moneyiq.ui.budget.BudgetScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesScreen
 import org.pixelrush.moneyiq.ui.categories.CategoriesViewModel
 import org.pixelrush.moneyiq.ui.categories.EditCategoriesScreen
+import org.pixelrush.moneyiq.ui.components.icons.DoubleChevronRight
+import org.pixelrush.moneyiq.ui.components.icons.ToolbarEditIcon
 import org.pixelrush.moneyiq.ui.data.DataScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
 import org.pixelrush.moneyiq.ui.settings.SettingsScreen
@@ -416,7 +418,11 @@ private fun AppDrawerContent(
                 Icon(Icons.Outlined.Search, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
             IconButton(onClick = onClose) {
-                Icon(Icons.Default.KeyboardDoubleArrowRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Icon(
+                    DoubleChevronRight, null,
+                    tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.size(34.dp)
+                )
             }
         }
 
@@ -497,19 +503,15 @@ fun SharedTopBar(
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Аватар
-        Box(
-            modifier         = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable(onClick = onAvatarClick),
-            contentAlignment = Alignment.Center
+        IconButton(
+            onClick = onAvatarClick,
+            modifier = Modifier.size(44.dp)
         ) {
             Icon(
-                Icons.Filled.Person, null,
-                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
+                Icons.Outlined.AccountCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(40.dp)
             )
         }
 
@@ -541,7 +543,7 @@ fun SharedTopBar(
         // Права кнопка
         val (icon, description, action) = when (currentPage) {
             0    -> Triple(Icons.Default.Add,       "Новий рахунок",        onPlusClick)
-            1    -> Triple(Icons.Outlined.Edit,     "Редагувати категорії", onEditCategories)
+            1    -> Triple(ToolbarEditIcon,         "Редагувати категорії", onEditCategories)
             2    -> Triple(Icons.Default.Search,    "Пошук операцій",       onSearchTx)
             3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету", onBudgetSettings)
             else -> Triple(Icons.Outlined.Settings, "Налаштування",         onSettings)
@@ -555,7 +557,7 @@ fun SharedTopBar(
                 icon,
                 contentDescription = description,
                 tint               = MaterialTheme.colorScheme.onSurface,
-                modifier           = Modifier.size(22.dp)
+                modifier           = Modifier.size(if (currentPage == 1) 34.dp else 22.dp)
             )
         }
     }
