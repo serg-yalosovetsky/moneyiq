@@ -51,9 +51,20 @@ Settings persisted via DataStore (`SettingsRepository` → `AppSettings`):
 
 Main paging is controlled programmatically via `HorizontalPager`. Horizontal swipes change month/period (left = next, right = prev). `BackHandler` inside `MainScreen` closes embedded overlays before system back.
 
-### Back Navigation To Home Tab
+### Back Navigation — Handler Priority
 
-`BackHandler(enabled = currentPage != homeTabIndex)` — Back from any tab → home screen tab (from Settings). Already on home tab → system closes the app.
+Handlers are registered in this order (last registered = highest priority):
+
+```kotlin
+BackHandler(enabled = showEditCategories) { showEditCategories = false }  // highest priority
+BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
+```
+
+- **`showEditCategories = true`** → back closes the Edit Categories overlay (does not exit the app, does not navigate tabs).
+- **On any non-home tab** → back navigates to the home tab.
+- **Already on home tab, no overlays** → system handles (app exits or goes to launcher).
+
+**Rule:** Any new full-screen overlay added to `MainScreen` must register its own `BackHandler` *before* the tab-navigation handler so it takes priority. Pattern: `BackHandler(enabled = showXyz) { showXyz = false }`.
 
 ```kotlin
 val homeTabIndex = activeTabs.indexOfFirst { it.label == settings.homeScreen.label }.takeIf { it >= 0 } ?: 0

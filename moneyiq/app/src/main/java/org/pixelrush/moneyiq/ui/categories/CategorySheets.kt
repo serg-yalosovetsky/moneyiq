@@ -36,7 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
-import org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyBottomSheet
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
@@ -325,7 +325,7 @@ fun QuickExpenseSheet(
                 // Панель категорії (catColor bg)
                 @Composable
                 fun CatPanel(labelText: String, textAlign: Alignment.Horizontal, modifier: Modifier) {
-                    Box(modifier = modifier.fillMaxHeight().background(catColor).clickable { onDismiss() }) {
+                    Box(modifier = modifier.fillMaxHeight().background(catColor)) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -459,7 +459,7 @@ fun QuickExpenseSheet(
 
     // ── Вибір валюти ─────────────────────────────────────────────────────────
     if (showCurrencyPicker) {
-        CurrencyPickerSheet(
+        CurrencyBottomSheet(
             selected  = selectedCurrency,
             title     = "Валюта транзакції",
             onSelect  = { selectedCurrency = it; showCurrencyPicker = false },

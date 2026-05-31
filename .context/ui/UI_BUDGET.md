@@ -26,28 +26,61 @@ BudgetInputSheet(
 
 **Rule:** Do not use a nested `ModalBottomSheet` for a picker on top of another sheet. Use `Dialog(properties = DialogProperties(usePlatformDefaultWidth = false))`.
 
+## BudgetSectionCard — Section Header Layout
+
+The section header (title + totals row) also uses a `drawBehind` progress bar:
+
+```kotlin
+val headerProgress = if (data.totalBudget > 0.0)
+    (data.totalAmount / data.totalBudget).coerceIn(0.0, 1.0).toFloat()
+else 0f
+
+Row(modifier = Modifier.height(IntrinsicSize.Min).drawBehind {
+    drawRect(Color.White)
+    drawRect(accentColor.copy(alpha = 0.20f), size = Size(size.width * headerProgress, size.height))
+}) { ... }
+```
+
+- `headerProgress = totalAmount / totalBudget`, capped at 1.0 (overbudget = full fill).
+- Same pattern as `BudgetCatFullRow`: `Color.White` base + filled portion in `accentColor`.
+- When `totalBudget == 0`, `headerProgress = 0f` (white header, no fill).
+
+**Rule:** Section header and individual category rows use identical fill logic — do not give the header a flat tinted background while rows have a progress bar.
+
 ## BudgetSectionCard — Row vs Chip Rules
 
-`BudgetSectionCard` has an `incomeMode: Boolean = false` parameter that controls how category rows are rendered.
+`BudgetSectionCard` uses the same rendering logic for both expense and income sections — `incomeMode` was removed.
 
-| Mode | `budgetedRows` | `chipRows` |
+| `currentExpensesMode` | `budgetedRows` | `chipRows` |
 |---|---|---|
-| `incomeMode = false`, `currentExpensesMode = false` | categories with `budgetAmount > 0` → full rows | categories with `budgetAmount == 0` and `amount > 0` → chips |
-| `incomeMode = false`, `currentExpensesMode = true` | empty | all categories with `amount > 0`, sorted by amount desc |
-| `incomeMode = true` | **always empty** | all income categories with `amount > 0` OR `budgetAmount > 0`, sorted by amount desc |
+| `false` (default) | categories with `budgetAmount > 0` → full rows | categories with `budgetAmount == 0` and `amount > 0` → chips |
+| `true` | empty | all categories with `amount > 0`, sorted by amount desc |
 
-The income section always passes `incomeMode = true` — income categories never appear as full rows.
+Income categories with a `budgetAmount > 0` appear as **full rows** (`BudgetCatFullRow`), exactly like expense categories. The progress bar shows `received / budget`. Categories without a budget only appear as chips if they have spending.
 
 ### `BudgetCatFullRow` — Layout
 
 ```
-[52dp circle]   CategoryName          139 ₴   ← remaining (accentColor)
-  spent ₴ (bold, cat color)          в бюджеті 200 ₴  ← grey labelSmall
+[52dp circle]   CategoryName               139 ₴  ← remaining, titleMedium Bold accentColor
+                spent ₴ (labelSmall,       в бюджеті  200 ₴  ← grey, number Bold
+                         accentColor)
 ```
 
-- **Spending** is a small Bold text displayed **below** the icon circle (category color).
-- **Within budget:** remaining = `budget − spent`, shown as plain text in `accentColor`.
-- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill with white Bold text showing `|remaining|` (absolute overspend). Row background (`color.copy(alpha=0.10f)`) already provides visual context — no extra color logic needed.
+Row padding: `horizontal = 12.dp, vertical = 10.dp`. Icon circle: 52dp, inner icon: 26dp.
+
+- **Spending** (`row.amount`) is a small `labelSmall` text **below the category name** in the middle `Column` (not below the icon). Color: `accentColor`.
+- **Within budget:** remaining shown top-right as `titleMedium Bold` in `accentColor`.
+- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill with white Bold `labelMedium` text showing `|remaining|` (absolute overspend).
+- **"в бюджеті X ₴"** uses two adjacent `Text` composables — prefix in normal weight, budget number in `FontWeight.Bold` — both same `labelSmall` style and alpha 0.45f.
+- **Progress bar / background (via `drawBehind`):**
+  - **Normal (within budget):** base `Color.White` + `color.copy(alpha=0.18f)` over `width * progress`. `progress = (spent / budget).coerceIn(0.0, 1.0)`.
+  - **Overbudget:** solid `color.copy(alpha=0.12f)` fill — the category's own color tints the entire row to visually flag it. No progress bar drawn.
+  - Do **not** use a plain `.background()` — it cannot show the progress split for in-budget rows.
+  - Do **not** use a tinted base for in-budget rows — unfilled area must be white.
+
+### Chip Row Background
+
+The chip row (unbudgeted categories + `MoreLessChip`) uses `Color.White` background. Do **not** use `MaterialTheme.colorScheme.surface` or any alpha tint — the row must appear white to match the unfilled area of the full rows above it.
 
 ### `MoreLessChip` — Hidden Total
 
@@ -56,7 +89,7 @@ The income section always passes `incomeMode = true` — income categories never
 - `hiddenTotal = chipRows.drop(3).sumOf { it.amount }` — computed in `BudgetSectionCard`.
 - Shows `" "` (spacer) when expanded.
 
-**Rule:** Do not show income categories as full rows. Even when `budgetAmount > 0`, income categories must be chips — the budget is a declared expectation, not a spending cap.
+**Rule:** Income categories with `budgetAmount > 0` **must** appear as full rows, same as expense categories. The progress bar shows `received / budget` (received = `amount`, budget = `budgetAmount`). Do not revert to chips for income categories that have a budget set.
 
 **Rule:** Do not revert overbudget display to a negative number in error color. The pill badge is the canonical overbudget indicator for budget rows.
 

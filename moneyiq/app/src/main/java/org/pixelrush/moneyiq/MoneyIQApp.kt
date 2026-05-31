@@ -27,14 +27,19 @@ class MoneyIQApp : Application() {
         super.onCreate()
         SentryAndroid.init(this) { options ->
             options.dsn = "https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4511470109720576"
-            options.isDebug = BuildConfig.DEBUG
+            options.isEnabled = true
             options.environment = if (BuildConfig.DEBUG) "debug" else "production"
             options.release = "moneyiq@${BuildConfig.VERSION_NAME}"
-            options.tracesSampleRate = 1.0
+            options.sampleRate = 1.0          // 100% ошибок
+            options.tracesSampleRate = 1.0    // 100% performance traces
             options.isAttachScreenshot = true
             options.isAttachViewHierarchy = true
             options.isEnableUserInteractionTracing = true
+            options.isDebug = BuildConfig.DEBUG  // подробные логи только в debug
         }
+        io.sentry.Sentry.captureMessage(
+            "App started (${if (BuildConfig.DEBUG) "debug" else "production"} v${BuildConfig.VERSION_NAME})"
+        )
         appScope.launch { seedInitialData() }
         RepeatTransactionWorker.scheduleOnce(this)
     }

@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_CRYPTO
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_MAIN
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_OTHER
@@ -124,6 +126,79 @@ internal fun CurrencyPickerSheet(
                     item { Spacer(Modifier.height(32.dp)) }
                 }
             }
+        }
+    }
+}
+
+// ── CurrencyBottomSheet ───────────────────────────────────────────────────────
+// ModalBottomSheet variant — use from regular screens (not from inside bottom sheets).
+// Avoids Dialog window timing issues that prevent CurrencyPickerSheet from appearing.
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CurrencyBottomSheet(
+    selected:  String,
+    onSelect:  (String) -> Unit,
+    onDismiss: () -> Unit,
+    title:     String = "Валюта"
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        modifier         = Modifier.fillMaxHeight(0.92f)
+    ) {
+        var tab by remember { mutableIntStateOf(0) }
+        val tabLists  = listOf(CURRENCIES_MAIN, CURRENCIES_OTHER, CURRENCIES_CRYPTO)
+        val tabIcons  = listOf<ImageVector>(
+            Icons.Outlined.MonetizationOn,
+            Icons.Outlined.CurrencyExchange,
+            Icons.Outlined.Memory
+        )
+        val tabLabels = listOf("Основні", "Інші", "Крипто")
+
+        Text(
+            text     = title,
+            style    = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        TabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.surface) {
+            tabLabels.forEachIndexed { i, label ->
+                Tab(
+                    selected = tab == i,
+                    onClick  = { tab = i },
+                    icon     = { Icon(tabIcons[i], null, modifier = Modifier.size(20.dp)) },
+                    text     = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+        }
+
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(tabLists[tab]) { cur ->
+                val isSelected = cur.code == selected
+                ListItem(
+                    modifier        = Modifier.clickable { onSelect(cur.code) },
+                    leadingContent  = {
+                        RadioButton(selected = isSelected, onClick = { onSelect(cur.code) })
+                    },
+                    headlineContent = {
+                        Text(
+                            cur.name,
+                            color      = if (isSelected) MaterialTheme.colorScheme.primary
+                                         else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    },
+                    trailingContent = {
+                        Text(cur.symbol, style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    }
+                )
+                HorizontalDivider(Modifier.padding(start = 56.dp), 0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant)
+            }
+            item { Spacer(Modifier.height(32.dp)) }
         }
     }
 }

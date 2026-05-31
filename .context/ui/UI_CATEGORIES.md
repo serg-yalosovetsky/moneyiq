@@ -153,8 +153,29 @@ val displayColor = if (isLightBg) Color(0xFF1C1B1F) else catColor
 
 Lives in `EditCategoriesScreen.kt`. Full-screen `Box` overlay opened via pencil icon in `SharedTopBar`.
 
-**Layout (list-based):** Tab row (Витрати/Доходи) + scrollable Column — 72dp rows: DragHandle + 44dp icon circle + name + `[×]` delete.
+**Layout:** Same grid as the main categories screen — reuses `CategoriesGridContent` with `childCounts = emptyMap()` (badges suppressed), `sortBySpending = false`.
 
-**Drag-to-reorder:** `detectDragGesturesAfterLongPress` on handle; disabled in subcategory mode. Swap fires when offset reaches `rowHeightPx / 2`. On end: `onReorder` → `categoriesViewModel.reorderCategories` → `CategoryDao.updateCategories`. DAO sorts `sortOrder ASC, name ASC`.
+**Chip gestures in edit mode:**
+- **Short tap** → opens `CategoryFormSheet` for that category (`onChipClick`)
+- **Long press + drag** → drag-and-drop reorder; the chip follows the finger (ghost overlay)
+- `onChipLongClick = {}` (empty) — the edit form must NOT open on long press because it would interrupt drag
+
+**Drag-to-reorder internals:**
+- `onChipDragSwap` callback passed to `CategoriesGridContent` → enables drag mode
+- In drag mode: original chip slot → alpha 0 (invisible); a ghost `Box` (shadow + full chip rendering) is drawn in an outer `Box` overlay and follows the finger via `dragOffset` state
+- `dragOffset` accumulates `onDrag` deltas; ghost position = `chipCenters[draggingId] − containerRootPos + dragOffset − chipSize/2`
+- Nearest chip to the current finger position becomes `hoverTarget` (alpha 1.0); others dim to 0.7
+- On `onDragEnd`: calls `onChipDragSwap(fromId, toId)` → `localCats` swap → `onReorder(localCats.toList())` → `categoriesViewModel.reorderCategories` → `CategoryDao.updateCategories`
+
+**`suppressLongPress` mechanism (gesture conflict fix):**
+`CategoryGridSlot` has `suppressLongPress: Boolean = false`. When `true`, `CategoryChip` receives `onLongPress = null`, which makes `combinedClickable` skip the long-press detector entirely. Without this, `combinedClickable` (child, Main pass) consumes the long-press event before the parent `detectDragGesturesAfterLongPress` (parent, Main pass) can claim subsequent drag events — causing a brief flash and no actual drag.
+`CategoriesGridContent` sets `suppressLongPress = (onChipDragSwap != null)` on every `CategoryGridRow` and direct `CategoryGridSlot` call.
+
+**Local reorder state:**
+```kotlin
+val localCats = remember(selectedTab) { mutableStateListOf<CategoryEntity>() }
+LaunchedEffect(allCategoriesForTab) { localCats.clear(); localCats.addAll(allCategoriesForTab) }
+```
+`localCats` drives the grid so swaps are visible immediately. DB write happens via `onReorder`.
 
 **Data flow:** No own ViewModel. All callbacks wired in `MainScreen` to `categoriesViewModel`.

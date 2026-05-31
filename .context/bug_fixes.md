@@ -354,6 +354,76 @@ c.name.trim().lowercase() != cat.name.trim().lowercase()
 **Regression rule:** Never use a nested `ModalBottomSheet` for a picker that must appear above another `ModalBottomSheet`. Use `Dialog` instead. See ADR-040 Rule.
 
 ---
+
+### AddTransactionScreen — BackHandler Closes Screen When Dismissing CategoryPickerSheet (2026-05-31)
+
+**Symptom:** Tapping the "До категорії" right panel opened `CategoryPickerSheet`. After the user selected a category (or swiped to dismiss), the entire `AddTransactionScreen` closed instead of returning to the form.
+
+**Root cause:** `BackHandler { showCatPicker = false }` was placed *inside* `if (showCatPicker) { ... }`. When `onDismissRequest` (or `onSelect`) set `showCatPicker = false`, the BackHandler was immediately removed from composition — before the ModalBottomSheet dismiss animation completed. During that brief window any in-flight back gesture (predictive back, Samsung right-edge swipe) had no BackHandler to intercept and propagated directly to the NavController, popping `AddTx`.
+
+**Fix:** Removed the per-sheet `BackHandler` inside each `if (show...)` block. Added a single `BackHandler(enabled = showCatPicker || showCurrencyPicker || showFromAccPicker || showDatePicker || showDeleteDialog)` *before* the `Scaffold`, with `when {}` branching that closes the highest-priority open overlay. The BackHandler stays active throughout the sheet dismiss animation and deactivates only when all overlays are closed.
+
+**Regression rule:** Never put `BackHandler` inside a conditional block that becomes false *as a result of* the same back gesture. Always hoist BackHandler above the conditional, using `enabled = someState` to activate/deactivate.
+
+---
+
+### AddTransactionScreen — Category Cleared After Selection (2026-05-31)
+
+**Symptom:** Selecting a category in `CategoryPickerSheet` appeared to do nothing — the right panel reverted to showing no category (grey background).
+
+**Root cause:** In `onSelect`, `viewModel.setCategory(cat.id)` was called *before* `viewModel.setType(cat.type)`. `setType` internally resets `selectedCategoryId = null` (to prevent a stale category from a different type persisting). So the sequence was: set category → set type (clears category) → result: no category.
+
+**Fix:** Swapped the order — `setType(cat.type)` first, then `setCategory(cat.id)`.
+
+**Regression rule:** Always call `setType` before `setCategory` in any flow that changes both at once. If both need to change atomically, add a `setCategoryAndType(id, type)` method to `TransactionViewModel`.
+
+---
+
+### CategoriesScreen — `onLongPress` Lambda Parsed As Block (2026-05-31)
+
+**Symptom:** Build failed: `Argument type mismatch: actual type is 'kotlin.Unit?', but 'kotlin.Function0<kotlin.Unit>?' was expected` at `CategoriesScreen.kt:290`.
+
+**Root cause:** Kotlin's parser treats `if (condition) null else { statement }` as an if-expression whose else branch is a *block expression* (returning `Unit`), not a lambda literal. So the inferred type of the if-expression was `Unit?` rather than `(() -> Unit)?`.
+
+**Fix:** Wrapped the else-branch in parentheses: `else ({ onChipLongClick(category) })`. Parentheses force Kotlin to parse the braces as a lambda literal.
+
+**Regression rule:** When passing a conditional nullable lambda as an argument — `onX = if (cond) null else { body }` — always parenthesize the lambda branch: `else ({ body })`. Alternatively, extract into a local `val handler: (() -> Unit)? = if (cond) null else { body }` (the explicit type annotation also resolves the ambiguity).
+
+---
+
+### EditCategoriesScreen — Drag-and-Drop Flashes But Does Not Move (2026-05-31)
+
+**Symptom:** Long-pressing a chip caused all chips to briefly change opacity (flash), but the chip did not follow the finger — no actual drag occurred.
+
+**Root cause (gesture conflict):** In Compose, pointer events in Main pass travel child→parent. `CategoryChip` uses `combinedClickable(onLongClick = {...})`. Even with an empty `{}` lambda, `combinedClickable` adds a long-press detector that fires and **consumes** the pointer event after the long-press timeout. The parent `Box`'s `detectDragGesturesAfterLongPress` handler:
+1. Successfully fires `onDragStart` (flash: chips dim/brighten), then
+2. Gets `onDragCancel` because all subsequent drag MotionEvents are already consumed by the child.
+
+**Fix:** Added `suppressLongPress: Boolean = false` to `CategoryGridSlot` and `CategoryGridRow`. When `true`, `CategoryChip` receives `onLongPress = null` instead of `{}`. With `onLongClick = null`, `combinedClickable` skips the long-press detector entirely — the parent gesture handler owns the long press uncontested.
+`CategoriesGridContent` passes `suppressLongPress = (onChipDragSwap != null)` everywhere.
+
+**Regression rule:** `combinedClickable(onLongClick = {})` (empty non-null lambda) still consumes the long-press event. To let a parent gesture detector claim it, you must pass `onLongClick = null`. This is a non-obvious Compose API behavior — document explicitly in any new drag implementation.
+
+---
+
+### EditCategoriesScreen — Ghost Chip Not Following Finger (2026-05-31)
+
+**Symptom:** After the gesture conflict was fixed, drag started correctly but the chip stayed in place — only opacity effects were visible, no movement.
+
+**Root cause:** The alpha-based `dragModifier` only changed visual transparency; there was no mechanism to render the chip at the finger's current position.
+
+**Fix:** Added a floating ghost overlay:
+1. `var dragOffset by remember { mutableStateOf(Offset.Zero) }` — updated every `onDrag` delta.
+2. `var containerRootPos by remember { mutableStateOf(Offset.Zero) }` — outer Box position in root coords (via `onGloballyPositioned`).
+3. Wrapped `LazyColumn` in an outer `Box` with `onGloballyPositioned`.
+4. Original chip slot alpha → 0 when dragging (invisible placeholder).
+5. After `LazyColumn`, a ghost `Box` renders a full `CategoryChip` at `chipCenter − containerRootPos + dragOffset − chipSize/2` (local coords).
+6. Ghost has `shadow(8.dp)` and sits above `LazyColumn` (declared after it → higher draw order).
+
+**Regression rule:** For any future drag ghost in Compose, compute local position as `rootPosition − containerRootPosition` (not raw root position) — the ghost `Box` must be in the same coordinate space as the container `Box`, not the root window.
+
+---
+
 ## Verification Checklist
 
 - Kotlin compile passes.

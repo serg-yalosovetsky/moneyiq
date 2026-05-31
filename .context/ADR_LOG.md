@@ -633,19 +633,25 @@ This gives the user a second tap target for `CurrencyPickerSheet`, in addition t
 
 - Spending amount moved below the icon circle (small Bold, category color).
 - **Within budget:** remaining shown as plain positive text in `accentColor`.
-- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill badge in white text showing the absolute overspend (`spent − budget`). Row background already uses category color at 10% alpha, making the overbudget state visually distinct without extra color logic.
+- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill badge in white text showing the absolute overspend (`spent − budget`).
+
+**Progress bar background (added 2026-05-31, refined 2026-05-31):** `BudgetCatFullRow` uses `Modifier.drawBehind` instead of `.background()`:
+- Base layer: `drawRect(Color.White)` — full row, so the unfilled area is clean white.
+- Fill layer: `drawRect(color.copy(alpha=0.20f), size=Size(width * progress, height))`.
+- `progress = (spent / budget).coerceIn(0.0, 1.0)` — overbudget clamps to 1.0 (full fill).
+- Do **not** replace `drawBehind` with `.background()`. Do **not** use a tinted base — unfilled area must be white.
+- Chip row (unbudgeted categories) also uses `Color.White` background for visual consistency.
+- **Section header row** (title + totals) uses the same `drawBehind` pattern: `headerProgress = (totalAmount / totalBudget).coerceIn(0, 1)`. White base + `accentColor.copy(alpha=0.20f)` fill. When `totalBudget == 0` — no fill (white). Do not give the header a flat `background()` while rows use `drawBehind`.
 
 **`MoreLessChip` change:** `remaining: Int` parameter replaced with `hiddenTotal: Double`. The chip now shows `"${formatMoney(hiddenTotal)} ₴"` below the chevron (sum of all hidden categories' spending) instead of `"+N"` count. `BudgetSectionCard` computes `hiddenChipTotal = chipRows.drop(3).sumOf { it.amount }`.
 
-**`BudgetSectionCard` — `incomeMode: Boolean = false` parameter:** When `true`, `budgetedRows = emptyList()` (no full rows for income) and `chipRows = all income categories sorted by spending desc`. Income budget is a declaration ("I expect to receive X"), not a hard limit — full rows with remaining/overbudget semantics don't apply.
+**`BudgetSectionCard` — `incomeMode` removed (2026-05-31):** Both income and expense sections now use identical row/chip logic — categories with `budgetAmount > 0` render as full rows (`BudgetCatFullRow`); categories with `budgetAmount == 0` and `amount > 0` render as chips. Income progress bar shows `received / budget` exactly like expenses.
 
-**Caller:** `BudgetScreen` passes `incomeMode = true` only to the income `BudgetSectionCard`. Expense section is unchanged.
-
-**Rule:** Do not show income categories as full rows (`BudgetCatFullRow`). Even when a Зарплата category has `budgetAmount > 0`, it must appear as a chip — the budget is expected income, not a cap.
+**Rule:** Income categories with `budgetAmount > 0` **must** render as full rows. Do not reintroduce an `incomeMode` flag that forces income to chips — income budget rows give the user the same at-a-glance received/remaining breakdown as expense budget rows.
 
 **Rule:** Do not revert overbudget display to a negative number in error color. The pill badge makes the overbudget state prominent without being alarming — the row background already signals the state.
 
-## ADR-042: Repeat Transaction Feature — Full Stack (2026-05-31)
+## ADR-042b: Repeat Transaction Feature — Full Stack (2026-05-31)
 
 Повторение и напоминания для транзакций реализованы end-to-end. До этого ADR они были UI-only stubs (данные терялись при подтверждении).
 
@@ -721,7 +727,7 @@ else
 - `LaunchedEffect(catRow.category.id)` syncs when the row changes.
 - `currencySymbol` derived directly (not via `remember(key)` — avoids anti-pattern).
 - `onCurrencyClick = { showCurrencyPicker = true }` passed to `SharedCalcKeypad`.
-- Currency picker lists `CURRENCIES_MAIN`; selecting updates `pickedCurrency` and closes.
+- Currency picker: `Dialog(usePlatformDefaultWidth=false)` with `CurrencyPageContent` (130+ currencies, 3 tabs). Placed **after** the main `ModalBottomSheet` closing brace so it renders on top. Do not use a nested `ModalBottomSheet` — it renders behind the parent sheet (see ADR-040 fix note).
 - `onConfirm` signature: `(Double, String) -> Unit` — passes `(amount, currency)`.
 - `BudgetViewModel.updateCategoryBudget` now accepts optional `currency: String = category.currencyCode` and saves `currencyCode` alongside `budgetAmount`.
 
@@ -747,3 +753,64 @@ else
 - Imports added: `CurrencyPickerSheet`, `CURRENCIES_ALL`.
 
 **Rule:** Always check `CategorySheets.kt / QuickExpenseSheet` (not `AddTransactionScreen`) when debugging the quick-entry transaction sheet opened from the categories grid or `TransactionsListScreen`.
+
+## ADR-046: Light Theme surfaceVariant Lightened (2026-05-31)
+
+**Problem:** `surfaceVariant` was `#E2E1EC` — a visible grayish-purple that made keypad buttons, cards, and chip backgrounds look grey rather than white.
+
+**Change (`Theme.kt` light palette):**
+| Token | Before | After |
+|---|---|---|
+| `surfaceVariant` | `#E2E1EC` | `#F0EFF6` |
+| `outlineVariant` | `#C6C5D0` | `#D8D7E3` |
+
+`background` and `surface` stay `#FFFFFF` — they were already pure white.
+
+**Rule:** `surfaceVariant` must remain perceptibly lighter than `#E8E8F0` in light mode. Do not revert to `#E2E1EC` — the goal is a whiter overall feel. Dark mode palette unchanged.
+
+## ADR-047: EditCategoriesScreen BackHandler (2026-05-31)
+
+**Problem:** Pressing the system Back button while `EditCategoriesScreen` was open exited the app instead of closing the overlay.
+
+**Root cause:** `MainScreen` had only `BackHandler(enabled = currentPage != homeTabIndex)`. When the user was on the home tab (e.g. "Категорії") and opened Edit Categories, the tab handler was disabled, so Back fell through to the system.
+
+**Fix (`MainScreen.kt`, before the tab handler):**
+```kotlin
+BackHandler(enabled = showEditCategories) { showEditCategories = false }
+BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
+```
+
+Compose processes `BackHandler`s last-registered-first, so the overlay handler always takes priority over tab navigation.
+
+**Rule:** Every full-screen overlay (`showEditCategories`, `showSettingsScreen`, `showDataScreen`, etc.) must have its own `BackHandler` registered before the tab-navigation handler. Priority order (top = highest): EditCategories → SettingsScreen → DataScreen → tab navigation → system.
+
+## ADR-048: Drag-and-Drop In CategoriesGridContent — Gesture Conflict Fix (2026-05-31)
+
+`CategoriesGridContent` supports chip drag-and-drop reorder via `onChipDragSwap: ((Long, Long) -> Unit)?`. When this callback is non-null, every chip's `extraModifier` gains `detectDragGesturesAfterLongPress` (parent Box level) + position tracking + alpha.
+
+**Root cause of the original bug:** Compose pointer events in Main pass go child→parent. `CategoryChip` uses `combinedClickable` which adds a long-press detector when `onLongClick` is non-null (even `{}`). On long press, `combinedClickable` fires `onLongClick` and **consumes** the event — the parent's `detectDragGesturesAfterLongPress` fires `onDragStart` (chips briefly flash) but then gets `onDragCancel` immediately because all subsequent drag events are consumed.
+
+**Fix — `suppressLongPress` parameter:**
+```kotlin
+// CategoryGridSlot
+suppressLongPress: Boolean = false
+// ...
+onLongPress = if (suppressLongPress) null else ({ onChipLongClick(category) })
+```
+When `onLongPress = null`, `combinedClickable` does NOT add a long-press detector, so it never consumes events during a long press. The parent's `detectDragGesturesAfterLongPress` can then claim drag events freely.
+
+`CategoriesGridContent` passes `suppressLongPress = (onChipDragSwap != null)` to every `CategoryGridRow` and direct `CategoryGridSlot` call.
+
+**Ghost chip overlay:**
+During drag, the original chip slot becomes alpha 0. A floating `Box` rendered as a sibling of `LazyColumn` (inside an outer `Box`) displays a full `CategoryChip` at the finger's current position:
+```
+ghostX = chipCenters[draggingId].x − containerRootPos.x + dragOffset.x − chipPxW/2
+ghostY = chipCenters[draggingId].y − containerRootPos.y + dragOffset.y − chipPxH/2
+```
+`dragOffset` is a `mutableStateOf(Offset.Zero)` updated on every `onDrag` delta. `containerRootPos` is tracked via `onGloballyPositioned` on the outer `Box`.
+
+**UX:** Long press → chip becomes invisible + ghost appears at finger → drag → nearest chip highlighted (alpha 1.0, others 0.7) → release → chips swap positions.
+
+**Rule:** In `EditCategoriesScreen`, always pass `onChipLongClick = {}` (not a form-opening lambda) so the edit form does not interfere with drag. Tap opens the form; long press starts drag.
+
+**Rule:** Do not use `onLongClick = {}` (empty lambda) when a gesture detector in a parent box needs the long press. Use `onLongClick = null` to fully disable `combinedClickable`'s long-press handling.

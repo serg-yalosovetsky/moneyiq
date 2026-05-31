@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
-import org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyBottomSheet
 import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
@@ -345,7 +345,7 @@ fun AddTransactionScreen(
 
     // Вибір валюти
     if (showCurrencyPicker) {
-        CurrencyPickerSheet(
+        CurrencyBottomSheet(
             selected  = selectedCurrency,
             title     = "Валюта транзакції",
             onSelect  = { selectedCurrency = it; showCurrencyPicker = false },

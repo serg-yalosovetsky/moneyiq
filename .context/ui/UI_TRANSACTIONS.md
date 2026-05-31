@@ -34,7 +34,32 @@ The right panel tap always opens `CategoryPickerSheet(currentType = state.type)`
 - EXPENSE/INCOME: "До категорії"
 - TRANSFER: "На рахунок"
 
-`onSelect` also calls `viewModel.setType(cat.type)` to keep type in sync.
+**`onSelect` order (CRITICAL):** Always call `setType` before `setCategory`:
+```kotlin
+viewModel.setType(cat.type)   // first — clears selectedCategoryId internally
+viewModel.setCategory(cat.id) // then — sets the new id (would be wiped if reversed)
+```
+`setType` resets `selectedCategoryId = null` to prevent stale category from a different type. Reversing the order results in no category being set.
+
+## AddTransactionScreen — BackHandler Pattern
+
+`AddTransactionScreen` uses a **single top-level `BackHandler`** to guard all overlay states:
+
+```kotlin
+BackHandler(enabled = showCatPicker || showCurrencyPicker || showFromAccPicker || showDatePicker || showDeleteDialog) {
+    when {
+        showCatPicker      -> showCatPicker = false
+        showCurrencyPicker -> showCurrencyPicker = false
+        showFromAccPicker  -> showFromAccPicker = false
+        showDatePicker     -> showDatePicker = false
+        showDeleteDialog   -> showDeleteDialog = false
+    }
+}
+```
+
+Placed **before** `Scaffold`, not inside any `if (showX)` block.
+
+**Rule:** Do not move BackHandler inside `if (showCatPicker)`. When `onDismissRequest` fires (`showCatPicker = false`), a nested BackHandler would immediately deactivate — allowing any in-flight back gesture (predictive back, Samsung right-edge swipe) to propagate to NavController and pop `AddTx`.
 
 ## CategoryPickerSheet — Simplified Mode (`currentType`)
 
