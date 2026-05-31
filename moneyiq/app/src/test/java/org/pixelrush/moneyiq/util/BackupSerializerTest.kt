@@ -5,6 +5,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.json.JSONObject
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -21,7 +22,8 @@ class BackupSerializerTest {
                 id = 1L, name = "Гаманець", type = AccountType.CASH,
                 balance = 500.0, currency = "UAH", colorHex = "#4CAF50",
                 icon = "account_balance_wallet", includeInTotal = true, isDefault = true,
-                sortOrder = 0, description = "Основний", createdAt = 1_717_000_000_000L
+                sortOrder = 0, description = "Основний", createdAt = 1_717_000_000_000L,
+                creditLimit = 1_500.0
             )
         ),
         categories = listOf(
@@ -29,14 +31,15 @@ class BackupSerializerTest {
                 id = 1L, name = "Продукти", type = TransactionType.EXPENSE,
                 colorHex = "#03A9F4", icon = "shopping", budgetAmount = 0.0,
                 budgetPeriod = "MONTHLY", isDefault = true, sortOrder = 1,
-                archived = false, parentId = null
+                archived = false, parentId = null, currencyCode = "EUR"
             )
         ),
         transactions = listOf(
             TransactionEntity(
                 id = 1L, type = TransactionType.EXPENSE, amount = 100.0,
                 accountId = 1L, toAccountId = null, categoryId = 1L,
-                note = "Test", date = 1_717_000_000_000L, createdAt = 1_717_000_000_000L
+                note = "Test", date = 1_717_000_000_000L, createdAt = 1_717_000_000_000L,
+                repeatMode = "MONTHLY", reminderMode = "1_DAY", nextRepeatDate = 1_719_678_400_000L
             )
         )
     )
@@ -57,6 +60,7 @@ class BackupSerializerTest {
         assertTrue(a.isDefault)
         assertTrue(a.includeInTotal)
         assertEquals("Основний", a.description)
+        assertEquals(1_500.0, a.creditLimit, 0.001)
     }
 
     @Test
@@ -71,6 +75,7 @@ class BackupSerializerTest {
         assertEquals("#03A9F4", c.colorHex)
         assertEquals("shopping", c.icon)
         assertNull(c.parentId)
+        assertEquals("EUR", c.currencyCode)
     }
 
     @Test
@@ -86,6 +91,9 @@ class BackupSerializerTest {
         assertNull(t.toAccountId)
         assertEquals(1L, t.categoryId)
         assertEquals("Test", t.note)
+        assertEquals("MONTHLY", t.repeatMode)
+        assertEquals("1_DAY", t.reminderMode)
+        assertEquals(1_719_678_400_000L, t.nextRepeatDate)
     }
 
     // ── null handling ────────────────────────────────────────────────────────
@@ -127,6 +135,54 @@ class BackupSerializerTest {
         )
         val restored = BackupSerializer.deserialize(BackupSerializer.serialize(backup))
         assertEquals(1L, restored.categories[0].parentId)
+    }
+
+    @Test
+    fun `deserialize defaults missing creditLimit to zero for old backups`() {
+        val root = JSONObject(BackupSerializer.serialize(sampleBackup()))
+        root.getJSONArray("accounts").getJSONObject(0).remove("creditLimit")
+
+        val restored = BackupSerializer.deserialize(root.toString())
+
+        assertEquals(0.0, restored.accounts[0].creditLimit, 0.001)
+    }
+
+    @Test
+    fun `deserialize defaults missing category currencyCode to UAH for old backups`() {
+        val root = JSONObject(BackupSerializer.serialize(sampleBackup()))
+        root.getJSONArray("categories").getJSONObject(0).remove("currencyCode")
+
+        val restored = BackupSerializer.deserialize(root.toString())
+
+        assertEquals("UAH", restored.categories[0].currencyCode)
+    }
+
+    @Test
+    fun `deserialize defaults missing repeat fields for old backups`() {
+        val root = JSONObject(BackupSerializer.serialize(sampleBackup()))
+        val tx = root.getJSONArray("transactions").getJSONObject(0)
+        tx.remove("repeatMode")
+        tx.remove("reminderMode")
+        tx.remove("nextRepeatDate")
+
+        val restored = BackupSerializer.deserialize(root.toString())
+
+        assertEquals("NEVER", restored.transactions[0].repeatMode)
+        assertEquals("NEVER", restored.transactions[0].reminderMode)
+        assertNull(restored.transactions[0].nextRepeatDate)
+    }
+
+    @Test
+    fun `deserialize handles absent nullable transaction ids for old backups`() {
+        val root = JSONObject(BackupSerializer.serialize(sampleBackup()))
+        val tx = root.getJSONArray("transactions").getJSONObject(0)
+        tx.remove("toAccountId")
+        tx.remove("categoryId")
+
+        val restored = BackupSerializer.deserialize(root.toString())
+
+        assertNull(restored.transactions[0].toAccountId)
+        assertNull(restored.transactions[0].categoryId)
     }
 
     // ── JSON structure ───────────────────────────────────────────────────────

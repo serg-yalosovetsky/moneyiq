@@ -241,6 +241,21 @@ class TransactionViewModelTest {
     }
 
     @Test
+    fun `setType before setCategory preserves selected category`() = runTest {
+        val vm = createVm()
+        vm.state.test {
+            awaitItem()
+            vm.setType(TransactionType.INCOME)
+            awaitItem()
+            vm.setCategory(12L)
+            val state = awaitItem()
+            assertTrue(state.type == TransactionType.INCOME)
+            assertTrue(state.selectedCategoryId == 12L)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `setNote updates note in state`() = runTest {
         val vm = createVm()
         vm.state.test {

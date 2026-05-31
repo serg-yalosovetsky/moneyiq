@@ -19,7 +19,7 @@ import org.pixelrush.moneyiq.data.repository.SettingsRepository
 import org.pixelrush.moneyiq.util.BackupData
 import org.pixelrush.moneyiq.util.BackupSerializer
 import org.pixelrush.moneyiq.util.CsvExporter
-import org.pixelrush.moneyiq.util.suggestCategoryStyle
+import org.pixelrush.moneyiq.util.normalizeImportedCategory
 import org.pixelrush.moneyiq.workers.DriveBackupEntry
 import org.pixelrush.moneyiq.workers.DriveBackupWorker
 import org.pixelrush.moneyiq.workers.MonoFlowSyncWorker
@@ -143,46 +143,6 @@ class DataViewModel @Inject constructor(
             } finally {
                 _state.value = _state.value.copy(isImporting = false)
             }
-        }
-    }
-
-    private fun normalizeImportedCategory(cat: org.pixelrush.moneyiq.data.db.entities.CategoryEntity): org.pixelrush.moneyiq.data.db.entities.CategoryEntity {
-        val n = cat.name.lowercase().trim()
-        if (cat.parentId != null) {
-            when {
-                n.contains("food delivery") || n == "glovo" || n.contains("bolt food") || n.contains("uber eats") || n.contains("uklon food") ->
-                    return cat.copy(icon = "delivery", colorHex = "#FF6F00")
-                n.contains("кафе") || n.contains("cafe") || n.contains("кав'ярн") ->
-                    return cat.copy(icon = "coffee", colorHex = "#795548")
-                n.contains("ресторан") && n != "ресторація" ->
-                    return cat.copy(icon = "restaurant", colorHex = "#E53935")
-            }
-        }
-        // Fix wrong icons regardless of parentId
-        when {
-            // Спорт stuck on health/doctor cross
-            n == "спорт" && cat.icon in listOf("health", "doctor") ->
-                return cat.copy(icon = "sports", colorHex = "#F44336")
-            // Здоров'я root stuck on health cross
-            n.contains("здоров") && cat.parentId == null && cat.icon in listOf("health", "doctor") ->
-                return cat.copy(icon = "volunteer", colorHex = "#48B456")
-            // Any root category still carrying the old 'health' cross
-            cat.icon == "health" && cat.parentId == null ->
-                return cat.copy(icon = "volunteer", colorHex = "#48B456")
-        }
-        // "category" = placeholder; "family" = generic icon that may be wrong for specific names
-        // (e.g. Зв'язок, Інтернет, Комунальні imported from MonoFlow)
-        if (cat.icon in setOf("category", "family")) {
-            val (suggested, color) = suggestCategoryStyle(cat.name, cat.type)
-            if (suggested != "category" && suggested != cat.icon) {
-                return cat.copy(icon = suggested, colorHex = color)
-            }
-        }
-        return when (cat.icon) {
-            "movie"   -> if (cat.colorHex != "#9C27B0") cat.copy(colorHex = "#9C27B0") else cat
-            "coffee"  -> if (cat.colorHex != "#795548") cat.copy(colorHex = "#795548") else cat
-            "sports"  -> if (cat.colorHex != "#F44336") cat.copy(colorHex = "#F44336") else cat
-            else -> cat
         }
     }
 

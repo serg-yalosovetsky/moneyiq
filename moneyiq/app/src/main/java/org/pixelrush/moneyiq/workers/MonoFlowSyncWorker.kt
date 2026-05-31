@@ -14,7 +14,7 @@ import org.pixelrush.moneyiq.data.db.dao.CategoryDao
 import org.pixelrush.moneyiq.data.db.dao.TransactionDao
 import org.pixelrush.moneyiq.data.repository.SettingsRepository
 import org.pixelrush.moneyiq.util.BackupSerializer
-import org.pixelrush.moneyiq.util.suggestCategoryStyle
+import org.pixelrush.moneyiq.util.normalizeImportedCategory
 import java.util.concurrent.TimeUnit
 
 // ── Hilt Entry Point ──────────────────────────────────────────────────────────
@@ -57,16 +57,7 @@ class MonoFlowSyncWorker(
 
             // MERGE: insert/replace по id, не видаляємо існуючі дані
             ep.accountDao().insertAccounts(data.accounts)
-            // Normalize generic icons before merge — "family"/"category" may be wrong for
-            // specific category names (Зв'язок→phone, Інтернет→wifi, Комунальні→home)
-            val normalizedCats = data.categories.map { cat ->
-                if (cat.icon in setOf("category", "family")) {
-                    val (suggested, color) = suggestCategoryStyle(cat.name, cat.type)
-                    if (suggested != "category" && suggested != cat.icon)
-                        cat.copy(icon = suggested, colorHex = color)
-                    else cat
-                } else cat
-            }
+            val normalizedCats = data.categories.map { normalizeImportedCategory(it) }
             ep.categoryDao().insertCategories(normalizedCats)
             ep.transactionDao().insertTransactions(data.transactions)
 

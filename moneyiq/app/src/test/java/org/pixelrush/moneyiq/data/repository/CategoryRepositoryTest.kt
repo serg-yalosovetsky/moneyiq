@@ -115,4 +115,70 @@ class CategoryRepositoryTest {
 
         assertEquals(category, result)
     }
+
+    @Test
+    fun `repairIconKeys replaces generic family icon for specific utility category`() = runTest {
+        coEvery { dao.getAllCategoriesOnce() } returns listOf(
+            CategoryEntity(id = 1L, name = "Зв'язок", type = TransactionType.EXPENSE, icon = "family")
+        )
+
+        repo.repairIconKeys()
+
+        coVerify {
+            dao.updateCategory(match {
+                it.id == 1L && it.icon == "phone"
+            })
+        }
+    }
+
+    @Test
+    fun `repairIconKeys keeps family icon for actual family category`() = runTest {
+        coEvery { dao.getAllCategoriesOnce() } returns listOf(
+            CategoryEntity(id = 1L, name = "Сім'я", type = TransactionType.EXPENSE, icon = "family")
+        )
+
+        repo.repairIconKeys()
+
+        coVerify(exactly = 0) { dao.updateCategory(any()) }
+    }
+
+    @Test
+    fun `repairDefaultColors updates canonical root colors ignoring isDefault`() = runTest {
+        coEvery { dao.getAllCategoriesOnce() } returns listOf(
+            CategoryEntity(
+                id = 7L,
+                name = "Здоровʼя",
+                type = TransactionType.EXPENSE,
+                colorHex = "#000000",
+                icon = "volunteer",
+                isDefault = false,
+                parentId = null
+            )
+        )
+
+        repo.repairDefaultColors()
+
+        coVerify {
+            dao.updateCategory(match {
+                it.id == 7L && it.colorHex == "#48B456"
+            })
+        }
+    }
+
+    @Test
+    fun `repairDefaultColors does not update subcategories with canonical names`() = runTest {
+        coEvery { dao.getAllCategoriesOnce() } returns listOf(
+            CategoryEntity(
+                id = 9L,
+                name = "Продукти",
+                type = TransactionType.EXPENSE,
+                colorHex = "#000000",
+                parentId = 1L
+            )
+        )
+
+        repo.repairDefaultColors()
+
+        coVerify(exactly = 0) { dao.updateCategory(any()) }
+    }
 }

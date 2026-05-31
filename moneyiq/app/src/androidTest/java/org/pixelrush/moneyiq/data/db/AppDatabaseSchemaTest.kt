@@ -10,8 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Verifies that the current database schema (v5) contains all expected columns,
- * including columns added by migrations 1→2, 2→3, 3→4, 4→5.
+ * Verifies that the current database schema contains all expected columns.
  *
  * Note: Full migration path tests (MigrationTestHelper) require exportSchema = true
  * in AppDatabase. These tests validate the final schema instead.
@@ -35,9 +34,7 @@ class AppDatabaseSchemaTest {
     }
 
     private fun getColumnNames(tableName: String): List<String> {
-        val cursor = db.openHelper.writableDatabase.rawQuery(
-            "PRAGMA table_info($tableName)", null
-        )
+        val cursor = db.openHelper.writableDatabase.query("PRAGMA table_info($tableName)")
         val names = mutableListOf<String>()
         cursor.use {
             while (it.moveToNext()) {
@@ -94,6 +91,11 @@ class AppDatabaseSchemaTest {
         assertTrue("includeInTotal", getColumnNames("accounts").contains("includeInTotal"))
     }
 
+    @Test
+    fun accounts_table_has_creditLimit_column_added_by_migration_26_to_27() {
+        assertTrue("creditLimit", getColumnNames("accounts").contains("creditLimit"))
+    }
+
     // ── categories table (migrations 3→4 added archived, 4→5 added parentId) ──
 
     @Test
@@ -129,6 +131,11 @@ class AppDatabaseSchemaTest {
     @Test
     fun categories_table_has_sortOrder_column() {
         assertTrue("sortOrder", getColumnNames("categories").contains("sortOrder"))
+    }
+
+    @Test
+    fun categories_table_has_currencyCode_column_added_by_migration_20_to_21() {
+        assertTrue("currencyCode", getColumnNames("categories").contains("currencyCode"))
     }
 
     // ── transactions table ────────────────────────────────────────────────────
@@ -173,13 +180,27 @@ class AppDatabaseSchemaTest {
         assertTrue("note", getColumnNames("transactions").contains("note"))
     }
 
+    @Test
+    fun transactions_table_has_repeatMode_column_added_by_migration_27_to_28() {
+        assertTrue("repeatMode", getColumnNames("transactions").contains("repeatMode"))
+    }
+
+    @Test
+    fun transactions_table_has_reminderMode_column_added_by_migration_27_to_28() {
+        assertTrue("reminderMode", getColumnNames("transactions").contains("reminderMode"))
+    }
+
+    @Test
+    fun transactions_table_has_nextRepeatDate_column_added_by_migration_27_to_28() {
+        assertTrue("nextRepeatDate", getColumnNames("transactions").contains("nextRepeatDate"))
+    }
+
     // ── all 3 tables exist ────────────────────────────────────────────────────
 
     @Test
     fun all_required_tables_exist() {
-        val cursor = db.openHelper.writableDatabase.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%'",
-            null
+        val cursor = db.openHelper.writableDatabase.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%'"
         )
         val tables = mutableSetOf<String>()
         cursor.use { while (it.moveToNext()) tables.add(it.getString(0)) }

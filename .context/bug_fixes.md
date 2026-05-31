@@ -19,6 +19,18 @@
 
 ## Known Bugs Fixed
 
+### BackupSerializer — Category Budget Currency Dropped On Export (2026-06-01)
+
+**Symptom:** Category budget currency (`CategoryEntity.currencyCode`) was not included in JSON backups. Export/import silently reset category budget currency to the entity default (`UAH`), even if the user had selected another currency for that category budget.
+
+**Root cause:** `BackupSerializer.serialize()` wrote older category fields only and omitted `currencyCode`; `deserialize()` also did not read it.
+
+**Fix:** Added `currencyCode` to category serialization and `optString("currencyCode", "UAH")` during deserialization for backward compatibility with older backups. Added unit coverage for `creditLimit`, category `currencyCode`, repeat/reminder fields, missing nullable transaction IDs, and old-backup defaults.
+
+**Regression rule:** When adding a new entity field, update both backup serialization and deserialization, and add round-trip plus missing-key tests for backward compatibility.
+
+---
+
 ### CategorySheets — `halfW` Unresolved Reference In `Box` Scope (2026-06-01)
 
 **Symptom:** CI build failed: `Unresolved reference 'halfW'` in `CategorySheets.kt:405`.

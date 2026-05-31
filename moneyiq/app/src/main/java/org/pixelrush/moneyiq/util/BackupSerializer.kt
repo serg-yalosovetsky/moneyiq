@@ -65,6 +65,7 @@ object BackupSerializer {
                 put("sortOrder",    c.sortOrder)
                 put("archived",     c.archived)
                 put("parentId",     c.parentId ?: JSONObject.NULL)
+                put("currencyCode", c.currencyCode)
             })
         }
         root.put("categories", catsArr)
@@ -135,7 +136,8 @@ object BackupSerializer {
                 isDefault    = c.getBoolean("isDefault"),
                 sortOrder    = c.getInt("sortOrder"),
                 archived     = c.optBoolean("archived", false),
-                parentId     = if (c.has("parentId") && !c.isNull("parentId")) c.getLong("parentId") else null
+                parentId     = if (c.has("parentId") && !c.isNull("parentId")) c.getLong("parentId") else null,
+                currencyCode = c.optString("currencyCode", "UAH")
             )
         }
 

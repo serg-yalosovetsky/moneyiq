@@ -96,7 +96,51 @@ val DoubleChevronLeft: ImageVector by lazy {
     }.build()
 }
 
-// Exact clone of 1Money's toolbar_edit.xml vector.
+// 1Money's toolbar_profile.xml vector with lighter stroke for the top bar.
+val ToolbarProfileIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "ToolbarProfileIcon",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(
+            fill = SolidColor(Color.Transparent),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.25f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(7.078f, 9.891f)
+            arcToRelative(4.922f, 4.922f, 0f, true, false, 9.844f, 0f)
+            arcToRelative(4.922f, 4.922f, 0f, true, false, -9.844f, 0f)
+        }
+        path(
+            fill = SolidColor(Color.Transparent),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.25f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(18.481f, 20.321f)
+            arcToRelative(9.137f, 9.137f, 0f, false, false, -12.962f, 0f)
+        }
+        path(
+            fill = SolidColor(Color.Transparent),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.25f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(1.453f, 12f)
+            arcToRelative(10.547f, 10.547f, 0f, true, false, 21.094f, 0f)
+            arcToRelative(10.547f, 10.547f, 0f, true, false, -21.094f, 0f)
+        }
+    }.build()
+}
+
+// Exact clone of 1Money's toolbar_edit.xml vector with lighter stroke for the top bar.
 val ToolbarEditIcon: ImageVector by lazy {
     ImageVector.Builder(
         name = "ToolbarEditIcon",
@@ -108,7 +152,7 @@ val ToolbarEditIcon: ImageVector by lazy {
         path(
             fill = SolidColor(Color.Transparent),
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = 1.25f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round
         ) {
@@ -123,7 +167,7 @@ val ToolbarEditIcon: ImageVector by lazy {
         path(
             fill = SolidColor(Color.Transparent),
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = 1.25f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round
         ) {
@@ -135,7 +179,7 @@ val ToolbarEditIcon: ImageVector by lazy {
         path(
             fill = SolidColor(Color.Transparent),
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = 1.25f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round
         ) {
@@ -145,7 +189,7 @@ val ToolbarEditIcon: ImageVector by lazy {
         path(
             fill = SolidColor(Color.Transparent),
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = 1.25f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round
         ) {
@@ -155,7 +199,7 @@ val ToolbarEditIcon: ImageVector by lazy {
         path(
             fill = SolidColor(Color.Transparent),
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = 1.25f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round
         ) {

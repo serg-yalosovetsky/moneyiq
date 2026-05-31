@@ -25,6 +25,7 @@ android {
         targetSdk = 36
         versionCode = 4
         versionName = "1.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexKeepProguard = file("multidex-keep.pro")
     }
 
@@ -131,6 +132,7 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.compose.ui.text.google.fonts)
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     // Navigation
     implementation(libs.navigation.compose)
@@ -184,6 +186,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
 }
 
 val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")

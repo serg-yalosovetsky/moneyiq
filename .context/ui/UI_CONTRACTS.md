@@ -46,7 +46,7 @@ Bottom tabs: `Рахунки`, `Категорії`, `Операції`, `Бюд
 
 `SharedMonthNavPill` (`SharedMonthPill.kt`) — Row with left/right arrows + center pill.
 
-**Arrows:** `Icons.AutoMirrored.Filled.KeyboardArrowLeft/Right` (30dp), tint = `pillColor`. Row horizontal padding = 10dp.
+**Arrows:** `Icons.Default.KeyboardDoubleArrowLeft/Right` (54dp), tint = `onSurface`. Row horizontal padding = 10dp.
 
 **Pill colors:**
 ```kotlin
@@ -55,12 +55,14 @@ PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
 pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
 ```
 
-**Pill surface:** `RoundedCornerShape(50dp)`, `color = pillColor.copy(alpha = 0.12f)`. Padding: `start=6dp, end=14dp, top=6dp, bottom=6dp`.
+**Pill surface:** `RoundedCornerShape(50dp)`, `color = pillColor.copy(alpha = 0.12f)`. Padding: `start=10dp, end=14dp, top=6dp, bottom=6dp`.
 
 **Pill content:**
-- Badge: `Surface(RoundedCornerShape(6dp), border=1.5dp pillColor)`, text `labelSmall + Bold`, `color = pillColor`, padding `horizontal=6dp, vertical=2dp`
-- Label: `bodyMedium + SemiBold`, `color = pillColor`
-- Dropdown arrow: `Icons.Default.KeyboardArrowDown` (26dp), `pillColor.copy(alpha=0.7f)`
+- Badge: `Surface(RoundedCornerShape(6dp), border=1.5dp pillColor)`, text `labelSmall + Bold`, `color = onSurface`, padding `horizontal=6dp, vertical=2dp`
+- Label: `bodyMedium + SemiBold`, `color = onSurface`
+- Dropdown arrow: `Icons.Default.KeyboardArrowDown` (26dp), `onSurface.copy(alpha=0.7f)`
+
+**Rule:** Only the badge border uses `pillColor` for accent. All text and icons use `onSurface`. Do not tint any icon or label with `pillColor`.
 
 **Month text:** `MONTH_NAMES_UA_FULL[month].uppercase()` for `PeriodMode.MONTH` → "ЧЕРВЕНЬ 2026". Other modes use Title Case from `MONTH_NAMES_UA_FULL` unchanged.
 

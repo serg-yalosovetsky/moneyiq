@@ -28,13 +28,13 @@ Do NOT add a local font mapper or hardcode `FontFamily.Default` anywhere — all
 
 ## SharedMonthNavPill
 
-Navigation arrows: `Icons.AutoMirrored.Filled.KeyboardArrowLeft/Right` (30dp), tint = `pillColor`. Row horizontal padding = 10dp.
+Navigation arrows: `Icons.Default.KeyboardDoubleArrowLeft/Right` (54dp), tint = `onSurface`. Row horizontal padding = 10dp.
 
 | Element | Style | Size | Weight | Color |
 |---|---|---|---|---|
-| Day-count badge | `labelSmall` + Bold | 11sp | Bold 700 | `pillColor` (border + text) |
-| Period label | `bodyMedium` + SemiBold | 14sp | SemiBold 600 | `pillColor` |
-| Dropdown arrow | `KeyboardArrowDown` | 26dp | — | `pillColor.copy(alpha=0.7f)` |
+| Day-count badge | `labelSmall` + Bold | 11sp | Bold 700 | `onSurface` text, `pillColor` border |
+| Period label | `bodyMedium` + SemiBold | 14sp | SemiBold 600 | `onSurface` |
+| Dropdown arrow | `KeyboardArrowDown` | 26dp | — | `onSurface.copy(alpha=0.7f)` |
 
 **Month flip animation:** `AnimatedContent(targetState = pillLabel to pillBadge)` — forward: slides left; backward: slides right. 220ms enter / 180ms fade-in; 180ms exit / 120ms fade-out. Direction tracked via `Ref<Boolean>` (not `MutableState`).
 

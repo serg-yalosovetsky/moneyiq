@@ -75,6 +75,7 @@ import org.pixelrush.moneyiq.ui.categories.CategoriesViewModel
 import org.pixelrush.moneyiq.ui.categories.EditCategoriesScreen
 import org.pixelrush.moneyiq.ui.components.icons.DoubleChevronRight
 import org.pixelrush.moneyiq.ui.components.icons.ToolbarEditIcon
+import org.pixelrush.moneyiq.ui.components.icons.ToolbarProfileIcon
 import org.pixelrush.moneyiq.ui.data.DataScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
 import org.pixelrush.moneyiq.ui.settings.SettingsScreen
@@ -508,7 +509,7 @@ fun SharedTopBar(
             modifier = Modifier.size(44.dp)
         ) {
             Icon(
-                Icons.Outlined.AccountCircle,
+                ToolbarProfileIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(40.dp)
@@ -525,12 +526,13 @@ fun SharedTopBar(
             Text(
                 "Всі рахунки",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 formatMoney(totalBalance),
-                style      = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
                 color      = if (totalBalance < 0) Color(0xFFE53935)
                              else MaterialTheme.colorScheme.onSurface,
                 maxLines   = 1,

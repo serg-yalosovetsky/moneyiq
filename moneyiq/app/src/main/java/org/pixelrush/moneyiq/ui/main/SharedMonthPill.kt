@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +31,8 @@ import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
 import org.pixelrush.moneyiq.data.repository.PeriodMode
+import org.pixelrush.moneyiq.ui.components.icons.DoubleChevronLeft
+import org.pixelrush.moneyiq.ui.components.icons.DoubleChevronRight
 import java.util.*
 
 private val PILL_ACCENT   = Color(0xFFD81B60)
@@ -138,15 +139,16 @@ fun SharedMonthNavPill(
     Row(
         modifier              = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(start = 24.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowLeft, null,
-            tint     = pillColor,
+            DoubleChevronLeft, "Попередній період",
+            tint     = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
-                .size(30.dp)
+                .size(35.dp)
+                .testTag("month_pill_prev")
                 .clickable(onClick = onPrev)
                 .padding(2.dp)
         )
@@ -154,7 +156,9 @@ fun SharedMonthNavPill(
         Surface(
             shape    = RoundedCornerShape(50.dp),
             color    = pillColor.copy(alpha = 0.12f),
-            modifier = Modifier.clickable { showSheet = true }
+            modifier = Modifier
+                .testTag("month_pill")
+                .clickable { showSheet = true }
         ) {
             // Animate only the inner content; the pill capsule shape stays static
             AnimatedContent(
@@ -168,7 +172,7 @@ fun SharedMonthNavPill(
                     enter togetherWith exit
                 },
                 label    = "month_pill",
-                modifier = Modifier.padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
+                modifier = Modifier.padding(start = 10.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
             ) { (label, badge) ->
                 Row(
                     verticalAlignment     = Alignment.CenterVertically,
@@ -177,25 +181,28 @@ fun SharedMonthNavPill(
                     Surface(
                         shape  = RoundedCornerShape(6.dp),
                         color  = Color.Transparent,
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, pillColor)
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.25.dp,
+                            Color.Black
+                        )
                     ) {
                         Text(
                             badge,
                             modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style      = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color      = pillColor
+                            fontWeight = FontWeight.Medium,
+                            color      = Color.Black
                         )
                     }
                     Text(
                         label,
                         style      = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = pillColor
+                        fontWeight = FontWeight.Medium,
+                        color      = MaterialTheme.colorScheme.onSurface
                     )
                     Icon(
                         Icons.Default.KeyboardArrowDown, null,
-                        tint     = pillColor.copy(alpha = 0.7f),
+                        tint     = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -203,10 +210,11 @@ fun SharedMonthNavPill(
         }
 
         Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
-            tint     = pillColor,
+            DoubleChevronRight, "Наступний період",
+            tint     = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
-                .size(30.dp)
+                .size(35.dp)
+                .testTag("month_pill_next")
                 .clickable(onClick = onNext)
                 .padding(2.dp)
         )

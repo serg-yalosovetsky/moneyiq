@@ -19,3 +19,4 @@ moneyiq/build/
 
 # Gradle caches / probes
 moneyiq/.gradle/
+moneyiq/.gradle/8.11.1/checksums/checksums.lock

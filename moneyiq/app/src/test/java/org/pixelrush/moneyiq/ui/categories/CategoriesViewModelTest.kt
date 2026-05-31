@@ -156,6 +156,29 @@ class CategoriesViewModelTest {
     }
 
     @Test
+    fun `add forwards budget currency and parent id`() = runTest {
+        vm.add(
+            name = "Кафе",
+            type = TransactionType.EXPENSE,
+            color = "#795548",
+            icon = "coffee",
+            budget = 250.0,
+            period = "MONTHLY",
+            currencyCode = "EUR",
+            parentId = 2L
+        )
+
+        coVerify {
+            catRepo.save(match {
+                it.name == "Кафе" &&
+                    it.budgetAmount == 250.0 &&
+                    it.currencyCode == "EUR" &&
+                    it.parentId == 2L
+            })
+        }
+    }
+
+    @Test
     fun `update delegates to catRepo update`() = runTest {
         val cat = CategoryEntity(id = 1L, name = "Test", type = TransactionType.EXPENSE, colorHex = "#000", icon = "home")
         vm.update(cat)
@@ -181,6 +204,50 @@ class CategoriesViewModelTest {
                 it.amount == 200.0 &&
                 it.type == TransactionType.EXPENSE &&
                 it.note == "Моноліт"
+            })
+        }
+    }
+
+    @Test
+    fun `recordTransaction forwards repeat and reminder modes with next repeat date`() = runTest {
+        val cat = CategoryEntity(id = 8L, name = "Оренда", type = TransactionType.EXPENSE, icon = "key")
+        val date = java.util.Calendar.getInstance().apply {
+            clear()
+            set(2026, java.util.Calendar.JUNE, 1, 12, 0, 0)
+        }.timeInMillis
+
+        vm.recordTransaction(
+            accountId = 4L,
+            category = cat,
+            amount = 1_000.0,
+            note = "monthly",
+            date = date,
+            repeatMode = "MONTHLY",
+            reminderMode = "1_DAY"
+        )
+
+        coVerify {
+            txRepo.addTransaction(match {
+                it.accountId == 4L &&
+                    it.categoryId == 8L &&
+                    it.repeatMode == "MONTHLY" &&
+                    it.reminderMode == "1_DAY" &&
+                    it.nextRepeatDate != null &&
+                    it.nextRepeatDate!! > date
+            })
+        }
+    }
+
+    @Test
+    fun `reorderCategories rewrites sortOrder by list index`() = runTest {
+        val first = CategoryEntity(id = 10L, name = "A", type = TransactionType.EXPENSE, sortOrder = 99)
+        val second = CategoryEntity(id = 11L, name = "B", type = TransactionType.EXPENSE, sortOrder = 42)
+
+        vm.reorderCategories(listOf(first, second))
+
+        coVerify {
+            catRepo.updateAll(match { ordered ->
+                ordered.map { it.id to it.sortOrder } == listOf(10L to 0, 11L to 1)
             })
         }
     }
