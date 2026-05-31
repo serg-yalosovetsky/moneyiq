@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -64,6 +65,19 @@ fun AddTransactionScreen(
     var showFromAccPicker   by remember { mutableStateOf(false) }
     var showCatPicker       by remember { mutableStateOf(false) }
     var showCurrencyPicker  by remember { mutableStateOf(false) }
+
+    // Єдиний BackHandler — перехоплює back доки відкритий будь-який sheet/dialog.
+    // Розміщення ПЕРЕД Scaffold гарантує, що він залишається активним навіть під час
+    // анімації закриття ModalBottomSheet (уникаємо "витікання" back у NavController).
+    BackHandler(enabled = showCatPicker || showCurrencyPicker || showFromAccPicker || showDatePicker || showDeleteDialog) {
+        when {
+            showCatPicker      -> showCatPicker = false
+            showCurrencyPicker -> showCurrencyPicker = false
+            showFromAccPicker  -> showFromAccPicker = false
+            showDatePicker     -> showDatePicker = false
+            showDeleteDialog   -> showDeleteDialog = false
+        }
+    }
 
     val isTransfer = state.type == TransactionType.TRANSFER
 

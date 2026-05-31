@@ -69,4 +69,5 @@ Release signing uses secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `
 ## Non-Runtime Context
 
 - `.context` docs explain expected architecture and implementation constraints.
+- `.context/ui/` — UI contracts split into 8 files; `UI_CONTRACTS.md` is the index.
 - `README.md` is public-facing project documentation.

@@ -113,6 +113,7 @@ fun BudgetScreen(
                     accentColor         = incomeColor,
                     monthLabel          = monthLabel,
                     currentExpensesMode = currentExpensesMode,
+                    incomeMode          = true,
                     onUpdateBudget      = viewModel::updateCategoryBudget
                 )
             }
@@ -248,18 +249,28 @@ private fun BudgetSectionCard(
     accentColor:         Color,
     monthLabel:          String,
     currentExpensesMode: Boolean = false,
+    incomeMode:          Boolean = false,
     onUpdateBudget:      (CategoryEntity, Double, String) -> Unit
 ) {
     var expanded    by remember { mutableStateOf(false) }
     var editingRow  by remember { mutableStateOf<BudgetCatRow?>(null) }
 
-    val budgetedRows = if (currentExpensesMode) emptyList()
-                      else data.rows.filter { it.category.budgetAmount > 0 }
-    val chipRows     = if (currentExpensesMode) data.rows.filter { it.amount > 0 }.sortedByDescending { it.amount }
-                      else data.rows.filter { it.category.budgetAmount == 0.0 && it.amount > 0 }
-    val visibleChips = if (expanded) chipRows else chipRows.take(3)
-    val hasMoreChips = chipRows.size > 3
-    val remaining    = data.totalBudget - data.totalAmount
+    val budgetedRows = when {
+        incomeMode          -> emptyList()
+        currentExpensesMode -> emptyList()
+        else                -> data.rows.filter { it.category.budgetAmount > 0 }
+    }
+    val chipRows = when {
+        incomeMode          -> data.rows
+                                  .filter { it.amount > 0 || it.category.budgetAmount > 0 }
+                                  .sortedByDescending { it.amount }
+        currentExpensesMode -> data.rows.filter { it.amount > 0 }.sortedByDescending { it.amount }
+        else                -> data.rows.filter { it.category.budgetAmount == 0.0 && it.amount > 0 }
+    }
+    val visibleChips    = if (expanded) chipRows else chipRows.take(3)
+    val hasMoreChips    = chipRows.size > 3
+    val hiddenChipTotal = chipRows.drop(3).sumOf { it.amount }
+    val remaining       = data.totalBudget - data.totalAmount
 
     editingRow?.let { row ->
         BudgetInputSheet(
@@ -344,9 +355,9 @@ private fun BudgetSectionCard(
                     if (hasMoreChips) {
                         Box(Modifier.weight(1f)) {
                             MoreLessChip(
-                                expanded  = false,
-                                remaining = chipRows.size - 3,
-                                onClick   = { expanded = true }
+                                expanded    = false,
+                                hiddenTotal = hiddenChipTotal,
+                                onClick     = { expanded = true }
                             )
                         }
                     }
@@ -362,7 +373,7 @@ private fun BudgetSectionCard(
                                         val r = chipRows[i]
                                         BudgetCatChip(row = r, accentColor = accentColor, onClick = { editingRow = r })
                                     } else {
-                                        MoreLessChip(expanded = true, remaining = 0, onClick = { expanded = false })
+                                        MoreLessChip(expanded = true, hiddenTotal = 0.0, onClick = { expanded = false })
                                     }
                                 }
                             }
@@ -385,11 +396,12 @@ private fun BudgetCatFullRow(
     accentColor: Color,
     onClick:     () -> Unit
 ) {
-    val color = remember(row.category.colorHex) {
+    val color     = remember(row.category.colorHex) {
         try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
         catch (_: Exception) { accentColor }
     }
     val remaining = row.category.budgetAmount - row.amount
+    val isOver    = remaining < 0
 
     Row(
         modifier          = Modifier
@@ -399,41 +411,71 @@ private fun BudgetCatFullRow(
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier         = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(color),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
-                tint     = Color.White,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(row.category.name,
-                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface)
-            Text(formatMoney(row.amount),
-                style = MaterialTheme.typography.labelMedium,
-                color = color)
-        }
-        Column(horizontalAlignment = Alignment.End) {
+        // Left: icon circle + spending text below
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier         = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(color),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
+                    tint     = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+            Spacer(Modifier.height(3.dp))
             Text(
-                "${formatMoney(remaining)} ₴",
-                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = when {
-                    remaining < 0 -> MaterialTheme.colorScheme.error
-                    remaining > 0 -> accentColor
-                    else          -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                }
+                "${formatMoney(row.amount)} ₴",
+                style      = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color      = color
             )
-            Text("в бюджеті ${formatMoney(row.category.budgetAmount)} ₴",
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        // Category name
+        Text(
+            row.category.name,
+            modifier   = Modifier.weight(1f),
+            style      = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color      = MaterialTheme.colorScheme.onSurface
+        )
+
+        // Right: remaining (plain) or overbudget (pill badge)
+        Column(horizontalAlignment = Alignment.End) {
+            if (isOver) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = accentColor
+                ) {
+                    Text(
+                        "${formatMoney(-remaining)} ₴",
+                        modifier   = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style      = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
+                    )
+                }
+            } else {
+                Text(
+                    "${formatMoney(remaining)} ₴",
+                    style      = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = if (remaining > 0) accentColor
+                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "в бюджеті ${formatMoney(row.category.budgetAmount)} ₴",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+            )
         }
     }
 }
@@ -499,7 +541,7 @@ private fun BudgetCatChip(
 // ── Чип «Больше...» / «Свернуть» ─────────────────────────────────────────────
 
 @Composable
-private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit) {
+private fun MoreLessChip(expanded: Boolean, hiddenTotal: Double = 0.0, onClick: () -> Unit) {
     val surfaceVar = MaterialTheme.colorScheme.surfaceVariant
     val onSurfVar  = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -535,11 +577,12 @@ private fun MoreLessChip(expanded: Boolean, remaining: Int, onClick: () -> Unit)
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            if (!expanded) "+$remaining" else " ",
-            style     = MaterialTheme.typography.labelSmall,
-            color     = onSurfVar,
-            textAlign = TextAlign.Center,
-            modifier  = Modifier.fillMaxWidth()
+            if (!expanded && hiddenTotal > 0.0) "${formatMoney(hiddenTotal)} ₴" else " ",
+            style      = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color      = onSurfVar,
+            textAlign  = TextAlign.Center,
+            modifier   = Modifier.fillMaxWidth()
         )
     }
 }

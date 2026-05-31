@@ -141,6 +141,7 @@ fun MainScreen(
     val goBack: () -> Unit = {
         if (currentPage != homeTabIndex) scope.launch { pagerState.animateScrollToPage(homeTabIndex) }
     }
+    BackHandler(enabled = showEditCategories) { showEditCategories = false }
     BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
 
     ModalNavigationDrawer(

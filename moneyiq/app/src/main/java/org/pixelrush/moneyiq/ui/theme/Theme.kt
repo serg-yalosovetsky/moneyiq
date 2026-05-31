@@ -43,10 +43,10 @@ private val md_light_background         = Color(0xFFFFFFFF)
 private val md_light_onBackground       = Color(0xFF1A1B21)
 private val md_light_surface            = Color(0xFFFFFFFF)
 private val md_light_onSurface          = Color(0xFF1A1B21)
-private val md_light_surfaceVariant     = Color(0xFFE2E1EC)
+private val md_light_surfaceVariant     = Color(0xFFF0EFF6)
 private val md_light_onSurfaceVariant   = Color(0xFF45464F)
 private val md_light_outline            = Color(0xFF767680)
-private val md_light_outlineVariant     = Color(0xFFC6C5D0)
+private val md_light_outlineVariant     = Color(0xFFD8D7E3)
 
 // Dark
 private val md_dark_primary             = Color(0xFFB6C4FF)

@@ -617,6 +617,34 @@ This gives the user a second tap target for `CurrencyPickerSheet`, in addition t
 
 **Rule:** Do not add a 4th tab or nested navigation inside `CategoryPickerSheet`. Complex category browsing belongs in `EditCategoriesScreen` (full-screen). The picker is a quick selection surface only.
 
+## ADR-042: Budget Screen Row Layout — Spending Below Icon, Overbudget Pill Badge (2026-05-31)
+
+`BudgetCatFullRow` was redesigned to match the 1Money reference layout.
+
+**Previous layout:**
+- Left: icon circle | name + spent amount (left column)
+- Right: remaining (negative red when overbudget)
+
+**New layout:**
+```
+[52dp circle]   CategoryName          139 ₴   ← remaining in accentColor
+  spent ₴ (bold, category color below circle)  в бюджеті 200 ₴  ← grey small
+```
+
+- Spending amount moved below the icon circle (small Bold, category color).
+- **Within budget:** remaining shown as plain positive text in `accentColor`.
+- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill badge in white text showing the absolute overspend (`spent − budget`). Row background already uses category color at 10% alpha, making the overbudget state visually distinct without extra color logic.
+
+**`MoreLessChip` change:** `remaining: Int` parameter replaced with `hiddenTotal: Double`. The chip now shows `"${formatMoney(hiddenTotal)} ₴"` below the chevron (sum of all hidden categories' spending) instead of `"+N"` count. `BudgetSectionCard` computes `hiddenChipTotal = chipRows.drop(3).sumOf { it.amount }`.
+
+**`BudgetSectionCard` — `incomeMode: Boolean = false` parameter:** When `true`, `budgetedRows = emptyList()` (no full rows for income) and `chipRows = all income categories sorted by spending desc`. Income budget is a declaration ("I expect to receive X"), not a hard limit — full rows with remaining/overbudget semantics don't apply.
+
+**Caller:** `BudgetScreen` passes `incomeMode = true` only to the income `BudgetSectionCard`. Expense section is unchanged.
+
+**Rule:** Do not show income categories as full rows (`BudgetCatFullRow`). Even when a Зарплата category has `budgetAmount > 0`, it must appear as a chip — the budget is expected income, not a cap.
+
+**Rule:** Do not revert overbudget display to a negative number in error color. The pill badge makes the overbudget state prominent without being alarming — the row background already signals the state.
+
 ## ADR-042: Repeat Transaction Feature — Full Stack (2026-05-31)
 
 Повторение и напоминания для транзакций реализованы end-to-end. До этого ADR они были UI-only stubs (данные терялись при подтверждении).

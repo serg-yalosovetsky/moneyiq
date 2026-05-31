@@ -38,7 +38,11 @@ internal fun CurrencyPickerSheet(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties       = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)
+        properties       = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress      = true,
+            dismissOnClickOutside   = false
+        )
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize()) {

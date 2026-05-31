@@ -18,13 +18,47 @@ BudgetInputSheet(
 
 - Floating category icon circle (top-right) is clickable when `onIconClick != null`.
 - `pickedCurrency` initialised from `catRow.category.currencyCode`; synced via `LaunchedEffect(catRow.category.id)`.
-- ₴ key → `showCurrencyPicker = true` → `ModalBottomSheet` listing `CURRENCIES_MAIN`.
+- ₴ key → `showCurrencyPicker = true` → `Dialog(usePlatformDefaultWidth=false)` with `CurrencyPageContent` (130+ currencies, 3 tabs).
 - Currency symbol resolved via `CURRENCIES_ALL`. **Do not hardcode "₴".**
 - `BudgetViewModel.updateCategoryBudget(category, newBudget, currency)` persists both fields.
 
 **Rule:** Only `BudgetInputSheet` owns the currency picker for category budgets. The initial currency comes from the category entity — user may override per-session.
 
 **Rule:** Do not use a nested `ModalBottomSheet` for a picker on top of another sheet. Use `Dialog(properties = DialogProperties(usePlatformDefaultWidth = false))`.
+
+## BudgetSectionCard — Row vs Chip Rules
+
+`BudgetSectionCard` has an `incomeMode: Boolean = false` parameter that controls how category rows are rendered.
+
+| Mode | `budgetedRows` | `chipRows` |
+|---|---|---|
+| `incomeMode = false`, `currentExpensesMode = false` | categories with `budgetAmount > 0` → full rows | categories with `budgetAmount == 0` and `amount > 0` → chips |
+| `incomeMode = false`, `currentExpensesMode = true` | empty | all categories with `amount > 0`, sorted by amount desc |
+| `incomeMode = true` | **always empty** | all income categories with `amount > 0` OR `budgetAmount > 0`, sorted by amount desc |
+
+The income section always passes `incomeMode = true` — income categories never appear as full rows.
+
+### `BudgetCatFullRow` — Layout
+
+```
+[52dp circle]   CategoryName          139 ₴   ← remaining (accentColor)
+  spent ₴ (bold, cat color)          в бюджеті 200 ₴  ← grey labelSmall
+```
+
+- **Spending** is a small Bold text displayed **below** the icon circle (category color).
+- **Within budget:** remaining = `budget − spent`, shown as plain text in `accentColor`.
+- **Overbudget:** `Surface(RoundedCornerShape(50), color=accentColor)` pill with white Bold text showing `|remaining|` (absolute overspend). Row background (`color.copy(alpha=0.10f)`) already provides visual context — no extra color logic needed.
+
+### `MoreLessChip` — Hidden Total
+
+`MoreLessChip(expanded: Boolean, hiddenTotal: Double, onClick: () -> Unit)`:
+- Shows `"${formatMoney(hiddenTotal)} ₴"` below the chevron when collapsed and `hiddenTotal > 0`.
+- `hiddenTotal = chipRows.drop(3).sumOf { it.amount }` — computed in `BudgetSectionCard`.
+- Shows `" "` (spacer) when expanded.
+
+**Rule:** Do not show income categories as full rows. Even when `budgetAmount > 0`, income categories must be chips — the budget is a declared expectation, not a spending cap.
+
+**Rule:** Do not revert overbudget display to a negative number in error color. The pill badge is the canonical overbudget indicator for budget rows.
 
 ## SavingsSectionCard — Formula
 
