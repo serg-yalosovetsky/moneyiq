@@ -92,11 +92,10 @@ Happens inside `CategoriesGridContent`, NOT in the ViewModel.
 
 Opens on single-tap of a category chip. No drag handle (`dragHandle = {}`).
 
-**Header structure** (`BoxWithConstraints`, total height = 40 + 80 = 120dp):
+**Header structure** (`Box`, total height = 40 + 80 = 120dp):
 
 ```
-BoxWithConstraints(fillMaxWidth) {
-    val halfW  = maxWidth / 2
+Box(fillMaxWidth) {
     val iconD  = 80.dp    // category circle
     val badgeD = 48.dp    // account badge
     val stripH = 40.dp    // icon protrusion above panels
@@ -112,8 +111,8 @@ BoxWithConstraints(fillMaxWidth) {
         }
     }
 
-    // Account badge — top-right of left panel; protrudes 40dp above panels
-    Box(size=48dp, align=TopStart, offset(x = halfW - 48.dp - 8.dp),
+    // Account badge — centered on the split boundary; protrudes 40dp above panels
+    Box(size=48dp, align=TopCenter, offset(x = -(badgeD/2 + 8.dp)),
         clip=RoundedCornerShape(12.dp), bg=surfaceVariant) { Icon(CreditCard, 24dp) }
 
     // Category circle — top-right of whole header; protrudes 40dp above panels
@@ -195,15 +194,16 @@ Padding: `start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp + navigationBo
 
 ## CategoryActionSheet — Spending Progress Bar
 
-Progress bar in the coloured header uses a custom `BoxWithConstraints` (not `LinearProgressIndicator`):
+Progress bar in the coloured header uses a custom `Box` (not `LinearProgressIndicator`):
 
 - Track: `onCatColor.copy(alpha = 0.28f)` background, 16dp height, `RoundedCornerShape(8.dp)`.
-- Fill: `onCatColor` fill at `fillMaxWidth(progress)`.
-- Label `"$percent%"` overlaid via `Modifier.offset(x = ...)`:
-  - `fillWidth = maxWidth * clamped`; if `fillWidth >= 44.dp` (`showInside = true`) → label sits just before the right edge of fill, color = `catColor` (contrasts with `onCatColor` fill).
-  - If `fillWidth < 44.dp` → label sits just after the fill in the track area, color = `onCatColor`.
+- Fill: `onCatColor` fill at `fillMaxWidth(clamped)`.
+- Label `"$percent%"` is placed inside a child `Box(fillMaxWidth(clamped))`:
+  - `showInside = clamped >= 0.4f` → `contentAlignment = Alignment.CenterEnd`, color = `catColor`.
+  - `showInside = false` → `contentAlignment = Alignment.CenterStart`, color = `onCatColor`.
+  - Minimum fill width for label box: `clamped.coerceAtLeast(0.15f)` to keep label visible at 0%.
 
-**Rule:** Do not replace with `LinearProgressIndicator` — it puts the label to the right of the bar. The `BoxWithConstraints` implementation keeps the label at the fill/track boundary.
+**Rule:** Do not replace with `LinearProgressIndicator` — it puts the label to the right of the bar. Do not switch to `BoxWithConstraints` + pixel-based `fillWidth` — the percentage threshold `clamped >= 0.4f` is simpler and sufficient.
 
 ## CategoryActionSheet Data
 

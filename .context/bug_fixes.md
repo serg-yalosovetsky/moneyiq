@@ -19,6 +19,30 @@
 
 ## Known Bugs Fixed
 
+### CategorySheets — `halfW` Unresolved Reference In `Box` Scope (2026-06-01)
+
+**Symptom:** CI build failed: `Unresolved reference 'halfW'` in `CategorySheets.kt:405`.
+
+**Root cause:** During the QuickExpenseSheet header redesign, the outer container was committed as `Box` (not `BoxWithConstraints`), but the account badge offset still referenced `halfW` which was only defined when the container was `BoxWithConstraints { val halfW = maxWidth / 2 }`. Local file had already been fixed but the intermediate broken version was what landed in the commit.
+
+**Fix:** Changed account badge positioning from `align(TopStart) + offset(x = halfW - badgeD - 8.dp)` to `align(TopCenter) + offset(x = -(badgeD/2 + 8.dp))`. No `BoxWithConstraints` needed — `TopCenter` naturally aligns to the horizontal midpoint.
+
+**Regression rule:** Do not reference `maxWidth`, `maxHeight`, or derived variables (`halfW`, etc.) inside a plain `Box` lambda — these are only available inside `BoxWithConstraints`. If pixel-level positioning is needed, use `BoxWithConstraints`; otherwise use `Alignment` + arithmetic on known `Dp` values.
+
+---
+
+### CI Release — `validateSigningRelease` Fails When `KEYSTORE_BASE64` Secret Not Set (2026-06-01)
+
+**Symptom:** Release CI job failed with `Keystore file '.../app/release.keystore' not found for signing config 'release'`.
+
+**Root cause:** The "Build release APK" step always set `SIGNING_STORE_FILE` to an absolute path, even when the "Decode keystore" step silently skipped writing the file (because `KEYSTORE_BASE64` secret was absent). `build.gradle.kts` read `SIGNING_STORE_FILE` as non-null and configured `storeFile = file(path)` pointing to a non-existent file → `validateSigningRelease` failed.
+
+**Fix:** Moved all four `SIGNING_*` env vars into the "Decode keystore" step behind the `[ -n "$KEYSTORE_B64" ]` guard — written to `$GITHUB_ENV` only when the keystore is successfully decoded. The "Build release APK" step no longer hardcodes these vars; when absent, Gradle sees `storeFilePath == null` and produces an unsigned APK without error.
+
+**Regression rule:** Never set `SIGNING_STORE_FILE` unconditionally in CI. The env var must only be present when the keystore file actually exists on disk. `build.gradle.kts` already handles the null case — trust it.
+
+---
+
 ### TypePickerSheet — "Інше" Account Type Clipped At Bottom (2026-05-31)
 
 **Symptom:** Account type picker showed all 6 types (Готівка, Карта, Заощадження, Інвестиції, Борговий, Інше) but "Інше" was half-visible — the sheet stopped at the partial-expand stop point.
