@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
+import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -197,7 +198,7 @@ internal fun CategoryDetailSheet(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector        = iconVectorFor(cat.icon),
+                imageVector        = categoryIconFor(cat.icon),
                 contentDescription = null,
                 modifier           = Modifier.size(30.dp),
                 tint               = Color.White
