@@ -256,14 +256,17 @@ fun TransactionsListScreen(
 
     // ── QuickExpenseSheet ─────────────────────────────────────────────────
     quickCategory?.let { cat ->
+        val allCats = (state.expenseCategories + state.incomeCategories).filter { !it.archived }
         QuickExpenseSheet(
-            category  = cat,
-            accounts  = state.accounts,
-            onSave    = { accountId, amount, note, date, repeatMode, reminderMode ->
-                viewModel.recordTransaction(accountId, cat, amount, note, date, repeatMode, reminderMode)
+            category   = cat,
+            categories = allCats,
+            accounts   = state.accounts,
+            onSave     = { accountId, amount, note, date, repeatMode, reminderMode, categoryId ->
+                val saveCategory = allCats.firstOrNull { it.id == categoryId } ?: cat
+                viewModel.recordTransaction(accountId, saveCategory, amount, note, date, repeatMode, reminderMode)
                 quickCategory = null
             },
-            onDismiss = { quickCategory = null }
+            onDismiss  = { quickCategory = null }
         )
     }
 

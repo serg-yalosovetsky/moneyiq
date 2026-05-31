@@ -37,9 +37,7 @@ class MoneyIQApp : Application() {
             options.isEnableUserInteractionTracing = true
             options.isDebug = BuildConfig.DEBUG  // подробные логи только в debug
         }
-        io.sentry.Sentry.captureMessage(
-            "App started (${if (BuildConfig.DEBUG) "debug" else "production"} v${BuildConfig.VERSION_NAME})"
-        )
+
         appScope.launch { seedInitialData() }
         RepeatTransactionWorker.scheduleOnce(this)
     }
@@ -49,6 +47,7 @@ class MoneyIQApp : Application() {
         categoryRepository.seedDefaults()
         // Починяем ключи иконок для существующих категорий
         categoryRepository.repairIconKeys()
+        categoryRepository.repairDefaultColors()
 
         // Счёт по умолчанию — только при первом запуске
         if (accountDao.count() == 0) {

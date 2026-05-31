@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -245,20 +246,23 @@ private fun CatActionButton(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickExpenseSheet(
-    category:  CategoryEntity,
-    accounts:  List<AccountEntity>,
-    onSave:    (accountId: Long, amount: Double, note: String, date: Long, repeatMode: String, reminderMode: String) -> Unit,
-    onDismiss: () -> Unit
+    category:   CategoryEntity,
+    categories: List<CategoryEntity> = emptyList(),
+    accounts:   List<AccountEntity>,
+    onSave:     (accountId: Long, amount: Double, note: String, date: Long, repeatMode: String, reminderMode: String, categoryId: Long) -> Unit,
+    onDismiss:  () -> Unit
 ) {
-    val catColor = remember(category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(category.colorHex)) }
+    var selectedCategory by remember(category) { mutableStateOf(category) }
+
+    val catColor = remember(selectedCategory.colorHex) {
+        try { Color(android.graphics.Color.parseColor(selectedCategory.colorHex)) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val isCatLight    = catColor.luminance() > 0.5f
     val onCatColor    = if (isCatLight) Color(0xFF1C1B1F) else Color.White
     val displayColor  = if (isCatLight) Color(0xFF37474F) else catColor
     val accountColor  = Color(0xFF3949AB)  // indigo — колір панелі рахунку
-    val isIncome     = category.type == TransactionType.INCOME
+    val isIncome     = selectedCategory.type == TransactionType.INCOME
 
     // ── Стан калькулятора ──────────────────────────────────────────────────
     val calc = rememberCalcState()
@@ -279,6 +283,7 @@ fun QuickExpenseSheet(
     var showFullDate       by remember { mutableStateOf(false) }
     var showAccSheet       by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showCatPicker      by remember { mutableStateOf(false) }
     var repeatMode     by remember { mutableStateOf("NEVER") }
     var reminderMode   by remember { mutableStateOf("NEVER") }
     var amountError    by remember { mutableStateOf(false) }
@@ -298,7 +303,7 @@ fun QuickExpenseSheet(
         val amt   = calc.result()
         val accId = selectedAccount?.id ?: return
         if (amt > 0.0) {
-            onSave(accId, amt, note.trim(), selectedDate, repeatMode, reminderMode)
+            onSave(accId, amt, note.trim(), selectedDate, repeatMode, reminderMode, selectedCategory.id)
         } else {
             amountError = true
         }
@@ -325,7 +330,9 @@ fun QuickExpenseSheet(
                 // Панель категорії (catColor bg)
                 @Composable
                 fun CatPanel(labelText: String, textAlign: Alignment.Horizontal, modifier: Modifier) {
-                    Box(modifier = modifier.fillMaxHeight().background(catColor)) {
+                    Box(modifier = modifier.fillMaxHeight().background(catColor)
+                        .clickable(enabled = categories.isNotEmpty()) { showCatPicker = true }
+                    ) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -335,7 +342,7 @@ fun QuickExpenseSheet(
                                 .background(onCatColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(categoryIconFor(category.icon), null, tint = onCatColor, modifier = Modifier.size(18.dp))
+                            Icon(categoryIconFor(selectedCategory.icon), null, tint = onCatColor, modifier = Modifier.size(18.dp))
                         }
                         Column(
                             modifier = Modifier
@@ -344,7 +351,7 @@ fun QuickExpenseSheet(
                             horizontalAlignment = textAlign
                         ) {
                             Text(labelText, style = MaterialTheme.typography.labelSmall, color = onCatColor.copy(alpha = 0.7f))
-                            Text(category.name, style = MaterialTheme.typography.titleMedium,
+                            Text(selectedCategory.name, style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold, color = onCatColor,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -465,6 +472,84 @@ fun QuickExpenseSheet(
             onSelect  = { selectedCurrency = it; showCurrencyPicker = false },
             onDismiss = { showCurrencyPicker = false }
         )
+    }
+
+    // ── Вибір категорії ───────────────────────────────────────────────────────
+    if (showCatPicker && categories.isNotEmpty()) {
+        val expCats = remember(categories) {
+            categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.EXPENSE }
+        }
+        val incCats = remember(categories) {
+            categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.INCOME }
+        }
+        ModalBottomSheet(
+            onDismissRequest = { showCatPicker = false },
+            sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Text(
+                "Категорія",
+                style    = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                if (expCats.isNotEmpty()) {
+                    item {
+                        Text("Витрати", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    }
+                    items(expCats) { cat ->
+                        val color = remember(cat.colorHex) {
+                            try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                            catch (_: Exception) { Color(0xFF757575) }
+                        }
+                        ListItem(
+                            modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
+                            leadingContent  = {
+                                Box(
+                                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
+                                    contentAlignment = Alignment.Center
+                                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+                            },
+                            headlineContent = { Text(cat.name) },
+                            trailingContent = {
+                                if (cat.id == selectedCategory.id)
+                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        )
+                    }
+                }
+                if (incCats.isNotEmpty()) {
+                    item {
+                        Text("Доходи", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    }
+                    items(incCats) { cat ->
+                        val color = remember(cat.colorHex) {
+                            try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                            catch (_: Exception) { Color(0xFF757575) }
+                        }
+                        ListItem(
+                            modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
+                            leadingContent  = {
+                                Box(
+                                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
+                                    contentAlignment = Alignment.Center
+                                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+                            },
+                            headlineContent = { Text(cat.name) },
+                            trailingContent = {
+                                if (cat.id == selectedCategory.id)
+                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(32.dp)) }
+            }
+        }
     }
 
     // ── Вибір дати (аркуш) ────────────────────────────────────────────────────
