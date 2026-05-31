@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -133,7 +134,10 @@ fun TypePickerSheet(
     onSelect:  (AccountType) -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
         Column(Modifier.padding(bottom = 32.dp)) {
             Text(
                 "Тип рахунку",
@@ -376,6 +380,8 @@ fun AccountActionSheet(
         try { Color(android.graphics.Color.parseColor(account.colorHex)) }
         catch (_: Exception) { Color(0xFF4361EE) }
     }
+    val isLightCard = accentColor.luminance() > 0.5f
+    val onCard      = if (isLightCard) Color(0xFF1C1B1F) else Color.White
     val sym = currencySymbol(account.currency)
 
     ModalBottomSheet(
@@ -404,12 +410,12 @@ fun AccountActionSheet(
                         modifier         = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .background(onCard.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             accountIconFromKey(account.icon), null,
-                            tint     = Color.White,
+                            tint     = onCard,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -418,7 +424,7 @@ fun AccountActionSheet(
                         account.name,
                         style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color      = Color.White
+                        color      = onCard
                     )
                 }
 
@@ -428,14 +434,14 @@ fun AccountActionSheet(
                         .align(Alignment.TopEnd)
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f))
+                        .background(onCard.copy(alpha = 0.15f))
                         .clickable { onSetDefault(); onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Star,
                         contentDescription = "Основний рахунок",
-                        tint     = if (account.isDefault) Color(0xFFFFD700) else Color.White,
+                        tint     = if (account.isDefault) Color(0xFFFFD700) else onCard,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -450,13 +456,13 @@ fun AccountActionSheet(
                     Text(
                         "Баланс рахунку",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = onCard.copy(alpha = 0.8f)
                     )
                     Text(
                         "${org.pixelrush.moneyiq.ui.main.formatMoney(account.balance)} $sym",
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = Color.White
+                        color      = onCard
                     )
                 }
             }
