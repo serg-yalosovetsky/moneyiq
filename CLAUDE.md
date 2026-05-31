@@ -77,6 +77,19 @@ For files larger than 200 lines or structurally complex files:
 
 If two consecutive edits produce unexpected results: STOP. Do not continue patching. Ask the user before proceeding.
 
+### File Lock / Busy File Protocol
+
+If an edit fails with "file modified since read", "file is locked", or a similar conflict error — do NOT retry immediately. Use exponential backoff:
+
+1. Wait ~3 seconds, retry once.
+2. If still locked, wait ~5 seconds, retry once.
+3. If still locked, wait ~10 seconds, retry once.
+4. If still locked after 3 attempts, report to the user and stop.
+
+Re-read the file before each retry attempt — another process (linter, Gradle daemon, IDE) may have changed the content.
+
+This mirrors CSMA/CD: detect the collision, back off, then retransmit.
+
 ## Bug Log
 
 Before fixing any compile/runtime error:

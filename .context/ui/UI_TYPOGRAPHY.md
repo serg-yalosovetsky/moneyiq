@@ -1,8 +1,16 @@
 # UI Contracts — Typography & Component Sizing
 
-## Material 3 Tokens (system default font)
+## Font Family
 
-| Token | Default size | Default weight |
+The app uses **Inter** via Google Fonts Compose (`ui-text-google-fonts`). Defined in `ui/theme/Typography.kt` as `InterFontFamily` and `InterTypography`. Passed to `MaterialTheme(typography = InterTypography)` in `Theme.kt`.
+
+Weights registered: Light, Normal, Medium, SemiBold, Bold, Black.
+
+Do NOT add a local font mapper or hardcode `FontFamily.Default` anywhere — all type styles inherit from `InterTypography`.
+
+## Material 3 Tokens (Inter)
+
+| Token | Size | Weight |
 |---|---|---|
 | `labelSmall` | 11sp | Medium 500 |
 | `labelMedium` | 12sp | Medium 500 |
@@ -20,12 +28,13 @@
 
 ## SharedMonthNavPill
 
-Navigation arrows: `Icons.Default.KeyboardDoubleArrowLeft` / `KeyboardDoubleArrowRight` (32dp icon, 4dp padding).
+Navigation arrows: `Icons.AutoMirrored.Filled.KeyboardArrowLeft/Right` (30dp), tint = `pillColor`. Row horizontal padding = 10dp.
 
-| Element | Style | Size | Weight |
-|---|---|---|---|
-| Day-count badge (red circle) | `labelMedium` + Bold | 12sp | Bold 700, White |
-| Period label ("13 – 29 ТРАВНЯ") | `titleSmall` + Bold | 14sp | Bold 700, PILL_ACCENT |
+| Element | Style | Size | Weight | Color |
+|---|---|---|---|---|
+| Day-count badge | `labelSmall` + Bold | 11sp | Bold 700 | `pillColor` (border + text) |
+| Period label | `bodyMedium` + SemiBold | 14sp | SemiBold 600 | `pillColor` |
+| Dropdown arrow | `KeyboardArrowDown` | 26dp | — | `pillColor.copy(alpha=0.7f)` |
 
 **Month flip animation:** `AnimatedContent(targetState = pillLabel to pillBadge)` — forward: slides left; backward: slides right. 220ms enter / 180ms fade-in; 180ms exit / 120ms fade-out. Direction tracked via `Ref<Boolean>` (not `MutableState`).
 

@@ -89,6 +89,25 @@ Org: `serg-yalosovetsky`, project: `one_money`.
 
 **Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `MoneyIQApp.onCreate()`.
 
+## Claude Code Integration
+
+Project-level Claude Code settings live in `.claude/settings.json` (tracked in git).
+
+**PostToolUse hook — auto Kotlin compile:** After every `Edit` or `Write` of a `.kt` file, the hook automatically runs `.\gradlew :app:compileDebugKotlin`. This catches compile errors immediately after each file change without requiring a manual build.
+
+The hook reads the tool input JSON from stdin to get `file_path`, checks for `.kt` extension, then compiles:
+
+```powershell
+$json = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$f = $json.tool_input.file_path
+if ($f -like '*.kt') {
+    Set-Location 'G:\code\one-money-clone\moneyiq'
+    .\gradlew :app:compileDebugKotlin 2>&1 | Select-Object -Last 6
+}
+```
+
+**Note:** This hook is project-local — it only activates in the `G:\code\one-money-clone` project context. It assumes `JAVA_HOME` is set (Android Studio sets it automatically).
+
 ## CI/CD (GitHub Actions)
 
 One workflow: `.github/workflows/build.yml`

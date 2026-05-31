@@ -1,24 +1,43 @@
-package org.pixelrush.moneyiq.ui.transactions
+﻿package org.pixelrush.moneyiq.ui.transactions
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
 import androidx.activity.compose.BackHandler
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
@@ -98,7 +117,7 @@ fun AddTransactionScreen(
 
     val fromCatColor = remember(fromCategory?.colorHex) {
         fromCategory?.colorHex?.let {
-            try { Color(android.graphics.Color.parseColor(it)) } catch (_: Exception) { null }
+            try { Color(it.toColorInt()) } catch (_: Exception) { null }
         }
     }
 

@@ -1,26 +1,48 @@
-package org.pixelrush.moneyiq.ui.reports
+﻿package org.pixelrush.moneyiq.ui.reports
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Offset
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.dao.CategorySpending
@@ -111,7 +133,7 @@ fun ReportsScreen(
                                 DonutChart(
                                     segments = catItems.map { cat ->
                                         val c = try {
-                                            Color(android.graphics.Color.parseColor(cat.categoryColor))
+                                            Color(cat.categoryColor.toColorInt())
                                         } catch (_: Exception) { Color.Gray }
                                         c to if (catTotal > 0) (cat.total / catTotal).toFloat() else 0f
                                     },
@@ -123,7 +145,7 @@ fun ReportsScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     catItems.take(6).forEach { cat ->
                                         val c = try {
-                                            Color(android.graphics.Color.parseColor(cat.categoryColor))
+                                            Color(cat.categoryColor.toColorInt())
                                         } catch (_: Exception) { Color.Gray }
                                         val pct = if (catTotal > 0) cat.total / catTotal * 100 else 0.0
                                         Row(
@@ -306,7 +328,7 @@ private fun SummaryCard(label: String, amount: Double, color: Color, modifier: M
 @Composable
 private fun CategorySpendingRow(cat: CategorySpending, total: Double) {
     val color = try {
-        Color(android.graphics.Color.parseColor(cat.categoryColor))
+        Color(cat.categoryColor.toColorInt())
     } catch (_: Exception) { Color.Gray }
     val percent = if (total > 0) (cat.total / total * 100).toFloat() else 0f
 

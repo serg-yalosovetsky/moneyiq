@@ -1,33 +1,62 @@
 ﻿package org.pixelrush.moneyiq.ui.categories
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.combinedClickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.drawBehind
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Offset
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.PathEffect
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.Dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import java.util.Locale
@@ -71,12 +100,12 @@ internal fun CategoryChip(
     }
 
     val color = remember(category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(category.colorHex)) }
+        try { Color(category.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val groupBg = remember(groupColorHex) {
         groupColorHex?.let {
-            try { Color(android.graphics.Color.parseColor(it)).copy(alpha = 0.13f) }
+            try { Color(it.toColorInt()).copy(alpha = 0.13f) }
             catch (_: Exception) { null }
         }
     }
@@ -264,7 +293,7 @@ internal fun SideSubcategoryPanel(
     modifier:         Modifier = Modifier
 ) {
     val parentColor = remember(parent.colorHex) {
-        try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
+        try { Color(parent.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val sortedKids = children
@@ -280,7 +309,7 @@ internal fun SideSubcategoryPanel(
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             sortedKids.forEach { child ->
                 val childColor = remember(child.colorHex) {
-                    try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                    try { Color(child.colorHex.toColorInt()) }
                     catch (_: Exception) { Color(0xFFFF5722) }
                 }
                 val childIconKey = if (child.icon == "category")
@@ -386,7 +415,7 @@ internal fun ExpandedCategoryStrip(
     inline:           Boolean = false
 ) {
     val parentColor = remember(parent.colorHex) {
-        try { Color(android.graphics.Color.parseColor(parent.colorHex)) }
+        try { Color(parent.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val sortedKids = children
@@ -448,7 +477,7 @@ internal fun ExpandedCategoryStrip(
         ) {
             sortedKids.take(4).forEach { child ->
                 val childColor = remember(child.colorHex) {
-                    try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                    try { Color(child.colorHex.toColorInt()) }
                     catch (_: Exception) { Color(0xFFFF5722) }
                 }
                 val childIconKey = if (child.icon == "category")
@@ -592,7 +621,7 @@ internal fun DonutChart(
     val tabTotal = activeSpending.sumOf { it.second }
 
     val categoryColors = activeSpending.map { (cat, _) ->
-        try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+        try { Color(cat.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
 

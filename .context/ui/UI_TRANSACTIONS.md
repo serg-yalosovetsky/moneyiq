@@ -2,11 +2,13 @@
 
 ## AddTransactionScreen — Currency Selection
 
-Two entry points open `CurrencyPickerSheet`:
+Two entry points open `CurrencyBottomSheet`:
 1. **Currency key** — bottom-left key (row 4) of `SharedCalcKeypad`
 2. **Currency symbol in the amount display** — clickable `Text(" $currencySymbol")` next to "0"
 
-Both set `showCurrencyPicker = true` → `CurrencyPickerSheet(title = "Валюта транзакції")`.
+Both set `showCurrencyPicker = true` → `CurrencyBottomSheet(title = "Валюта транзакції")`.
+
+**Why `CurrencyBottomSheet` (not `CurrencyPickerSheet`):** `CurrencyPickerSheet` is a Dialog (`usePlatformDefaultWidth = false`). When opened from a navigation screen, Android dispatches `ACTION_UP` to the new Dialog window before its `Surface(fillMaxSize)` renders, hitting the transparent margin → `dismissOnClickOutside` fires immediately. `CurrencyBottomSheet` is a `ModalBottomSheet` and does not have this problem. See ADR-051.
 
 **Amount display layout** (split `Row`):
 ```kotlin

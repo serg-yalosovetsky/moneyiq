@@ -1,33 +1,62 @@
 ﻿package org.pixelrush.moneyiq.ui.overview
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Offset
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.PathEffect
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
@@ -55,7 +84,7 @@ fun OverviewScreen(
 
     // ── Category detail bottom sheet ──────────────────────────────────────────
     selectedCat?.let { cat ->
-        val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+        val catColor = try { Color(cat.colorHex.toColorInt()) }
                        catch (_: Exception) { MaterialTheme.colorScheme.primary }
 
         ModalBottomSheet(
@@ -430,7 +459,7 @@ private fun SpendingChart(
                                 var currentBottom = h
                                 bar.segments.forEach { seg ->
                                     val segColor = try {
-                                        Color(android.graphics.Color.parseColor(seg.colorHex))
+                                        Color(seg.colorHex.toColorInt())
                                     } catch (_: Exception) { accentColor }
                                     val segH   = (h - barTop) * (seg.amount / bar.amount).toFloat()
                                     val segTop = currentBottom - segH
@@ -562,7 +591,7 @@ private fun CategoryRow(
     accentColor: Color,
     onClick:     () -> Unit
 ) {
-    val catColor = try { Color(android.graphics.Color.parseColor(row.colorHex)) }
+    val catColor = try { Color(row.colorHex.toColorInt()) }
                    catch (_: Exception) { accentColor }
 
     Column(

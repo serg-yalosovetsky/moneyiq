@@ -21,6 +21,8 @@ UI contracts are split across focused files. Start here for shell/navigation; fo
 
 Bottom tabs: `Рахунки`, `Категорії`, `Операції`, `Бюджет`, `Огляд`. Budget tab may be hidden (`budgetVisible` in `SettingsRepository`).
 
+**Drawer:** `ModalNavigationDrawer` with `gesturesEnabled = drawerState.isOpen` — gestures disabled when closed (prevents accidental open), enabled when open (allows swipe-to-close and scrim tap to dismiss). Open via avatar tap or left-edge swipe (`edgeSwipe`). Close via scrim tap, back button (`BackHandler`), or `AppDrawerContent.onClose`.
+
 `SettingsScreen` and `EditCategoriesScreen` are **not** nav destinations — they overlay as full-screen Compose `Box` layers inside `MainScreen`. The `NavGraph` has only two routes: `Main` and `AddTx`.
 
 ## Shared Top Bar
@@ -44,7 +46,7 @@ Bottom tabs: `Рахунки`, `Категорії`, `Операції`, `Бюд
 
 `SharedMonthNavPill` (`SharedMonthPill.kt`) — Row with left/right arrows + center pill.
 
-**Arrows:** `Icons.Default.KeyboardArrowLeft/Right` (28dp), tint = `pillColor`.
+**Arrows:** `Icons.AutoMirrored.Filled.KeyboardArrowLeft/Right` (30dp), tint = `pillColor`. Row horizontal padding = 10dp.
 
 **Pill colors:**
 ```kotlin
@@ -53,9 +55,14 @@ PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
 pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
 ```
 
-**Pill content:** badge (`labelMedium + Bold`, white on `pillColor` circle) + label (`bodyLarge + SemiBold`, `pillColor`) + `ExpandMore` icon (18dp).
+**Pill surface:** `RoundedCornerShape(50dp)`, `color = pillColor.copy(alpha = 0.12f)`. Padding: `start=6dp, end=14dp, top=6dp, bottom=6dp`.
 
-**Month text source:** always `MONTH_NAMES_UA_FULL` (Title Case: "Травень 2026"). Never use `MONTH_NAMES_UA` (UPPERCASE) or `.uppercase()` in `pillLabelFor()`.
+**Pill content:**
+- Badge: `Surface(RoundedCornerShape(6dp), border=1.5dp pillColor)`, text `labelSmall + Bold`, `color = pillColor`, padding `horizontal=6dp, vertical=2dp`
+- Label: `bodyMedium + SemiBold`, `color = pillColor`
+- Dropdown arrow: `Icons.Default.KeyboardArrowDown` (26dp), `pillColor.copy(alpha=0.7f)`
+
+**Month text:** `MONTH_NAMES_UA_FULL[month].uppercase()` for `PeriodMode.MONTH` → "ЧЕРВЕНЬ 2026". Other modes use Title Case from `MONTH_NAMES_UA_FULL` unchanged.
 
 **Click:** opens `PeriodSelectorSheet` (7 period modes: Month, Today, Week, Year, All, Day, Range).
 
@@ -83,11 +90,13 @@ Main paging is controlled programmatically via `HorizontalPager`. Horizontal swi
 Handlers are registered in this order (last registered = highest priority):
 
 ```kotlin
-BackHandler(enabled = showEditCategories) { showEditCategories = false }  // highest priority
+BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } } // highest priority
+BackHandler(enabled = showEditCategories) { showEditCategories = false }
 BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
 ```
 
-- **`showEditCategories = true`** → back closes the Edit Categories overlay (does not exit the app, does not navigate tabs).
+- **`drawerState.isOpen`** → back closes the app drawer (highest priority — nothing else should intercept back when drawer is open).
+- **`showEditCategories = true`** → back closes the Edit Categories overlay.
 - **On any non-home tab** → back navigates to the home tab.
 - **Already on home tab, no overlays** → system handles (app exits or goes to launcher).
 
@@ -126,7 +135,7 @@ private val PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calend
 
 `isCurrentMonth = appMonth.mode == PeriodMode.MONTH && appMonth.month == today.month && appMonth.year == today.year`
 
-When `isCurrentMonth` is true, `pillColor = PILL_CURRENT`; otherwise `pillColor = PILL_ACCENT`. The pill background (`pillColor.copy(alpha=0.12f)`), badge circle fill, badge text, label text, and dropdown arrow all use `pillColor` — no element uses a hardcoded accent.
+When `isCurrentMonth` is true, `pillColor = PILL_CURRENT`; otherwise `pillColor = PILL_ACCENT`. The pill background (`pillColor.copy(alpha=0.12f)`), badge border+text, label text, and dropdown arrow all use `pillColor` — no element uses a hardcoded accent. The badge is a border-only rounded rect (not a filled circle).
 
 **Rule:** Only `PeriodMode.MONTH` pointing at the current calendar month gets the blue color. All other modes (TODAY, WEEK, YEAR, ALL, DAY, RANGE) and past/future months keep the crimson `PILL_ACCENT`.
 

@@ -11,7 +11,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Modules
 
-- `data/db` - Room v28, entities (accounts `+creditLimit`, categories, transactions `+repeatMode+reminderMode+nextRepeatDate`), DAOs (`CategoryDao.updateCategories` for batch reorder; `TransactionDao.getDueRepeatTransactions`, `clearNextRepeatDate`, `getTransactionsWithReminder`), migrations 1→28, type converters.
+- `data/db` - Room v29, entities (accounts `+creditLimit`, categories, transactions `+repeatMode+reminderMode+nextRepeatDate`), DAOs (`CategoryDao.updateCategories` for batch reorder; `TransactionDao.getDueRepeatTransactions`, `clearNextRepeatDate`, `getTransactionsWithReminder`), migrations 1→29, type converters.
 - `data/repository` - AccountRepository, CategoryRepository (`updateAll`, `repairIconKeys`), TransactionRepository, SelectedMonthRepository (shared period state), SettingsRepository (DataStore).
 - `di` - Hilt wiring for DAOs, database, and workers.
 - `ui/main` - `MainScreen` (app shell, HorizontalPager, bottom nav, drawer, shared top bar), `SharedMonthNavPill`, `MainViewModel`.
@@ -35,7 +35,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 
 ## Main Flows
 
-- App startup seeds default categories if the category table is empty. `repairIconKeys()` and `repairDefaultColors()` run on every startup to fix icon/color drift from imports or old seed data.
+- App startup seeds default categories if the category table is empty. `repairIconKeys()` and `repairDefaultColors()` run on every startup to fix icon/color drift from imports or old seed data. `repairIconKeys()` applies name-based overrides first, then runs `suggestCategoryStyle()` for any category whose stored icon is a generic placeholder (`"category"` or `"family"`) that doesn't match the category name, and finally re-derives icons for any key that isn't in the valid key set.
 - Users manage accounts and categories, then record transactions against them.
 - Transaction add/update/delete mutates account balances in `TransactionRepository`.
 - Period-aware screens read monthly or selected-period aggregates from DAOs/repositories.
@@ -58,16 +58,27 @@ Commands:
 
 ## CI/CD
 
-One GitHub Actions workflow: `.github/workflows/build.yml`
+Two GitHub Actions workflows:
+
+**`.github/workflows/ci.yml`**
 
 | Trigger | Jobs |
 |---|---|
-| push to `main` or PR | `test` (unit tests only) |
-| tag `v*.*.*` | `test` → `release` (signed APK + GitHub Release) |
+| push to `main` or PR | `test` — unit tests + coverage report (artifacts uploaded 14 days) |
+| push to `main` | `build` (needs `test`) — debug APK (artifact 30 days) |
+
+**`.github/workflows/build.yml`**
+
+| Trigger | Jobs |
+|---|---|
+| push to `main` or PR | `test` — unit tests |
+| tag `v*.*.*` | `test` → `release` — signed APK + GitHub Release |
 
 Release signing uses secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. `SENTRY_AUTH_TOKEN` is optional — when absent, `includeSourceContext` is disabled and the build still succeeds. All secrets live in GitHub Actions — never committed.
 
 `gradlew` already has the executable bit in git (`100755`). Each job also runs `chmod +x gradlew` as a safety step.
+
+Node.js runtime: GitHub Actions runners use Node.js 24 by default (Node.js 20 deprecated since 2025-09-19). No `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` override needed.
 
 ## Non-Runtime Context
 

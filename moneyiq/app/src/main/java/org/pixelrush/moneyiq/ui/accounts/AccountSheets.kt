@@ -1,31 +1,58 @@
 ﻿package org.pixelrush.moneyiq.ui.accounts
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.BasicTextField
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet
@@ -169,7 +196,7 @@ fun AccountFormSheet(
     var showCreditLimitInput by remember { mutableStateOf(false) }
 
     val accentColor = remember(colorHex) {
-        try { Color(android.graphics.Color.parseColor(colorHex)) }
+        try { Color(colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFD81B60) }
     }
     val iconTint      = if (accentColor.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White

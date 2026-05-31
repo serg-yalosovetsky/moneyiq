@@ -1,27 +1,48 @@
-@file:OptIn(ExperimentalLayoutApi::class)
+﻿@file:OptIn(ExperimentalLayoutApi::class)
 
 package org.pixelrush.moneyiq.ui.transactions
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.BorderStroke
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -157,7 +178,7 @@ internal fun TxSearchScreen(
                         ) {
                             accounts.forEach { acc ->
                                 val selected = acc.id in filterAccountIds
-                                val accColor = try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
+                                val accColor = try { Color(acc.colorHex.toColorInt()) }
                                                catch (_: Exception) { Color(0xFF3949AB) }
                                 ColoredFilterChip(
                                     label    = acc.name,
@@ -184,7 +205,7 @@ internal fun TxSearchScreen(
                         ) {
                             expenseCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                                val catColor = try { Color(cat.colorHex.toColorInt()) }
                                                catch (_: Exception) { Color(0xFF607D8B) }
                                 ColoredFilterChip(
                                     label    = cat.name,
@@ -210,7 +231,7 @@ internal fun TxSearchScreen(
                         ) {
                             incomeCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                                val catColor = try { Color(cat.colorHex.toColorInt()) }
                                                catch (_: Exception) { Color(0xFF607D8B) }
                                 ColoredFilterChip(
                                     label    = cat.name,

@@ -1,27 +1,50 @@
-package org.pixelrush.moneyiq.ui.budget
+﻿package org.pixelrush.moneyiq.ui.budget
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
@@ -44,7 +67,7 @@ internal fun BudgetInputSheet(
     onConfirm:   (Double, String) -> Unit
 ) {
     val catColor = remember(catRow.category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(catRow.category.colorHex)) }
+        try { Color(catRow.category.colorHex.toColorInt()) }
         catch (_: Exception) { accentColor }
     }
     val isLightBg    = catColor.luminance() > 0.5f
@@ -240,7 +263,7 @@ internal fun IncomeCategoryPickerSheet(
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
             items(rows) { row ->
                 val catColor = remember(row.category.colorHex) {
-                    try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
+                    try { Color(row.category.colorHex.toColorInt()) }
                     catch (_: Exception) { accentColor }
                 }
                 ListItem(

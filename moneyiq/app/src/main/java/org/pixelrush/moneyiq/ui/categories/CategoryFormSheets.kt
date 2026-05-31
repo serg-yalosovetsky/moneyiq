@@ -1,43 +1,82 @@
 ﻿package org.pixelrush.moneyiq.ui.categories
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.FocusRequester
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.focusRequester
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.SolidColor
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.input.ImeAction
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.BasicTextField
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.activity.compose.BackHandler
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -107,7 +146,7 @@ fun CategoryFormSheet(
     }
 
     val catColor by remember { derivedStateOf {
-        try { Color(android.graphics.Color.parseColor(colorHex)) }
+        try { Color(colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     } }
 
@@ -326,7 +365,7 @@ fun CategoryFormSheet(
 
                     items(children) { child ->
                         val childColor = remember(child.colorHex) {
-                            try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                            try { Color(child.colorHex.toColorInt()) }
                             catch (_: Exception) { Color.Gray }
                         }
                         ListItem(
@@ -485,7 +524,7 @@ internal fun ColorIconPickerSheet(
     var selectedColor by remember { mutableStateOf(currentColor) }
     var selectedIcon  by remember { mutableStateOf(currentIcon) }
     val color by remember { derivedStateOf {
-        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        try { Color(selectedColor.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     } }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -606,7 +645,7 @@ internal fun ColorIconPickerSheet(
                     ) {
                         items(CATEGORY_FORM_COLORS) { hex ->
                             val swatch = remember(hex) {
-                                try { Color(android.graphics.Color.parseColor(hex)) }
+                                try { Color(hex.toColorInt()) }
                                 catch (_: Exception) { Color.Gray }
                             }
                             val isSel = hex == selectedColor

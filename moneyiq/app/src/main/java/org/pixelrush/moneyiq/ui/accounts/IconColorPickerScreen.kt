@@ -1,29 +1,54 @@
-package org.pixelrush.moneyiq.ui.accounts
+﻿package org.pixelrush.moneyiq.ui.accounts
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.Close
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
@@ -264,7 +289,7 @@ fun IconColorPickerScreen(
     var tab           by remember { mutableIntStateOf(0) }
 
     val previewColor = remember(selectedColor) {
-        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        try { Color(selectedColor.toColorInt()) }
         catch (_: Exception) { Color(0xFF4361EE) }
     }
 
@@ -414,7 +439,7 @@ private fun ColorGrid(selectedHex: String, onSelect: (String) -> Unit) {
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
     ) {
         items(ACCOUNT_COLORS_PALETTE) { hex ->
-            val color      = try { Color(android.graphics.Color.parseColor(hex)) }
+            val color      = try { Color(hex.toColorInt()) }
                              catch (_: Exception) { Color.Gray }
             val isSelected = hex.equals(selectedHex, ignoreCase = true)
             Box(

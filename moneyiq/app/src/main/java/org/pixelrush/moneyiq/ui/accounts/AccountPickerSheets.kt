@@ -1,24 +1,44 @@
 ﻿package org.pixelrush.moneyiq.ui.accounts
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet
@@ -99,7 +119,7 @@ fun ColorPickerSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     row.forEach { hex ->
-                        val c = try { Color(android.graphics.Color.parseColor(hex)) }
+                        val c = try { Color(hex.toColorInt()) }
                                 catch (_: Exception) { Color.Gray }
                         Box(
                             modifier         = Modifier
@@ -209,7 +229,7 @@ fun AccountActionSheet(
     onSetDefault:    () -> Unit
 ) {
     val accentColor = remember(account.colorHex) {
-        try { Color(android.graphics.Color.parseColor(account.colorHex)) }
+        try { Color(account.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFF4361EE) }
     }
     val isLightCard = accentColor.luminance() > 0.5f

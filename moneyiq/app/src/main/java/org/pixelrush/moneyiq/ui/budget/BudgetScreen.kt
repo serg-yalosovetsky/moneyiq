@@ -1,27 +1,50 @@
-package org.pixelrush.moneyiq.ui.budget
+﻿package org.pixelrush.moneyiq.ui.budget
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.drawBehind
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontStyle
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -407,7 +430,7 @@ private fun BudgetCatFullRow(
     onClick:     () -> Unit
 ) {
     val color     = remember(row.category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
+        try { Color(row.category.colorHex.toColorInt()) }
         catch (_: Exception) { accentColor }
     }
     val remaining = row.category.budgetAmount - row.amount
@@ -519,7 +542,7 @@ private fun BudgetCatChip(
     onClick:     () -> Unit
 ) {
     val color = remember(row.category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
+        try { Color(row.category.colorHex.toColorInt()) }
         catch (_: Exception) { accentColor }
     }
 

@@ -1,27 +1,50 @@
-package org.pixelrush.moneyiq.ui.transactions
+﻿package org.pixelrush.moneyiq.ui.transactions
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
@@ -216,7 +239,7 @@ internal fun CategoryPickerCell(
     onClick: () -> Unit
 ) {
     val catColor = remember(cat.colorHex) {
-        try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+        try { Color(cat.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val hasSpending = amount > 0
@@ -266,7 +289,7 @@ internal fun CategoryPickerCell(
 @Composable
 internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
     val accColor = remember(account.colorHex) {
-        try { Color(android.graphics.Color.parseColor(account.colorHex)) }
+        try { Color(account.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFF3949AB) }
     }
     val balColor = when {

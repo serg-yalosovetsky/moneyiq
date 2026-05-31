@@ -1,24 +1,44 @@
-package org.pixelrush.moneyiq.ui.components.calculator
+﻿package org.pixelrush.moneyiq.ui.components.calculator
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
@@ -333,7 +353,7 @@ fun AccountPickerSheet(
 ) {
     val selected = accounts.firstOrNull { it.id == selectedId } ?: accounts.firstOrNull()
     val selColor = selected?.let {
-        try { Color(android.graphics.Color.parseColor(it.colorHex)) }
+        try { Color(it.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFF3949AB) }
     } ?: Color(0xFF3949AB)
 
@@ -391,7 +411,7 @@ fun AccountPickerSheet(
             HorizontalDivider()
 
             accounts.forEach { acc ->
-                val accColor = try { Color(android.graphics.Color.parseColor(acc.colorHex)) }
+                val accColor = try { Color(acc.colorHex.toColorInt()) }
                                catch (_: Exception) { Color(0xFF3949AB) }
                 val isSelected = acc.id == selectedId
                 Row(

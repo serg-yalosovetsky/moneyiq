@@ -207,9 +207,11 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 
 Also update: DB `version` in `@Database`, `ALL_MIGRATIONS` array in `AppDatabase.kt`, seed in `CategoryRepository`, auto-suggest rule in `CategoryStyleUtil`, and the icon table in `UI_CONTRACTS.md`.
 
-**REPLACE strategy risk:** `insertCategories` uses `@Insert(onConflict = OnConflictStrategy.REPLACE)`. Importing a backup or syncing data that has `icon = 'category'` silently overwrites correctly migrated icons — subsequent app launches do NOT re-run already-completed migrations.
+**REPLACE strategy risk:** `insertCategories` uses `@Insert(onConflict = OnConflictStrategy.REPLACE)`. Importing a backup or syncing data with a wrong icon silently overwrites correctly migrated icons — subsequent app launches do NOT re-run already-completed migrations.
 
-**Rule for import-resilient fixes:** When a named category could be re-imported with a wrong icon, **omit the `AND icon = 'category'` guard**. Use an unconditional `UPDATE ... WHERE LOWER(TRIM(name)) = 'xxx'` (see migration 24→25: Дозвілля/Розваги).
+**Generic icon guard:** `normalizeImportedCategory()` in `DataViewModel` and the normalization step in `MonoFlowSyncWorker` now treat `"category"` and `"family"` as generic placeholders. For any imported category whose icon is in that set, `suggestCategoryStyle(name, type)` is called; if the result is more specific than `"category"`, the icon and color are overridden before insert. This means: a category named "Зв'язок" arriving with `icon="family"` is automatically corrected to `icon="phone"` at import time.
+
+**Rule for import-resilient fixes:** When a named category could be re-imported with a wrong icon, **omit the `AND icon = 'category'` guard**. Use an unconditional `UPDATE ... WHERE LOWER(TRIM(name)) = 'xxx'` (see migration 24→25: Дозвілля/Розваги). The generic-icon normalization in `normalizeImportedCategory()` handles the `"family"` case for future imports without a new migration.
 
 ## ADR-021: LazyColumn Spacing Via `verticalArrangement`, Not Item Padding
 
@@ -278,7 +280,7 @@ The JSON format is the same as the manual backup:
 
 `type` on transactions is `EXPENSE | INCOME | TRANSFER | BORROW | LEND | REPAY`. `toAccountId` is a valid `Long` for transfers, `null` otherwise. The server is responsible for detecting PayPal/Revolut/ATM rows and setting `type=TRANSFER` with the appropriate `toAccountId`.
 
-Worker inserts via `insertAccounts` / `insertCategories` / `insertTransactions` (REPLACE strategy — MERGE by `id`). Existing data is not deleted.
+Worker normalizes categories before insert: for each category whose icon is `"category"` or `"family"`, runs `suggestCategoryStyle(name, type)` and replaces the icon/color if the result is more specific. Then inserts via `insertAccounts` / `insertCategories` / `insertTransactions` (REPLACE strategy — MERGE by `id`). Existing data is not deleted.
 
 ## ADR-028: Expanded Subcategory Strip Is Fused With Its Parent Row (2026-05-31)
 
@@ -555,9 +557,10 @@ DB: `CategoryEntity.currencyCode TEXT NOT NULL DEFAULT 'UAH'` added via migratio
 
 **Why:** Many user-created and MonoFlow-imported categories had icon keys not in `CATEGORY_ICONS_LIST`, so the UI showed a generic icon. Some seeder categories also had wrong keys (e.g., "взуття" → "clothes" hanger, "краса" → "shopping" cart).
 
-**`repairIconKeys()` in `CategoryRepository`:** Called in `MoneyIQApp.seedInitialData()` on every app start (idempotent). It:
-1. Applies name-based overrides (e.g., "взуття" → "shoes", "stomatolog" → "dental", "ebay" → "store") regardless of current stored key.
-2. For any remaining category whose icon key is not in `validKeys` set, re-runs `suggestCategoryStyle(name, type)` and updates the DB.
+**`repairIconKeys()` in `CategoryRepository`:** Called in `MoneyIQApp.seedInitialData()` on every app start (idempotent). It applies fixes in priority order:
+1. **Name overrides** — explicit `nameOverrides` list (e.g., "взуття" → "shoes", "ebay" → "store", "комунал" → "home", "язок" → "phone", "інтернет" → "wifi") applied regardless of current stored key.
+2. **Generic icon fix** — for any category whose icon is `"category"` or `"family"` (valid but generic), runs `suggestCategoryStyle(name, type)`; applies the result if it's more specific than `"category"`. This catches categories imported from MonoFlow or backups that had a generic icon after prior migrations ran.
+3. **Invalid key fix** — for any remaining category whose icon key is not in `validKeys`, re-runs `suggestCategoryStyle(name, type)`.
 
 **Rule:** When adding a new icon key to `CATEGORY_ICONS_LIST`, also add it to the `validKeys` set inside `repairIconKeys()` and to `iconColorMap` in `CategoryStyleUtil.kt`. All three must stay in sync. Do not add icon keys to `CATEGORY_ICONS_LIST` without a corresponding `suggestCategoryStyle` rule — otherwise auto-suggest will never assign the new key to new categories.
 
@@ -1068,4 +1071,76 @@ Fix: added `put("creditLimit", a.creditLimit)` in `serialize` and `creditLimit =
 
 **Rule:** Nav arrows use `pillColor` (which is `PILL_CURRENT` for current month, `PILL_ACCENT` otherwise) — they always match the pill.
 
-**Rule:** Month text uses `MONTH_NAMES_UA_FULL` (Title Case). Do not reintroduce `MONTH_NAMES_UA` (UPPERCASE) or `.uppercase()` calls in `pillLabelFor()`.
+**Rule:** `PeriodMode.MONTH` applies `.uppercase()` to month name → "ТРАВЕНЬ 2026". All other modes (TODAY, WEEK, DAY, RANGE, ALL, YEAR) do NOT apply `.uppercase()` — their strings are already formatted correctly. Do not apply `.uppercase()` globally in `pillLabelFor()`.
+
+## ADR-059: Generic Icon Normalization At All Import/Repair Points (2026-06-01)
+
+**Problem:** Categories imported from MonoFlow sync or backup restore could arrive with `icon = "family"` for specific functional categories (Зв'язок, Інтернет, Комунальні). Since `"family"` is a valid key in `validKeys`, `repairIconKeys()` skipped these rows — the wrong icon persisted until a new data migration was written. This was a whack-a-mole cycle: bug → migration → nameOverride → bug reappears after next import.
+
+**Root cause analysis:**
+- `MonoFlowSyncWorker.doWork()` called `categoryDao.insertCategories(data.categories)` with no normalization — raw categories from server bypassed all icon logic.
+- `normalizeImportedCategory()` in `DataViewModel` only ran `suggestCategoryStyle()` for `icon == "category"`. A category with `icon = "family"` was returned as-is.
+- `repairIconKeys()` only called `suggestCategoryStyle()` for `icon !in validKeys`. `"family"` is valid → skipped.
+
+**Fix (three synchronized points):**
+
+**1. `MonoFlowSyncWorker`** (`workers/MonoFlowSyncWorker.kt`): now normalizes categories before insert:
+```kotlin
+val normalizedCats = data.categories.map { cat ->
+    if (cat.icon in setOf("category", "family")) {
+        val (suggested, color) = suggestCategoryStyle(cat.name, cat.type)
+        if (suggested != "category" && suggested != cat.icon) cat.copy(icon = suggested, colorHex = color)
+        else cat
+    } else cat
+}
+ep.categoryDao().insertCategories(normalizedCats)
+```
+
+**2. `DataViewModel.normalizeImportedCategory()`** (`ui/data/DataViewModel.kt`): extended to handle `"family"` alongside `"category"`:
+```kotlin
+if (cat.icon in setOf("category", "family")) {
+    val (suggested, color) = suggestCategoryStyle(cat.name, cat.type)
+    if (suggested != "category" && suggested != cat.icon) return cat.copy(icon = suggested, colorHex = color)
+}
+```
+
+**3. `CategoryRepository.repairIconKeys()`** (`data/repository/CategoryRepository.kt`): added generic-icon step between nameOverrides and invalid-key check:
+```kotlin
+val genericIcons = setOf("category", "family")
+val newIcon = when {
+    forced != null && forced != cat.icon -> forced
+    cat.icon in genericIcons -> {
+        val suggested = suggestCategoryStyle(cat.name, cat.type).first
+        if (suggested != "category" && suggested != cat.icon) suggested else cat.icon
+    }
+    cat.icon !in validKeys -> suggestCategoryStyle(cat.name, cat.type).first
+    else -> cat.icon
+}
+```
+
+**Why "family" as generic:** `"family"` is the correct icon for "Сім'я" — `suggestCategoryStyle("сім'я", ...)` returns `"family"`, so it is left unchanged. For "Зв'язок", it returns `"phone"` → override applied. The check `suggested != cat.icon` prevents no-ops.
+
+**Migration 28→29** (`AppDatabase.kt`): unconditional SQL backfill for rows already in the DB with wrong icons from previous sync cycles:
+```sql
+UPDATE categories SET icon='home',  colorHex='#546E7A' WHERE LOWER(TRIM(name)) LIKE '%комунал%'
+UPDATE categories SET icon='phone', colorHex='#3F51B5' WHERE LOWER(TRIM(name)) LIKE '%зв%язок%'
+UPDATE categories SET icon='wifi',  colorHex='#00BCD4' WHERE LOWER(TRIM(name)) = 'інтернет'
+```
+
+**Rule:** `"category"` and `"family"` are the two generic icons that may be wrong for specific-purpose categories. Do not add other icons to `genericIcons` without verifying that `suggestCategoryStyle` returns a more specific result for all affected names.
+
+**Rule:** The three normalization points (MonoFlowSyncWorker, normalizeImportedCategory, repairIconKeys) must handle the same `genericIcons` set. If a new generic icon is identified, update all three.
+
+## ADR-060: ModalNavigationDrawer — gesturesEnabled = drawerState.isOpen (2026-06-01)
+
+**Problem:** `gesturesEnabled = false` on `ModalNavigationDrawer` disabled not only swipe gestures but also scrim tap (click-outside-to-dismiss) in certain Material3 versions. Users could only close the drawer via the explicit ✕ button.
+
+**Decision:** `gesturesEnabled = drawerState.isOpen`.
+
+- Closed → gestures off → no accidental open from swiping inside content.
+- Open → gestures on → scrim tap and swipe-to-close both work normally.
+- Added `BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }` as the highest-priority back handler so the Android back button also closes the drawer.
+
+Open paths: left-edge swipe via `edgeSwipe` modifier, or avatar tap in `SharedTopBar`.
+
+**Rule:** Do not revert to `gesturesEnabled = false` — it breaks scrim-dismiss. Accidental open prevention is already handled by `edgeSwipe` restricting left-edge only.

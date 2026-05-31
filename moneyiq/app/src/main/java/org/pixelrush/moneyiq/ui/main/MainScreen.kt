@@ -1,35 +1,64 @@
-package org.pixelrush.moneyiq.ui.main
+﻿package org.pixelrush.moneyiq.ui.main
 
 import androidx.activity.compose.BackHandler
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Brush
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import org.pixelrush.moneyiq.data.db.dao.TransactionWithDetails
@@ -546,7 +575,7 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
     }
     val fallbackColor = MaterialTheme.colorScheme.secondaryContainer
     val catColor = tx.categoryColor?.let {
-        try { Color(android.graphics.Color.parseColor(it)) }
+        try { Color(it.toColorInt()) }
         catch (_: Exception) { fallbackColor }
     } ?: fallbackColor
 

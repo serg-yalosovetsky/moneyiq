@@ -1,24 +1,44 @@
-package org.pixelrush.moneyiq.ui.transactions
+﻿package org.pixelrush.moneyiq.ui.transactions
 
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.ui.components.calculator.AccountPickerSheet
@@ -38,7 +58,7 @@ internal fun TransferQuickSheet(
 ) {
     var selectedFrom by remember { mutableStateOf(fromAccount) }
     var selectedTo   by remember { mutableStateOf(allAccounts.firstOrNull { it.id != fromAccount.id }) }
-    var selectedDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var selectedDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var note         by remember { mutableStateOf("") }
     var showDateSheet    by remember { mutableStateOf(false) }
     var showFullDate     by remember { mutableStateOf(false) }
@@ -48,11 +68,11 @@ internal fun TransferQuickSheet(
     val calc = rememberCalcState()
 
     val fromColor = remember(selectedFrom.colorHex) {
-        try { Color(android.graphics.Color.parseColor(selectedFrom.colorHex)) }
+        try { Color(selectedFrom.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFF26A69A) }
     }
     val toColor = remember(selectedTo?.colorHex) {
-        try { Color(android.graphics.Color.parseColor(selectedTo?.colorHex ?: "#3949AB")) }
+        try { Color((selectedTo?.colorHex ?: "#3949AB").toColorInt()) }
         catch (_: Exception) { Color(0xFF3949AB) }
     }
     val transferColor = Color(0xFF5C6BC0)
