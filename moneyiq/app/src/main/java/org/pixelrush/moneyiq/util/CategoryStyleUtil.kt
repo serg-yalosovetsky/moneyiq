@@ -157,7 +157,14 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
                                "свят", "день народ", "birthday"),
 
         // Sports
-        "sports"     to listOf("спорт", "фітнес", "спортзал", "gym", "тренув", "йога", "yoga")
+        "sports"     to listOf("спорт", "фітнес", "спортзал", "gym", "тренув", "йога", "yoga"),
+
+        // Fines / penalties
+        "gavel"      to listOf("штраф", "пеня", "санкц", "fine", "penalty", "стягнен"),
+
+        // Interest / taxes / percentages
+        "percent"    to listOf("процент", "відсоток", "податок", "податки", "пдв", "акциз",
+                               "interest", "tax", "taxes", "ндфл")
     )
 
     val iconColorMap = mapOf(
@@ -189,6 +196,8 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "parking"    to "#78909C",  // blue-grey     — Паркінг
         "key"        to "#9C27B0",  // purple        — Оренда
         "laptop"     to "#26A69A",  // teal-green    — Фриланс
+        "percent"    to "#F9A825",  // amber         — Проценти/Податки
+        "gavel"      to "#BF360C",  // deep-orange   — Штрафи
         "flight"     to "#03A9F4",  // light-blue    — Подорожі
         "movie"      to "#9C27B0",  // purple        — Кіно
         "gaming"     to "#607D8B",  // blue-grey     — Gaming

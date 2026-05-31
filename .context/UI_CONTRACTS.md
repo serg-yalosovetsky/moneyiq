@@ -125,24 +125,28 @@ This happens inside `CategoriesGridContent`, NOT in the ViewModel.
 **Subcategory mode** (`showSubcategories = true`): full-width donut at top, all categories in rows of 4 below.
 ### Expanded Subcategory Strip (`ExpandedCategoryStrip`)
 
-Triggered by double-click on a chip. Placement and appearance depend on which zone the chip is in:
+Triggered by double-click on a chip. The chip row and its strip are **one LazyColumn item** — wrapped in a `Column` so no `CATEGORY_VERTICAL_GAP` appears between them.
 
-**Top row / mid section chips** (`topRow`, `midLeft`, `midRight`, `mid3`):
-- Strip is inserted as a LazyColumn item immediately AFTER the row/section containing the expanded chip
-- `showParentHeader = false` (default) — strip shows only children
-- Chip in the grid retains its expanded highlight (`isExpanded = true` → rounded card background at 12% alpha)
+**All zones** (`topRow`, `midLeft`, `midRight`, `extCats`) now use `inline = true` mode:
+- Strip appears directly below the row that contains the expanded chip, fused into the same `Column`
+- `showParentHeader = false` — strip shows only children (no parent header needed; chip above is the visual anchor)
+- `showChildBadge = true` on the expanded chip; chip bottom corners are **flat** (`flatBottom = true` on `CategoryChip`) so the chip and strip merge seamlessly
 
-**Bottom grid chips** (`extCats`):
-- Strip is inserted BEFORE all extCats rows — always appears directly under the circle (`+` button area)
-- `showParentHeader = true` — strip shows a unified card: parent icon + name + spending at top, divider, then children below
-- Grid chips in extCats use `expandedId = null` — no separate chip highlight (the card is the single visual element)
+**`CategoryChip` `flatBottom` parameter** (added 2026-05-31):
+- When `isExpanded = true` AND `flatBottom = true`: clip shape is `RoundedCornerShape(topStart=12, topEnd=12, bottomStart=0, bottomEnd=0)` — bottom corners are flat
+- When `isExpanded = true` AND `flatBottom = false` (default): all corners 12dp rounded
+- `inlineStripShown` flows from `CategoriesGridContent` → `CategoryGridRow` → `CategoryGridSlot` → `CategoryChip` as `flatBottom`
 
-**Strip visual spec:**
-- Card background: parent color 8% alpha, `RoundedCornerShape(16.dp)`, elevation 0
+**`ExpandedCategoryStrip` `inline` parameter** (added 2026-05-31):
+- `inline = false` (default, legacy): wrapped in `Card(RoundedCornerShape(16dp), padding=12dp/4dp)`
+- `inline = true` (current usage in `CategoriesGridContent`): `HorizontalDivider(parentColor 18% alpha)` + `Column(background=parentColor 7% alpha)` — no Card, no margins, flush with chip row
+
+**Strip visual spec (inline mode):**
+- Top border: `HorizontalDivider` in parent color at 18% alpha
+- Background: parent color 7% alpha
 - Children: distributed with `weight(1f)` per child (max 4), sorted by spending desc
 - Only children with `spending > 0` OR `budgetAmount > 0` appear
 - Child icon circles: 44dp; icon 22dp; name 10sp; spending 9sp SemiBold
-- Parent header (when `showParentHeader = true`): 44dp circle icon, parent name `titleSmall` SemiBold, spending `bodySmall` in parent color; separated from children by `HorizontalDivider(alpha=15%)`
 
 ### Inline Subcategory Panel (`SideSubcategoryPanel`) — Dead Code
 
@@ -209,7 +213,8 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 | `shopping` | `#7B5947` brown | покупки, магазин, shopping |
 | `taxi` | `#FDD835` yellow | таксі, taxi, uklon, bolt, uber |
 | `gas_station` | `#FF8F00` amber | азс, азц, заправк, wog, okko, socar |
-| `car` | `#FFA834` orange | транспорт, авто, машин, автобус, паркінг |
+| `bus` | `#FFA834` orange | **транспорт**, автобус, метро, маршрутк, transit |
+| `car` | `#FF7043` deep-orange | авто, машин, автомоб, паркінг, бензин, пальне |
 | `home` | `#546E7A` blue-grey | комунальн, квартир, оренда, ремонт |
 | `work` | `#1565C0` dark-blue | зарплат, офіс, фриланс, дохід |
 | `school` | `#FF9800` orange | освіт, навчан, школа, курс |
@@ -231,7 +236,7 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 - Ресторація subcategory icons (migration 12→13): "food delivery"/"glovo" → `delivery` `#FF6F00`; "ресторани" → `restaurant` `#E53935`; "кафе" → `coffee` `#795548` — all three had inherited the parent's orange restaurant icon
 - `clothes` before `shopping` — одяг more specific
 - `theater` → `movie` → `gaming`/`telegram`/`dating` → `ticket` — leisure specificity chain
-- `taxi` → `gas_station` → `car` — transport specificity chain
+- `taxi` → `gas_station` → `bus` → `car` — transport specificity chain (`bus`=public, `car`=personal vehicle)
 
 Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
@@ -245,9 +250,42 @@ Category name is edited via an **inline `BasicTextField`** directly inside the f
 
 `TextInputDialog` remains available in `ui/components/dialogs` and is still used in other screens (e.g., account name editing).
 
+### EditCategoriesScreen — Parent/Subcategory Toggle (added 2026-05-31)
+
+`EditCategoriesScreen` (in `CategoryFormSheets.kt`, opened via "Редагувати категорії" pencil button) now has a toggle in `TopAppBar` actions:
+
+- **Default**: shows only root categories (`parentId == null`)
+- **Toggle button label**: "Субкатегорії" when showing parents; "Категорії" when showing children
+- When toggled to subcategories mode: shows only child categories (`parentId != null`)
+- `allCategoriesForTab` is always passed as `allCategoriesForTab` to `CategoriesGridContent` for badge counts and budget aggregation
+- `bottomPadding = WindowInsets.navigationBars + 16.dp` — prevents last row from being hidden behind the navigation bar
+
 ## Budget Screen
 
 `BudgetScreen` (`Бюджет` tab) is a `Column { LazyColumn(weight=1f) + IncomeBudgetBar }` layout.
+
+### SavingsSectionCard — Forecast (added 2026-05-31)
+
+`SavingsSectionCard` in `BudgetScreen.kt` now computes a monthly savings forecast based on elapsed days:
+
+```
+daysPassed  = BudgetUiState.daysPassed (computed in BudgetViewModel)
+              - past month: = daysInMonth
+              - current month: = Calendar.DAY_OF_MONTH
+              - future month: = 0
+actualSavings     = incomeTotal - expenseTotal
+projectedExpenses = expenseTotal / daysPassed * daysInMonth   (linear extrapolation)
+projectedSavings  = incomeBudget - projectedExpenses
+```
+
+Display logic:
+- **Header right** (large): `projectedSavings` when forecast available; otherwise `actualSavings`
+- **"прогноз"** label below header when forecast is active
+- **"пройшло X з Y днів"** below title when forecast is active
+- **"збережено X ₴"** (actual) in subtitle left
+- **"витрати до кінця ~X ₴"** (projected total expenses) in subtitle right
+- Forecast shown only when `daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0`
+- Color: green (`#26A69A`) when ≥ 0, pink/red (`#D81B60`) when negative
 
 ### IncomeBudgetBar Layout (CRITICAL)
 

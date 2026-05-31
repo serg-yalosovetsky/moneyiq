@@ -35,6 +35,8 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "health"     to Icons.Outlined.LocalHospital,
     "pharmacy"   to Icons.Outlined.Medication,
     "doctor"     to Icons.Outlined.MedicalServices,
+    "percent"    to Icons.Outlined.Percent,
+    "gavel"      to Icons.Outlined.Gavel,
     "flight"     to Icons.Outlined.Flight,
     "music"      to Icons.Outlined.MusicNote,
     "movie"      to Icons.Outlined.Movie,

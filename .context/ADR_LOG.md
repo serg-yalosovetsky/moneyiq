@@ -94,38 +94,44 @@ If two semantically different categories genuinely need the same name under the 
 
 ## ADR-016: Specific Icon Keys For Root Categories
 
-Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 15):
+Root category icon keys must be semantically specific — not generic fallbacks. Correct keys (current, after migration 18):
 
 | Category       | Icon key      | Material icon           | Color      |
 |----------------|---------------|-------------------------|------------|
 | Продукти       | `grocery`     | `ShoppingBasket`        | `#4AAFE8`  |
 | Ресторація     | `restaurant`  | `Restaurant`            | `#4659BE`  |
 | Дозвілля       | `theater`     | `TheaterComedy`         | `#F73579`  |
-| Транспорт      | `car`         | `DirectionsCar`         | `#FFA834`  |
+| Транспорт      | **`bus`**     | **`DirectionsBus`**     | `#FFA834`  |
 | Здоров'я       | `volunteer`   | `VolunteerActivism`     | `#48B456`  |
 | Подарунки      | `gift`        | `CardGiftcard`          | `#F34B4D`  |
 | Сім'я          | `family`      | `FamilyRestroom`        | `#7A48F2`  |
 | Покупки        | `shopping`    | `ShoppingCart`          | `#7B5947`  |
 | Робота         | `work`        | `Work`                  | `#1565C0`  |
 | Таксі          | `taxi`        | `LocalTaxi`             | `#FDD835`  |
+| Паркінг/Авто   | `car`         | `DirectionsCar`         | `#FF7043`  |
 | АЗС/Пальне     | `gas_station` | `LocalGasStation`       | `#FF8F00`  |
 | Кіно (child)   | `movie`       | `Movie`                 | `#9C27B0`  |
 | Gaming (child) | `gaming`      | `SportsEsports`         | `#607D8B`  |
 | Зв'язок        | `phone`       | `PhoneAndroid`          | `#3F51B5`  |
 | Інтернет       | `wifi`        | `Wifi`                  | `#00BCD4`  |
-| Фінанси        | `money`       | `AccountBalance`        | `#F9A825`  |
+| Фінанси        | `money`       | `AttachMoney`           | `#F9A825`  |
 | Комуналка      | `home`        | `Home`                  | `#546E7A`  |
 | Food delivery  | `delivery`    | `LocalShipping`         | `#FF6F00`  |
 | Ресторани      | `restaurant`  | `Restaurant`            | `#E53935`  |
 | Кафе           | `coffee`      | `LocalCafe`             | `#795548`  |
 
+**Transport icon split** (migration 17→18, 2026-05-31): `bus`/`DirectionsBus` for public transport ("Транспорт", "автобус", "метро", "маршрутка") vs `car`/`DirectionsCar` for personal vehicle ("авто", "машина", "паркінг"). Previously both mapped to `car` making Транспорт and Таксі look identical.
+
 Available leisure sub-icons: `theater` (Дозвілля), `movie` (Кіно), `gaming`, `celebration`, `spa`, `ticket`.
 
-These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→15 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
+These are registered in `CategoryIcons.kt` (`CATEGORY_ICONS_LIST`) and mapped in `CategoryStyleUtil.kt` (`iconColorMap`). Data migrations 5→18 backfill existing DB rows. Do not reuse old generic keys (`music`/`health`) for broad root categories.
 
 Migration 12→13: Deletes EXPENSE categories named "Фінанс*" — financial savings/investments are not expenses.
 Migration 13→14: Updates root category colors to match current design palette (more vibrant shades).
 Migration 14→15: Single authoritative subcategory icon fix — `parentId IS NOT NULL` guard on all UPDATEs, `LOWER(TRIM(name)) LIKE` matching. Sets `delivery`/`#FF6F00` for food delivery apps; `coffee`/`#795548` for кафе variants; `restaurant`/`#E53935` for ресторани variants (root "ресторація" excluded). Also fixes `iconColorMap` bugs: `movie`→`#9C27B0`, `coffee`→`#795548` for any existing categories with wrong colors.
+Migration 15→16: Fixes `money` icon for any remaining "Фінанс*" categories (safety net after delete migration).
+Migration 16→17: Re-applies Ресторація subcategory icons with exact name matching (bypasses SQLite Cyrillic LOWER() bug).
+Migration 17→18: Sets `bus` icon for root "Транспорт" category (`parentId IS NULL AND name = 'Транспорт'`).
 
 ## ADR-017: Large Screen Files Split Into Companion Files
 
@@ -190,13 +196,15 @@ val expandedCatIds = if (filterCategoryIds.isEmpty()) emptySet<Long>() else {
 
 **Rule:** Do not apply `graphicsLayer { clip = false }` (or any `graphicsLayer { ... }` block that sets `clip = false`) to composables that are siblings of, or ancestors of composables that launch, `Dialog` calls. If content genuinely needs to overflow its clip boundary alongside dialogs, place it in a full-screen root-level overlay `Box` instead.
 
-## ADR-024: AddCategoryChip Must Be A Standalone Centered Item
+## ADR-024: AddCategoryChip Is Inside DonutChart
 
-The `+` (add category) chip must be placed as a dedicated `item(key="add_btn")` in the `LazyColumn` with `Arrangement.Center`. It must never be embedded inside a `[chip | + | chip]` row — that visual pattern misleads users into thinking the + is part of the category grid.
+The `+` (add category) chip is placed **inside** the `DonutChart` composable, positioned at `Alignment.BottomCenter` with `padding(bottom=28.dp)`. It is NOT a standalone `LazyColumn` item.
+
+`DonutChart` signature: `onAdd: (() -> Unit)? = null` — when non-null, the chip is rendered inside the chart's `Box` overlay.
 
 Current dimensions: `Column(width=64dp)`, circle `Box(44dp)`, icon `18dp`.
 
-`DONUT_SECTION_HEIGHT` is sized to exactly 2 mid-column chips: `CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP`. This ensures the + button appears directly below the donut without extra blank space.
+`DONUT_SECTION_HEIGHT = CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP` ensures the donut + chip fit exactly in the space flanked by 2 mid-column chips on each side.
 
 ## ADR-026: BudgetViewModel `totalAmount` Counts All Spending, Not Just Budgeted
 
@@ -227,6 +235,39 @@ The JSON format is the same as the manual backup:
 `type` on transactions is `EXPENSE | INCOME | TRANSFER | BORROW | LEND | REPAY`. `toAccountId` is a valid `Long` for transfers, `null` otherwise. The server is responsible for detecting PayPal/Revolut/ATM rows and setting `type=TRANSFER` with the appropriate `toAccountId`.
 
 Worker inserts via `insertAccounts` / `insertCategories` / `insertTransactions` (REPLACE strategy — MERGE by `id`). Existing data is not deleted.
+
+## ADR-028: Expanded Subcategory Strip Is Fused With Its Parent Row (2026-05-31)
+
+`ExpandedCategoryStrip` (double-click expansion) is always rendered **in the same LazyColumn item** as the row that contains the expanded chip. The chip row and its strip are wrapped in a `Column` inside one `item { }` block — this eliminates the 8dp `Arrangement.spacedBy` gap that would otherwise appear between them.
+
+`ExpandedCategoryStrip` has an `inline: Boolean = false` parameter:
+- `inline = true`: no Card wrapper; thin `HorizontalDivider` (parent color 18% alpha) + plain `Column` with parent color 7% alpha background — appears flush with the chip row above
+- `inline = false` (legacy / non-fused): wrapped in a `Card(RoundedCornerShape(16dp))`
+
+The expanded chip uses `flatBottom = true` on `CategoryChip` (bottom corners 0dp instead of 12dp) so the chip and strip form one seamless visual block.
+
+**Rule:** All three strip insertion points (`topRow`, `mid_section`, `extCats`) use `inline = true`. Do not add a separate `LazyColumn` item for the strip — doing so reintroduces the gap.
+
+## ADR-029: Budget Savings Forecast Uses Linear Day Extrapolation (2026-05-31)
+
+`BudgetViewModel` exposes `daysPassed: Int` in `BudgetUiState`. `SavingsSectionCard` uses it to project savings:
+
+```
+projectedExpenses = actualExpenses / daysPassed * daysInMonth
+projectedSavings  = incomeBudget - projectedExpenses
+```
+
+Forecast is shown only when `daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0` (i.e., current month with some spend data). Past/future months show only actual savings. This is intentionally simple linear extrapolation — do not replace with complex models without a product decision.
+
+## ADR-030: EditCategoriesScreen Defaults To Root Categories Only (2026-05-31)
+
+`EditCategoriesScreen` (the "Редагувати категорії" full-screen dialog) shows only **root categories** by default (`parentId == null`). A toggle button in `TopAppBar` actions switches to showing only child categories (`parentId != null`).
+
+This matches the user mental model: root categories are the primary management object; subcategories are secondary. Showing all categories at once in a flat grid is visually noisy and confusing.
+
+`allCategoriesForTab` (all non-archived categories of the tab type) is always passed separately to `CategoriesGridContent` for badge count and budget aggregation purposes, even when `categories` is filtered.
+
+**Rule:** Do not revert to passing all categories as `categories` — the filtered list is intentional. Bottom padding for the dialog's `CategoriesGridContent` must include `WindowInsets.navigationBars` to prevent the last row from being hidden.
 
 ## ADR-025: Overview List Falls Back To Transactions When No Categories
 
