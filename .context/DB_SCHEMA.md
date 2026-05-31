@@ -2,7 +2,7 @@
 
 Room database: `AppDatabase`
 
-Current version: `25`
+Current version: `26`
 
 Entities:
 
@@ -99,5 +99,6 @@ Indices:
 - `22 -> 23`: data migration — fixes root utilities icons: `home`/`#546E7A` (комунал*), `phone`/`#3F51B5` (зв'язок), `wifi`/`#00BCD4` (інтернет)
 - `23 -> 24`: data migration — fixes Здоров'я root stuck on old `health`/`doctor` icon → `volunteer`/`#48B456`; fixes Спорт stuck on health icon → `sports`; fixes any remaining root-level `health` icon → `volunteer`
 - `24 -> 25`: data migration — unconditional fix for Дозвілля (`theater`/`#F73579`) and Розваги (`celebration`/`#FF6D00`); no `icon = 'category'` guard because imported data can overwrite prior migrations via REPLACE strategy
+- `25 -> 26`: data migration — inserts default income categories (`Зарплата`/`work`/`#4CAF50`, `Фриланс`/`laptop`/`#26A69A`, `Інше`/`category`/`#78909C`) using conditional INSERT … WHERE NOT EXISTS, so existing categories are never duplicated
 
 Any schema change must add a migration and update this file.

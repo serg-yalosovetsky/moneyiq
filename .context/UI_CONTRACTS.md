@@ -30,6 +30,31 @@ The shared top bar (`SharedTopBar`) displays total balance and page-specific act
 
 Settings icon appears on tabs 2-4 (Categories, Transactions, Budget). Accounts tab has its own add-account action.
 
+## Accounts Screen
+
+`AccountsScreen` (tab 0 — "Рахунки") is embedded inside the `HorizontalPager` in `MainScreen`. It receives action callbacks that are wired in `MainScreen`:
+
+| Callback | Wired action |
+|---|---|
+| `onViewTx(acc)` | `scope.launch { pagerState.animateScrollToPage(txTabIndex) }` — switches to Transactions tab |
+| `onAddIncome(acc)` | `onAddTransaction()` — opens AddTransaction screen |
+| `onAddExpense(acc)` | `onAddTransaction()` — opens AddTransaction screen |
+| `onAddTransfer(acc)` | `onAddTransaction()` — opens AddTransaction screen |
+
+**Limitation**: The account entity is available in the callback parameter but is not currently forwarded to the AddTransaction screen. Income / expense / transfer forms open without a pre-selected account — the user picks the account manually inside the form.
+
+**AccountActionSheet** (long-press on an account row) exposes six actions: Редагувати, Баланс, Операції, Поповнення, Списати, Переказ. The action sheet itself lives in `AccountPickerSheets.kt`. All callbacks are `() -> Unit` at the sheet level; `AccountsScreen` adapts them to `(AccountEntity) -> Unit` before forwarding to `MainScreen`.
+
+### Account Icon Currency Badge
+
+Every account icon displays a small **currency symbol badge** at the bottom-right corner:
+
+- **`AccountIconBox`** (`AccountsScreen.kt`): 20dp white circle, badge positioned `Alignment.BottomEnd` with `offset(2dp, 2dp)`. Currency symbol text: 8sp Bold, colored with the account's accent color.
+- **`AccountPickerSheet`** (`CalcDateSheet.kt`): 16dp white circle, same position, 7sp Bold.
+- Symbol is resolved via `CURRENCIES_ALL.find { it.code == account.currency }?.symbol?.take(2)`. Falls back to the first 2 chars of the currency code if the code is not in the list.
+- Does not conflict with the star badge (default account indicator) which sits at `Alignment.BottomStart`.
+- No DB migration needed — uses the existing `AccountEntity.currency` field.
+
 ## Categories Screen
 
 The categories screen (`CategoriesScreen.kt`) is a high-sensitivity 1Money-like surface.
@@ -67,6 +92,19 @@ The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, 
 
 `display` (in `CategoriesGridContent`) = `sorted` (all root categories sorted by spending desc). Do NOT filter `display` to active-only — zero-spending categories must remain visible as pale chips.
 
+### QuickExpenseSheet — Panel Layout
+
+`QuickExpenseSheet` (`CategorySheets.kt`) opens on single-tap of a category chip. It has a two-panel header row (80dp height) whose left/right layout depends on transaction type:
+
+| Type | Left panel | Right panel |
+|---|---|---|
+| **EXPENSE** | Account (indigo `#3949AB` bg) — "З рахунку" — account name — tappable | Category (category color bg) — "До категорії" — category name |
+| **INCOME** | Category (category color bg) — "З категорії" — category name | Account (indigo bg) — "На рахунок" — account name — tappable |
+
+Both cases: account panel is tappable only when `accounts.size > 1` (opens account picker). The account icon (CreditCard) is always top-right of the account panel; the category icon circle is always top-left of the category panel.
+
+**Rule:** Do not merge the two paths into a single layout that only changes labels. The left panel's `Alignment` anchors (BottomStart vs BottomEnd, TopStart vs TopEnd) differ between the expense and income variants — always use the `isIncome` branch.
+
 ### CategoryActionSheet Data
 
 The action sheet uses **effective spending** (children aggregated into parent), not raw category spending:
@@ -79,6 +117,32 @@ val catTxCount  = allCategoriesForTab
 ```
 
 This ensures the sheet's spending amount and operation count match what the chip displays.
+
+### Light-Background Contrast Rule (Category/Budget Sheets)
+
+Several sheets use the **category or account color** as `containerColor` of a `ModalBottomSheet` or as a section background. When that color is very light (white, pale, pastel), `Color.White` text becomes invisible.
+
+**Rule**: Any sheet that puts user-chosen category/account color as a background must compute content color via luminance:
+
+```kotlin
+val isLightBg  = catColor.luminance() > 0.5f
+val onCatColor = if (isLightBg) Color(0xFF1C1B1F) else Color.White
+val displayColor = if (isLightBg) Color(0xFF1C1B1F) else catColor  // for text/icons on surface bg
+```
+
+- `onCatColor` replaces every `Color.White` inside the colored section (title, amounts, progress bar, drag handle).
+- `displayColor` replaces `catColor` in the white/surface lower section (amount display text, `confirmColor` of `SharedCalcKeypad`, FAB icon tint).
+- Threshold `> 0.5f` catches white, near-white, and light pastels while leaving all dark/medium colors unchanged.
+
+**Affected sheets** (all fixed 2026-05-31):
+| Sheet | File | Background source |
+|---|---|---|
+| `BudgetInputSheet` | `BudgetSheets.kt` | `catRow.category.colorHex` |
+| `IncomeBudgetInputSheet` | `BudgetSheets.kt` | `picked?.colorHex` (account color) |
+| `CategoryActionSheet` header | `CategorySheets.kt` | `category.colorHex` |
+| `QuickExpenseSheet` category panel | `CategorySheets.kt` | `category.colorHex` |
+
+**Do not** hardcode `Color.White` as text/icon color inside any colored section. Always derive from `onCatColor`.
 
 ### Category Aggregation (`effectiveSpending`)
 
@@ -205,45 +269,60 @@ If content genuinely needs to escape clip bounds and coexist with Dialogs, use a
 
 When creating a new category (existing == null), `CategoryFormSheet` runs a `LaunchedEffect(name)` that calls `suggestCategoryStyle(name, type)` if name ≥ 3 chars AND user hasn't manually picked an icon (iconKey == "category"). Once the user touches the icon picker, auto-suggest stops firing.
 
-`CATEGORY_ICONS_LIST` in `CategoryIcons.kt` is the canonical set of valid icon keys. `suggestCategoryStyle` in `CategoryStyleUtil.kt` has 38 rules checked top-to-bottom — all rules and their colors:
+`CATEGORY_ICONS_LIST` in `CategoryIcons.kt` is the canonical set of valid icon keys. `suggestCategoryStyle` in `CategoryStyleUtil.kt` has 55 rules checked top-to-bottom — all rules and their colors:
 
 | Key | Color | Top matching keywords |
 |---|---|---|
 | `ai` | `#6200EA` deep-purple | ai, chatgpt, openai, claude, gemini, gpt |
 | `aliexpress` | `#FF6D00` orange | aliexpress, ali, temu, shein |
-| `cloud` | `#0288D1` sky-blue | cloud, хмар, icloud, dropbox, хостинг |
+| `server` | `#37474F` dark-grey | хостинг, хостінг, hosting, vps, сервер |
+| `cloud` | `#0288D1` sky-blue | cloud, хмар, icloud, dropbox |
+| `refund` | `#00897B` teal | повернення, повернен, refund, cashback, кешбек, компенсація |
 | `transfer` | `#00897B` teal | переказ, transfer, відправк |
 | `delivery` | `#FF6F00` amber | кур'єр, доставка, нова пошта |
 | `devices` | `#607D8B` blue-grey | електрон, техніка, ноутбук, гаджет |
 | `wifi` | `#00BCD4` cyan | інтернет, wifi, провайдер |
 | `phone` | `#3F51B5` indigo | зв'язок, мобільн, lifecell, kyivstar |
 | `beauty` | `#AD1457` dark-pink | краса, салон, манікюр, спа |
-| `clothes` | `#00838F` dark-cyan | одяг, взуття, fashion |
+| `shoes` | `#5D4037` dark-brown | взуття, shoes, boots |
+| `clothes` | `#00838F` dark-cyan | одяг, fashion |
+| `toys` | `#FF6D00` orange | іграшки, toys, ляльки, конструктор, lego |
 | `family` | `#7A48F2` purple | сім'я, дітям, дитяч |
 | `receipt` | `#546E7A` blue-grey | рахунки, bills, платіж, оплат |
 | `coffee` | `#795548` brown | кафе, кав'ярня, кава, coffee |
 | `restaurant` | `#4659BE` blue | ресторан, ресторація, їдальня, food, pizza |
 | `grocery` | `#4AAFE8` light-blue | продукти, атб, сільпо, фора |
+| `flower` | `#E91E63` pink | квіти, цвіти, flower, флорист, букет |
+| `souvenir` | `#7B1FA2` purple | сувенір, souvenir |
 | `celebration` | `#FF6D00` orange | розваг, свят, party, вечірк, банкет |
-| `theater` | `#F73579` pink | дозвілл, театр, концерт, шоу, entertainment, festival |
+| `theater` | `#F73579` pink | дозвілл, театр, концерт, шоу, entertainment |
 | `movie` | `#9C27B0` purple | кіно, cinema, фільм, netflix |
+| `book` | `#5E35B1` deep-purple | книги, книга, book, бібліотек |
 | `gaming` | `#607D8B` blue-grey | gaming, ігри, playstation, xbox, steam |
 | `telegram` | `#2196F3` blue | telegram, телеграм, viber, messenger |
 | `dating` | `#E91E63` pink | dating, tinder, bumble, знайомств |
 | `ticket` | `#AD1457` dark-pink | квиток, квитки |
 | `music` | `#AB47BC` purple | музик, spotify |
+| `store` | `#1E88E5` blue | rozetka, ebay, маркетплейс, prom.ua, hotline |
+| `fitness` | `#D32F2F` dark-red | спортивні товари, спорттовар, decathlon |
 | `shopping` | `#7B5947` brown | покупки, магазин, shopping |
 | `taxi` | `#FDD835` yellow | таксі, taxi, uklon, bolt, uber |
 | `gas_station` | `#FF8F00` amber | азс, азц, заправк, wog, okko, socar |
-| `bus` | `#FFA834` orange | **транспорт**, автобус, метро, маршрутк, transit |
+| `train` | `#1565C0` dark-blue | залізниця, потяг, поїзд, train, укрзалізниц |
+| `bus` | `#FFA834` orange | **транспорт**, громадськ, автобус, метро, маршрутк |
+| `auto_parts` | `#E64A19` deep-orange | запчастин, автозапч, шиномонтаж, ремонт авто |
 | `car` | `#FF7043` deep-orange | авто, машин, автомоб, паркінг, бензин, пальне |
+| `tools` | `#546E7A` blue-grey | інструмент, дриль, пилк, шуруповерт |
+| `hardware` | `#BF360C` deep-orange | будматеріал, будівельн, цегла, ламінат |
 | `home` | `#546E7A` blue-grey | комунальн, квартир, оренда, ремонт |
 | `work` | `#1565C0` dark-blue | зарплат, офіс, фриланс, дохід |
 | `school` | `#FF9800` orange | освіт, навчан, школа, курс |
 | `volunteer` | `#48B456` green | здоров, самопочутт |
-| `pharmacy` | `#43A047` dark-green | аптека, ліки, medication, таблетк, препарат |
-| `doctor` | `#D81B60` pink-red | медицин, лікар, клінік, стоматолог, hospital |
-| `flight` | `#03A9F4` light-blue | відпочин, туризм, готель, booking |
+| `pharmacy` | `#43A047` dark-green | аптека, ліки, medication, таблетк |
+| `dental` | `#0097A7` teal | стоматолог, дантист, dental, зубн |
+| `doctor` | `#D81B60` pink-red | медицин, лікар, клінік, hospital |
+| `hotel` | `#4527A0` deep-purple | готель, hotel, hostel, airbnb |
+| `flight` | `#03A9F4` light-blue | відпочин, туризм, перельот, travel, booking |
 | `money` | `#F9A825` amber-dark | **фінанс**, інвестиц, банк, крипто, депозит |
 | `pets` | `#8D6E63` brown-light | тварин, кіт, собак, ветеринар |
 | `gift` | `#F34B4D` red | подарун, birthday |
@@ -254,22 +333,34 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 **Fallback**: unrecognised name → `category` key, color `#4CAF50` for INCOME or `#78909C` for EXPENSE.
 
 **Notes on recent rule changes:**
-- `health` key **removed** from rules. Replaced by two specific rules: `pharmacy` (аптека/ліки) and `doctor` (медицина/лікар/стоматолог). `health` is kept as a legacy entry in `iconColorMap` only for DB backward compatibility.
-- `celebration` **added** (2026-05-31): matches "розваг", "свят", "party", "вечірк" — must appear **before** `theater` (which no longer matches "розваг").
-- `gavel` and `percent` **added** (2026-05-31): штрафи/пені and проценти/податки.
-- `movie` color corrected to `#9C27B0` (purple), not pink.
+- `health` key **removed** from rules. Replaced by `pharmacy` (аптека/ліки) and `doctor` (медицин/лікар). `health` kept as legacy entry in `iconColorMap` only.
+- `celebration` **added** (2026-05-31): matches "розваг", "свят", "party", "вечірк".
+- `gavel` and `percent` **added** (2026-05-31).
+- `server` **added** (2026-05-31): "хостинг/hosting/vps/сервер" extracted from `cloud` — `cloud` now covers only generic cloud storage.
+- `shoes`, `toys`, `flower`, `souvenir`, `book`, `store`, `fitness`, `train`, `auto_parts`, `tools`, `hardware`, `dental`, `hotel` **added** (2026-05-31): see ADR-035.
+- `clothes` rule: "взуття" removed (→ `shoes`). `doctor` rule: "стоматолог" removed (→ `dental`). `flight` rule: "готель/hotel" removed (→ `hotel`). `bus` rule: "громадськ" added.
+- `refund` **added** (2026-05-31): icon `AssignmentReturn` (AutoMirrored), color `#00897B` teal. Matches "повернення", "cashback", "кешбек", "компенсація", "refund". Rule placed before `transfer`.
 
 **Critical rule orderings** (do not reorder these pairs):
+- `server` before `cloud` — хостинг is more specific than generic cloud storage
 - `wifi` before `phone` — both match "інтернет"-related terms
+- `shoes` before `clothes` — взуття is shoes (specific), not general clothing
+- `toys` before `family` — іграшки is more specific than general family spending
 - `coffee` before `restaurant` — кафе more specific
 - `grocery` before `shopping` — продукти more specific
+- `flower` and `souvenir` before `celebration` and `gift` — distinct purchase types
 - `receipt` before `home` — "рахунки/оплат" more specific than generic home
 - `celebration` before `theater` — "розваг" and "свят" go to celebration, not broad leisure
-- `volunteer` before `pharmacy` before `doctor` — wellness → pills → medical (specificity chain)
-- `clothes` before `shopping` — одяг more specific
+- `book` before `movie` — both leisure, book more specific
+- `volunteer` before `pharmacy` before `dental` before `doctor` — wellness → pills → dental → general medical
+- `store` before `fitness` before `shopping` — marketplace names → sport goods store → generic shopping
+- `train` before `bus` — залізниця more specific than general public transport
+- `auto_parts` before `car` — repair/parts more specific than generic vehicle
+- `tools` before `hardware` before `home` — power tools → building materials → generic home
+- `hotel` before `flight` — accommodation more specific than generic travel
 - `theater` → `movie` → `gaming`/`telegram`/`dating` → `ticket` — leisure specificity chain
-- `taxi` → `gas_station` → `bus` → `car` — transport specificity chain (`bus`=public, `car`=personal vehicle)
-- `gavel` and `percent` after `sports` (bottom of list) — narrow keyword sets, low false-positive risk
+- `taxi` → `gas_station` → `train` → `bus` → `auto_parts` → `car` — transport specificity chain
+- `gavel` and `percent` after `sports` (bottom of list) — narrow keyword sets
 
 Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
@@ -411,7 +502,7 @@ Display logic:
 - **"витрати до кінця ~X ₴"** in subtitle right when hasForecast; otherwise **"в бюджеті X ₴"** (incomeBudget)
 - Color: green (`#26A69A`) when ≥ 0, pink/red (`#D81B60`) when negative
 
-**Rule**: The header shows budget-based savings (incomeBudget − expenses), not cash-flow savings. This matches "Доступно в бюджеті" in `IncomeBudgetBar`.
+**Rule**: The header shows budget-based savings (incomeBudget − expenses), not cash-flow savings. This matches "Доступно в бюджеті" in `IncomeBudgetBar`. The `incomeBudget` parameter passed to `SavingsSectionCard` is `effectiveIncomeBudget` (global budget if set, else per-category total) — both the card and the bar use the same value to stay consistent.
 
 ### IncomeBudgetBar Layout (CRITICAL)
 
@@ -429,6 +520,77 @@ Do **not** move `IncomeBudgetBar` back inside the `LazyColumn`. It was moved out
 - The income total summary must always be visible alongside the expense list.
 
 `IncomeBudgetBar` takes a `modifier: Modifier = Modifier` parameter for bottom padding injection.
+
+**Signature (2026-05-31):**
+```kotlin
+IncomeBudgetBar(
+    effectiveIncomeBudget: Double,   // globalIncomeBudget if > 0, else incomeSection.totalBudget
+    expenseTotal:          Double,
+    hasAccounts:           Boolean,  // clickable only when hasAccounts && !hasBudget
+    onClick:               () -> Unit,
+    modifier:              Modifier = Modifier
+)
+```
+
+- `hasBudget = effectiveIncomeBudget > 0`
+- Bar is **clickable only when** `!hasBudget && hasAccounts` → opens `IncomeBudgetInputSheet`
+- When `hasBudget && overspend > 0`: red overspend row
+- When `hasBudget`: "Доступно в бюджеті: X ₴" (available = effectiveIncomeBudget − expenseTotal)
+- When `!hasBudget`: italic "Введіть суму очікуваного доходу..."
+
+### IncomeBudgetInputSheet
+
+Opens when the user taps "Введіть суму очікуваного доходу..." in `IncomeBudgetBar`. Shows an **account** (not a category) in the header. Defined in `BudgetSheets.kt`.
+
+**Parameters:**
+```kotlin
+IncomeBudgetInputSheet(
+    accounts:        List<AccountEntity>,
+    selectedAccount: AccountEntity?,     // pre-selected: by saved accountId, or isDefault, or first
+    currentBudget:   Double,
+    monthLabel:      String,
+    onDismiss:       () -> Unit,
+    onConfirm:       (accountId: Long, amount: Double) -> Unit
+)
+```
+
+**Layout:**
+- `ModalBottomSheet` with `containerColor = account.colorHex` (teal `#26A69A` fallback when null)
+- Header: account name (large bold, white) + month label row
+- Top-right circle (72dp, white bg): account icon via `accountIconFromKey(acc.icon)` — **tappable** → opens nested `ModalBottomSheet` with `LazyColumn` account picker
+- White section below: "Бюджет на місяць" label, amount display, `SharedCalcKeypad`
+
+**Account picker (nested sheet):**
+- Opens `ModalBottomSheet` on top of the income budget sheet
+- Shows each account as `ListItem` (colored 40dp circle icon + name)
+- Selected account gets a check mark and primary-color name
+- Picking closes the picker; the parent sheet header updates to the new account
+
+**Data flow:**
+- On confirm: calls `viewModel.setIncomeBudget(accountId, amount)` → `settingsRepo.setIncomeBudget()` → writes `KEY_INCOME_BUDGET_AMOUNT` + `KEY_INCOME_BUDGET_ACCOUNT_ID` to DataStore
+- The saved account ID is used as the pre-selection next time the sheet opens
+
+### BudgetUiState — Income Budget Fields
+
+```kotlin
+accounts:              List<AccountEntity> = emptyList(),
+globalIncomeBudget:    Double             = 0.0,   // from SettingsRepository
+incomeBudgetAccountId: Long               = -1L    // from SettingsRepository
+```
+
+`BudgetViewModel` computes `effectiveIncomeBudget` in `BudgetScreen` (not in ViewModel):
+```kotlin
+val effectiveIncomeBudget = if (state.globalIncomeBudget > 0.0)
+    state.globalIncomeBudget else state.incomeSection.totalBudget
+```
+
+This means: global budget takes priority; per-category income budget totals serve as fallback.
+
+**BudgetViewModel combine structure:** The 5-flow typed `combine` limit is resolved by nesting:
+1. Inner `combine(5 flows)` → `Triple(expSection, incSection, rawBalance)`
+2. Outer `combine(coreFlow, getAllAccounts(), settings.settings)` → `BudgetUiState`
+
+**Rule:** Do not inline `getAllAccounts()` or `settingsRepo.settings` into the inner combine — it would exceed the 5-flow typed overload and produce unreadable cast code.
 
 ## Overview Screen
 
