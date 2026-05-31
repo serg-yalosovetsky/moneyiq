@@ -497,9 +497,10 @@ fun SharedTopBar(
             )
             Text(
                 formatMoney(totalBalance),
-                style      = MaterialTheme.typography.headlineMedium,
+                style      = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface,
+                color      = if (totalBalance < 0) Color(0xFFE53935)
+                             else MaterialTheme.colorScheme.onSurface,
                 maxLines   = 1,
                 overflow   = TextOverflow.Ellipsis
             )

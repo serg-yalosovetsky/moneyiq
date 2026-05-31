@@ -77,13 +77,21 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
             "gaming"              to "gaming",
         )
 
+        // Generic icons that may have been assigned incorrectly to named categories.
+        // "family" is valid for Сім'я but wrong for Зв'язок/Інтернет/Комунальні.
+        val genericIcons = setOf("category", "family")
+
         dao.getAllCategoriesOnce().forEach { cat ->
             val nameLower = cat.name.lowercase().trim()
             val forced = nameOverrides.firstOrNull { nameLower.contains(it.first) }?.second
             val newIcon = when {
                 forced != null && forced != cat.icon -> forced
-                cat.icon !in validKeys              -> suggestCategoryStyle(cat.name, cat.type).first
-                else                                -> cat.icon
+                cat.icon in genericIcons -> {
+                    val suggested = suggestCategoryStyle(cat.name, cat.type).first
+                    if (suggested != "category" && suggested != cat.icon) suggested else cat.icon
+                }
+                cat.icon !in validKeys -> suggestCategoryStyle(cat.name, cat.type).first
+                else                   -> cat.icon
             }
             if (newIcon != cat.icon) {
                 dao.updateCategory(cat.copy(icon = newIcon))

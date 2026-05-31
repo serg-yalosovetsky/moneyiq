@@ -9,13 +9,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +40,6 @@ import org.pixelrush.moneyiq.ui.components.currency.CurrencyBottomSheet
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
-import org.pixelrush.moneyiq.util.suggestCategoryStyle
 
 // ── Category Action Sheet ─────────────────────────────────────────────────────
 
@@ -66,7 +63,7 @@ fun CategoryActionSheet(
     onDismiss:     () -> Unit
 ) {
     val catColor = remember(category.colorHex) {
-        try { Color(android.graphics.Color.parseColor(category.colorHex)) }
+        try { Color(category.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFF4361EE) }
     }
     val isLightBg  = catColor.luminance() > 0.5f
@@ -265,7 +262,7 @@ fun QuickExpenseSheet(
     var selectedCategory by remember(category) { mutableStateOf(category) }
 
     val catColor = remember(selectedCategory.colorHex) {
-        try { Color(android.graphics.Color.parseColor(selectedCategory.colorHex)) }
+        try { Color(selectedCategory.colorHex.toColorInt()) }
         catch (_: Exception) { Color(0xFFFF5722) }
     }
     val isCatLight   = catColor.luminance() > 0.5f
@@ -281,7 +278,7 @@ fun QuickExpenseSheet(
     var selectedAccount by remember {
         mutableStateOf(accounts.firstOrNull { it.isDefault } ?: accounts.firstOrNull())
     }
-    var selectedDate    by remember { mutableStateOf(System.currentTimeMillis()) }
+    var selectedDate    by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var selectedCurrency  by remember { mutableStateOf(selectedAccount?.currency ?: "UAH") }
     LaunchedEffect(selectedAccount?.currency) { selectedCurrency = selectedAccount?.currency ?: "UAH" }
     val currencySymbol = CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency
@@ -334,11 +331,10 @@ fun QuickExpenseSheet(
                 .height(sheetH)
         ) {
             // ── 1. Шапка: обидві іконки виступають над панелями
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val halfW  = maxWidth / 2
-                val iconD  = 80.dp   // категорія
-                val badgeD = 48.dp   // рахунок
-                val stripH = 40.dp   // висота виступу над панелями
+            Box(modifier = Modifier.fillMaxWidth()) {
+                val iconD  = 80.dp
+                val badgeD = 48.dp
+                val stripH = 40.dp
 
                 Column(Modifier.fillMaxWidth()) {
                     // Колірна смуга — продовжує фони панелей вгору без білого зазору
@@ -549,7 +545,7 @@ fun QuickExpenseSheet(
                     }
                     items(expCats) { cat ->
                         val color = remember(cat.colorHex) {
-                            try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                            try { Color(cat.colorHex.toColorInt()) }
                             catch (_: Exception) { Color(0xFF757575) }
                         }
                         ListItem(
@@ -576,7 +572,7 @@ fun QuickExpenseSheet(
                     }
                     items(incCats) { cat ->
                         val color = remember(cat.colorHex) {
-                            try { Color(android.graphics.Color.parseColor(cat.colorHex)) }
+                            try { Color(cat.colorHex.toColorInt()) }
                             catch (_: Exception) { Color(0xFF757575) }
                         }
                         ListItem(

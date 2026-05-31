@@ -170,9 +170,13 @@ class DataViewModel @Inject constructor(
             cat.icon == "health" && cat.parentId == null ->
                 return cat.copy(icon = "volunteer", colorHex = "#48B456")
         }
-        if (cat.icon == "category") {
-            val (icon, color) = suggestCategoryStyle(cat.name, cat.type)
-            return cat.copy(icon = icon, colorHex = color)
+        // "category" = placeholder; "family" = generic icon that may be wrong for specific names
+        // (e.g. Зв'язок, Інтернет, Комунальні imported from MonoFlow)
+        if (cat.icon in setOf("category", "family")) {
+            val (suggested, color) = suggestCategoryStyle(cat.name, cat.type)
+            if (suggested != "category" && suggested != cat.icon) {
+                return cat.copy(icon = suggested, colorHex = color)
+            }
         }
         return when (cat.icon) {
             "movie"   -> if (cat.colorHex != "#9C27B0") cat.copy(colorHex = "#9C27B0") else cat

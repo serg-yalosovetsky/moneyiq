@@ -48,7 +48,7 @@ private class Ref<T>(var value: T)
 internal fun pillLabelFor(a: AppMonth): String {
     val today = Calendar.getInstance()
     return when (a.mode) {
-        PeriodMode.MONTH -> "${MONTH_NAMES_UA_FULL[a.month]} ${a.year}"
+        PeriodMode.MONTH -> "${MONTH_NAMES_UA_FULL[a.month].uppercase()} ${a.year}"
         PeriodMode.TODAY -> {
             val d = today.get(Calendar.DAY_OF_MONTH)
             val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)]
@@ -136,7 +136,7 @@ fun SharedMonthNavPill(
     Row(
         modifier              = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -144,14 +144,14 @@ fun SharedMonthNavPill(
             Icons.Default.KeyboardArrowLeft, null,
             tint     = pillColor,
             modifier = Modifier
-                .size(28.dp)
+                .size(30.dp)
                 .clickable(onClick = onPrev)
                 .padding(2.dp)
         )
 
         Surface(
             shape    = RoundedCornerShape(50.dp),
-            color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+            color    = pillColor.copy(alpha = 0.12f),
             modifier = Modifier.clickable { showSheet = true }
         ) {
             // Animate only the inner content; the pill capsule shape stays static
@@ -166,38 +166,35 @@ fun SharedMonthNavPill(
                     enter togetherWith exit
                 },
                 label    = "month_pill",
-                modifier = Modifier.padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
+                modifier = Modifier.padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
             ) { (label, badge) ->
                 Row(
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Surface(
-                        shape  = RoundedCornerShape(8.dp),
+                        shape  = RoundedCornerShape(6.dp),
                         color  = Color.Transparent,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.5.dp,
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                        )
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, pillColor)
                     ) {
                         Text(
                             badge,
-                            modifier   = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style      = MaterialTheme.typography.labelMedium,
+                            modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style      = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color      = pillColor
                         )
                     }
                     Text(
                         label,
-                        style      = MaterialTheme.typography.bodyLarge,
+                        style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color      = MaterialTheme.colorScheme.onSurface
+                        color      = pillColor
                     )
                     Icon(
-                        Icons.Default.ExpandMore, null,
-                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
+                        Icons.Default.KeyboardArrowDown, null,
+                        tint     = pillColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
@@ -207,7 +204,7 @@ fun SharedMonthNavPill(
             Icons.Default.KeyboardArrowRight, null,
             tint     = pillColor,
             modifier = Modifier
-                .size(28.dp)
+                .size(30.dp)
                 .clickable(onClick = onNext)
                 .padding(2.dp)
         )
