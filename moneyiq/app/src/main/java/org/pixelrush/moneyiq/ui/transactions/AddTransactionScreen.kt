@@ -21,9 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet
 import org.pixelrush.moneyiq.ui.categories.categoryIconFor
 import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -57,16 +59,25 @@ fun AddTransactionScreen(
 
     LaunchedEffect(state.saved) { if (state.saved) onNavigateBack() }
 
-    var showDeleteDialog  by remember { mutableStateOf(false) }
-    var showDatePicker    by remember { mutableStateOf(false) }
-    var showFromAccPicker by remember { mutableStateOf(false) }
-    var showToAccPicker   by remember { mutableStateOf(false) }
-    var showCatPicker     by remember { mutableStateOf(false) }
+    var showDeleteDialog    by remember { mutableStateOf(false) }
+    var showDatePicker      by remember { mutableStateOf(false) }
+    var showFromAccPicker   by remember { mutableStateOf(false) }
+    var showCatPicker       by remember { mutableStateOf(false) }
+    var showCurrencyPicker  by remember { mutableStateOf(false) }
 
     val isTransfer = state.type == TransactionType.TRANSFER
 
     val fromAccount  = state.accounts.firstOrNull { it.id == state.selectedAccountId }
     val toAccount    = state.accounts.firstOrNull { it.id == state.selectedToAccountId }
+
+    var selectedCurrency by remember { mutableStateOf(fromAccount?.currency ?: "UAH") }
+    LaunchedEffect(fromAccount?.currency) {
+        selectedCurrency = fromAccount?.currency ?: "UAH"
+    }
+    val currencySymbol = remember(selectedCurrency) {
+        CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency
+    }
+
     val catType      = if (state.type == TransactionType.INCOME) TransactionType.INCOME else TransactionType.EXPENSE
     val fromCategory = state.categories.filter { it.type == catType && !it.archived }
                            .firstOrNull { it.id == state.selectedCategoryId }
@@ -174,7 +185,7 @@ fun AddTransactionScreen(
                     modifier = Modifier
                         .weight(1f).fillMaxHeight()
                         .background(rightPanelColor)
-                        .clickable { if (isTransfer) showToAccPicker = true else showCatPicker = true }
+                        .clickable { showCatPicker = true }
                 ) {
                     Box(
                         modifier = Modifier
@@ -197,7 +208,7 @@ fun AddTransactionScreen(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            if (isTransfer) "На рахунок" else "Категорія",
+                            if (isTransfer) "На рахунок" else "До категорії",
                             style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f)
                         )
                         Text(
@@ -209,29 +220,6 @@ fun AddTransactionScreen(
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                             color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
-                    }
-                    if (isTransfer) {
-                        DropdownMenu(expanded = showToAccPicker, onDismissRequest = { showToAccPicker = false }) {
-                            state.accounts.filter { it.id != state.selectedAccountId }.forEach { acc ->
-                                DropdownMenuItem(
-                                    text    = { Text(acc.name) },
-                                    onClick = { viewModel.setToAccount(acc.id); showToAccPicker = false }
-                                )
-                            }
-                        }
-                    } else {
-                        DropdownMenu(expanded = showCatPicker, onDismissRequest = { showCatPicker = false }) {
-                            DropdownMenuItem(
-                                text    = { Text("Без категорії") },
-                                onClick = { viewModel.setCategory(null); showCatPicker = false }
-                            )
-                            state.categories.filter { it.type == catType && !it.archived }.forEach { cat ->
-                                DropdownMenuItem(
-                                    text    = { Text(cat.name) },
-                                    onClick = { viewModel.setCategory(cat.id); showCatPicker = false }
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -250,14 +238,27 @@ fun AddTransactionScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = accentColor
                 )
-                Text(
-                    text       = calc.displayExpr("₴"),
-                    fontSize   = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = accentColor,
-                    maxLines   = 1,
-                    overflow   = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text       = calc.displayExprNoSymbol(),
+                        fontSize   = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = accentColor,
+                        maxLines   = 1,
+                        overflow   = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text       = " $currencySymbol",
+                        fontSize   = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = accentColor,
+                        maxLines   = 1,
+                        modifier   = Modifier.clickable { showCurrencyPicker = true }
+                    )
+                }
             }
 
             // ── 4. Нотатки ────────────────────────────────────────────────────
@@ -275,11 +276,13 @@ fun AddTransactionScreen(
             // ── 5. Калькулятор ────────────────────────────────────────────────
             val keyBg = MaterialTheme.colorScheme.surfaceVariant
             SharedCalcKeypad(
-                calc          = calc,
-                modifier      = Modifier.weight(1f).fillMaxWidth(),
-                confirmColor  = accentColor,
-                onConfirm     = { onSave() },
-                row2ExtraKey  = {
+                calc            = calc,
+                modifier        = Modifier.weight(1f).fillMaxWidth(),
+                currencySymbol  = currencySymbol,
+                confirmColor    = accentColor,
+                onConfirm       = { onSave() },
+                onCurrencyClick = { showCurrencyPicker = true },
+                row2ExtraKey    = {
                     Box(
                         modifier = Modifier
                             .weight(1f).fillMaxHeight()
@@ -302,6 +305,38 @@ fun AddTransactionScreen(
                 modifier  = Modifier.fillMaxWidth().padding(vertical = 5.dp)
             )
         }
+    }
+
+    // Вибір категорії / рахунку-призначення
+    if (showCatPicker) {
+        CategoryPickerSheet(
+            expenseCategories = state.categories.filter { it.type == TransactionType.EXPENSE && !it.archived },
+            incomeCategories  = state.categories.filter { it.type == TransactionType.INCOME && !it.archived },
+            accounts          = state.accounts,
+            categorySpending  = emptyMap(),
+            currentType       = state.type,
+            onSelect   = { cat ->
+                viewModel.setType(cat.type)
+                viewModel.setCategory(cat.id)
+                showCatPicker = false
+            },
+            onTransfer = { acc ->
+                viewModel.setToAccount(acc.id)
+                viewModel.setType(TransactionType.TRANSFER)
+                showCatPicker = false
+            },
+            onDismiss  = { showCatPicker = false }
+        )
+    }
+
+    // Вибір валюти
+    if (showCurrencyPicker) {
+        CurrencyPickerSheet(
+            selected  = selectedCurrency,
+            title     = "Валюта транзакції",
+            onSelect  = { selectedCurrency = it; showCurrencyPicker = false },
+            onDismiss = { showCurrencyPicker = false }
+        )
     }
 
     // Вибір дати

@@ -44,7 +44,7 @@ import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.components.dialogs.ConfirmationDialog
-import org.pixelrush.moneyiq.ui.settings.CurrencyPageContent
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPageContent
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_CRYPTO
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_MAIN
 import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_OTHER

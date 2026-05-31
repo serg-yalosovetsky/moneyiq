@@ -35,11 +35,11 @@ data class BudgetUiState(
         BudgetSelMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
     },
     val appMonth:       AppMonth          = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
-    val daysInMonth:    Int              = 31,
-    val daysPassed:     Int              = 0,
-    val pillLabel:      String           = "",
-    val pillBadge:      String           = "31",
-    val totalBalance:   Double           = 0.0,
+    val daysInMonth:    Int               = 31,
+    val daysPassed:     Int               = 0,
+    val pillLabel:      String            = "",
+    val pillBadge:      String            = "31",
+    val totalBalance:   Double            = 0.0,
     val expenseSection: BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList()),
     val incomeSection:  BudgetSectionData = BudgetSectionData(0.0, 0.0, emptyList())
 )
@@ -56,9 +56,9 @@ class BudgetViewModel @Inject constructor(
     val state: StateFlow<BudgetUiState> = monthRepo.month.flatMapLatest { am ->
         val sel        = BudgetSelMonth(am.year, am.month)
         val (from, to) = monthRepo.computeRange(am)
-        val totalDays = monthRepo.daysInPeriod(am)
+        val totalDays  = monthRepo.daysInPeriod(am)
         val daysPassed = run {
-            val now = Calendar.getInstance()
+            val now      = Calendar.getInstance()
             val curYear  = now.get(Calendar.YEAR)
             val curMonth = now.get(Calendar.MONTH)
             when {
@@ -86,16 +86,8 @@ class BudgetViewModel @Inject constructor(
                 pillLabel      = monthRepo.pillLabel(am),
                 pillBadge      = monthRepo.pillBadge(am),
                 totalBalance   = rawBalance ?: 0.0,
-                expenseSection = BudgetSectionData(
-                    totalBudget = expCats.sumOf { it.budgetAmount },
-                    totalAmount = expRows.sumOf { it.amount },
-                    rows        = expRows
-                ),
-                incomeSection = BudgetSectionData(
-                    totalBudget = incCats.sumOf { it.budgetAmount },
-                    totalAmount = incRows.sumOf { it.amount },
-                    rows        = incRows
-                )
+                expenseSection = BudgetSectionData(expCats.sumOf { it.budgetAmount }, expRows.sumOf { it.amount }, expRows),
+                incomeSection  = BudgetSectionData(incCats.sumOf { it.budgetAmount }, incRows.sumOf { it.amount }, incRows)
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetUiState())
@@ -105,8 +97,8 @@ class BudgetViewModel @Inject constructor(
     fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
     fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
 
-    fun updateCategoryBudget(category: CategoryEntity, newBudget: Double) {
-        viewModelScope.launch { categoryRepo.update(category.copy(budgetAmount = newBudget)) }
+    fun updateCategoryBudget(category: CategoryEntity, newBudget: Double, currency: String = category.currencyCode) {
+        viewModelScope.launch { categoryRepo.update(category.copy(budgetAmount = newBudget, currencyCode = currency)) }
     }
 
     fun clearAllBudgets() {

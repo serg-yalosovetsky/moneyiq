@@ -4,15 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,107 +20,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet
-// ── CurrencyPickerSheet ───────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CurrencyPickerSheet(
-    selected:  String,
-    onSelect:  (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize()) {
-
-                // Top bar
-                Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.surface) {
-                    Row(
-                        modifier          = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 4.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, "Закрити")
-                        }
-                        Text(
-                            "Валюта рахунку",
-                            style      = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier   = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
-
-                var tab by remember { mutableIntStateOf(0) }
-                val tabLists = listOf(MAIN_CURRENCIES, OTHER_CURRENCIES, CRYPTO_CURRENCIES)
-                val tabLabels = listOf("Основні валюти", "Інші валюти", "Криптовалюти")
-                val tabIcons  = listOf<ImageVector>(
-                    Icons.Outlined.MonetizationOn,
-                    Icons.Outlined.CurrencyExchange,
-                    Icons.Outlined.Memory            // placeholder for crypto
-                )
-
-                TabRow(
-                    selectedTabIndex = tab,
-                    containerColor   = MaterialTheme.colorScheme.surface,
-                    contentColor     = MaterialTheme.colorScheme.primary
-                ) {
-                    tabLabels.forEachIndexed { i, label ->
-                        Tab(
-                            selected = tab == i,
-                            onClick  = { tab = i },
-                            icon     = { Icon(tabIcons[i], null, modifier = Modifier.size(20.dp)) },
-                            text     = { Text(label, style = MaterialTheme.typography.labelSmall) }
-                        )
-                    }
-                }
-
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(tabLists[tab]) { cur ->
-                        val isSelected = cur.code == selected
-                        ListItem(
-                            modifier          = Modifier.clickable { onSelect(cur.code) },
-                            leadingContent    = {
-                                RadioButton(
-                                    selected  = isSelected,
-                                    onClick   = { onSelect(cur.code) }
-                                )
-                            },
-                            headlineContent   = {
-                                Text(
-                                    cur.name,
-                                    color      = if (isSelected) MaterialTheme.colorScheme.primary
-                                                 else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                                )
-                            },
-                            trailingContent   = {
-                                Text(
-                                    cur.symbol,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            }
-                        )
-                        HorizontalDivider(
-                            modifier  = Modifier.padding(start = 56.dp),
-                            thickness = 0.5.dp,
-                            color     = MaterialTheme.colorScheme.outlineVariant
-                        )
-                    }
-                    item { Spacer(Modifier.height(32.dp)) }
-                }
-            }
-        }
-    }
-}
+import org.pixelrush.moneyiq.ui.components.icons.RoundedIconBox
 
 // ── TypePickerSheet ───────────────────────────────────────────────────────────
 
@@ -294,73 +193,6 @@ fun BalanceInputDialog(
     )
 }
 
-// ── Shared form helper composables ────────────────────────────────────────────
-
-@Composable
-fun FormSectionHeader(title: String) {
-    Text(
-        title,
-        modifier   = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp),
-        style      = MaterialTheme.typography.labelLarge,
-        color      = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold
-    )
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-@Composable
-fun FormNavRow(
-    icon:    ImageVector?,
-    label:   String,
-    value:   String = "",
-    onClick: () -> Unit
-) {
-    ListItem(
-        modifier          = Modifier.clickable(onClick = onClick),
-        leadingContent    = if (icon != null) {{
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-        }} else null,
-        headlineContent   = { Text(label) },
-        trailingContent   = if (value.isNotBlank()) {{
-            Text(
-                value,
-                color      = MaterialTheme.colorScheme.primary,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Normal
-            )
-        }} else null
-    )
-    HorizontalDivider(
-        modifier  = Modifier.padding(start = if (icon != null) 56.dp else 16.dp),
-        thickness = 0.5.dp,
-        color     = MaterialTheme.colorScheme.outlineVariant
-    )
-}
-
-@Composable
-fun FormValueRow(
-    label:   String,
-    value:   String,
-    onClick: () -> Unit
-) {
-    ListItem(
-        modifier        = Modifier.clickable(onClick = onClick),
-        headlineContent = { Text(label) },
-        trailingContent = {
-            Text(
-                value,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-    )
-    HorizontalDivider(
-        modifier  = Modifier.padding(start = 16.dp),
-        thickness = 0.5.dp,
-        color     = MaterialTheme.colorScheme.outlineVariant
-    )
-}
-
 // ── AccountActionSheet ────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -406,19 +238,12 @@ fun AccountActionSheet(
             ) {
                 // Іконка + назва зліва
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier         = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(onCard.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            accountIconFromKey(account.icon), null,
-                            tint     = onCard,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
+                    RoundedIconBox(
+                        icon     = accountIconFromKey(account.icon),
+                        color    = onCard.copy(alpha = 0.15f),
+                        iconSize = 28.dp,
+                        tint     = onCard
+                    )
                     Spacer(Modifier.width(12.dp))
                     Text(
                         account.name,

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,68 +29,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.components.calculator.AmountCalculatorSheet
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet
+import org.pixelrush.moneyiq.ui.components.form.FormNavRow
+import org.pixelrush.moneyiq.ui.components.form.FormSectionHeader
+import org.pixelrush.moneyiq.ui.components.form.FormValueRow
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 
-// ── Currency data ─────────────────────────────────────────────────────────────
-
-data class CurrencyInfo(val code: String, val name: String, val symbol: String)
-
-val MAIN_CURRENCIES = listOf(
-    CurrencyInfo("EUR", "Євро",                   "€"),
-    CurrencyInfo("AUD", "Австралійський долар",    "$"),
-    CurrencyInfo("GBP", "Британський фунт",        "£"),
-    CurrencyInfo("USD", "Долар США",               "$"),
-    CurrencyInfo("CAD", "Канадський долар",         "$"),
-    CurrencyInfo("CNY", "Китайський юань",          "¥"),
-    CurrencyInfo("RUB", "Російський рубль",         "₽"),
-    CurrencyInfo("UAH", "Українська гривня",        "₴"),
-    CurrencyInfo("CHF", "Швейцарський франк",       "Fr"),
-    CurrencyInfo("JPY", "Японська єна",             "¥"),
-)
-
-val OTHER_CURRENCIES = listOf(
-    CurrencyInfo("PLN", "Польський злотий",         "zł"),
-    CurrencyInfo("CZK", "Чеська крона",             "Kč"),
-    CurrencyInfo("HUF", "Угорський форинт",         "Ft"),
-    CurrencyInfo("RON", "Румунський лей",            "lei"),
-    CurrencyInfo("BGN", "Болгарський лев",           "лв"),
-    CurrencyInfo("DKK", "Датська крона",             "kr"),
-    CurrencyInfo("NOK", "Норвезька крона",           "kr"),
-    CurrencyInfo("SEK", "Шведська крона",            "kr"),
-    CurrencyInfo("TRY", "Турецька ліра",             "₺"),
-    CurrencyInfo("KZT", "Казахський тенге",          "₸"),
-    CurrencyInfo("GEL", "Грузинський ларі",          "₾"),
-    CurrencyInfo("AMD", "Вірменський драм",          "֏"),
-    CurrencyInfo("AZN", "Азербайджанський манат",    "₼"),
-    CurrencyInfo("BYN", "Білоруський рубль",         "Br"),
-    CurrencyInfo("MDL", "Молдовський лей",           "L"),
-    CurrencyInfo("ILS", "Ізраїльський шекель",       "₪"),
-    CurrencyInfo("AED", "Дирхам ОАЕ",               "د.إ"),
-    CurrencyInfo("INR", "Індійська рупія",           "₹"),
-    CurrencyInfo("KRW", "Корейська вона",            "₩"),
-    CurrencyInfo("SGD", "Сінгапурський долар",       "$"),
-    CurrencyInfo("HKD", "Гонконгський долар",        "HK$"),
-    CurrencyInfo("MXN", "Мексиканське песо",         "$"),
-    CurrencyInfo("BRL", "Бразильський реал",         "R$"),
-    CurrencyInfo("ZAR", "Південноафриканський ренд", "R"),
-)
-
-val CRYPTO_CURRENCIES = listOf(
-    CurrencyInfo("BTC",  "Bitcoin",    "₿"),
-    CurrencyInfo("ETH",  "Ethereum",   "Ξ"),
-    CurrencyInfo("USDT", "Tether",     "₮"),
-    CurrencyInfo("BNB",  "Binance Coin","BNB"),
-    CurrencyInfo("SOL",  "Solana",     "◎"),
-    CurrencyInfo("USDC", "USD Coin",   "USDC"),
-    CurrencyInfo("XRP",  "Ripple",     "XRP"),
-    CurrencyInfo("ADA",  "Cardano",    "₳"),
-    CurrencyInfo("DOGE", "Dogecoin",   "Ð"),
-    CurrencyInfo("TON",  "Toncoin",    "TON"),
-)
-
-private val ALL_CURRENCIES = MAIN_CURRENCIES + OTHER_CURRENCIES + CRYPTO_CURRENCIES
-
-fun currencyDisplayName(code: String): String = ALL_CURRENCIES.find { it.code == code }?.name ?: code
-fun currencySymbol(code: String): String = ALL_CURRENCIES.find { it.code == code }?.symbol ?: code
+fun currencyDisplayName(code: String): String = CURRENCIES_ALL.find { it.code == code }?.name ?: code
+fun currencySymbol(code: String): String      = CURRENCIES_ALL.find { it.code == code }?.symbol ?: code
 
 // ── Account type helpers (Ukrainian) ─────────────────────────────────────────
 
@@ -197,7 +144,7 @@ private fun AccountTypeOption(
 fun AccountFormSheet(
     initialType: AccountType = AccountType.CASH,
     existing:    org.pixelrush.moneyiq.data.db.entities.AccountEntity? = null,
-    onSave:      (name: String, type: AccountType, balance: Double, color: String, currency: String, description: String, includeInTotal: Boolean, icon: String) -> Unit,
+    onSave:      (name: String, type: AccountType, balance: Double, color: String, currency: String, description: String, includeInTotal: Boolean, icon: String, creditLimit: Double) -> Unit,
     onDismiss:   () -> Unit
 ) {
     var name           by remember { mutableStateOf(existing?.name ?: "") }
@@ -207,22 +154,25 @@ fun AccountFormSheet(
             existing?.balance?.let { if (it == 0.0) "" else it.toBigDecimal().stripTrailingZeros().toPlainString() } ?: ""
         )
     }
+    var creditLimit    by remember { mutableStateOf(existing?.creditLimit ?: 0.0) }
     var colorHex       by remember { mutableStateOf(existing?.colorHex ?: "#D81B60") }
     var iconKey        by remember { mutableStateOf(existing?.icon ?: "account_balance_wallet") }
     var currency       by remember { mutableStateOf(existing?.currency ?: "UAH") }
     var description    by remember { mutableStateOf(existing?.description ?: "") }
     var includeInTotal by remember { mutableStateOf(existing?.includeInTotal ?: true) }
 
-    var showIconColorPicker by remember { mutableStateOf(false) }
-    var showTypePicker      by remember { mutableStateOf(false) }
-    var showCurrencyPicker  by remember { mutableStateOf(false) }
-    var showDescEditor      by remember { mutableStateOf(false) }
-    var showBalanceInput    by remember { mutableStateOf(false) }
+    var showIconColorPicker  by remember { mutableStateOf(false) }
+    var showTypePicker       by remember { mutableStateOf(false) }
+    var showCurrencyPicker   by remember { mutableStateOf(false) }
+    var showDescEditor       by remember { mutableStateOf(false) }
+    var showBalanceInput     by remember { mutableStateOf(false) }
+    var showCreditLimitInput by remember { mutableStateOf(false) }
 
     val accentColor = remember(colorHex) {
         try { Color(android.graphics.Color.parseColor(colorHex)) }
         catch (_: Exception) { Color(0xFFD81B60) }
     }
+    val iconTint      = if (accentColor.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White
     val currencyLabel = "${currencyDisplayName(currency)} – ${currencySymbol(currency)}"
     val sym           = currencySymbol(currency)
 
@@ -254,7 +204,7 @@ fun AccountFormSheet(
                             onClick = {
                                 val b = balanceStr.replace(",", ".").toDoubleOrNull() ?: 0.0
                                 if (name.isNotBlank()) {
-                                    onSave(name, type, b, colorHex, currency, description, includeInTotal, iconKey)
+                                    onSave(name, type, b, colorHex, currency, description, includeInTotal, iconKey, creditLimit)
                                 }
                             },
                             shape           = RoundedCornerShape(50),
@@ -310,7 +260,7 @@ fun AccountFormSheet(
                                 ) {
                                     Icon(
                                         accountIconFromKey(iconKey), null,
-                                        tint     = Color.White,
+                                        tint     = iconTint,
                                         modifier = Modifier.size(28.dp)
                                     )
                                 }
@@ -359,8 +309,8 @@ fun AccountFormSheet(
                     item {
                         FormValueRow(
                             label   = "Кредитний ліміт",
-                            value   = "0 $sym",
-                            onClick = { /* TODO */ }
+                            value   = if (creditLimit == 0.0) "0 $sym" else "${creditLimit.toBigDecimal().stripTrailingZeros().toPlainString()} $sym",
+                            onClick = { showCreditLimitInput = true }
                         )
                     }
                     item {
@@ -429,6 +379,16 @@ fun AccountFormSheet(
                 showBalanceInput = false
             },
             onDismiss      = { showBalanceInput = false }
+        )
+    }
+
+    if (showCreditLimitInput) {
+        AmountCalculatorSheet(
+            initial        = creditLimit,
+            currencySymbol = sym,
+            title          = "Кредитний ліміт",
+            onResult       = { v -> creditLimit = v; showCreditLimitInput = false },
+            onDismiss      = { showCreditLimitInput = false }
         )
     }
 }

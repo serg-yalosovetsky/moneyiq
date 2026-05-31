@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.repository.*
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPageContent
 import org.pixelrush.moneyiq.ui.settings.data.*
 
 // ── Enum внутрішньої навігації ─────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 ﻿package org.pixelrush.moneyiq.ui.categories
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +36,10 @@ import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet
 import org.pixelrush.moneyiq.ui.components.calculator.*
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 import org.pixelrush.moneyiq.util.suggestCategoryStyle
 
 // ── Category Action Sheet ─────────────────────────────────────────────────────
@@ -242,7 +247,7 @@ private fun CatActionButton(
 fun QuickExpenseSheet(
     category:  CategoryEntity,
     accounts:  List<AccountEntity>,
-    onSave:    (accountId: Long, amount: Double, note: String, date: Long) -> Unit,
+    onSave:    (accountId: Long, amount: Double, note: String, date: Long, repeatMode: String, reminderMode: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val catColor = remember(category.colorHex) {
@@ -264,20 +269,38 @@ fun QuickExpenseSheet(
         mutableStateOf(accounts.firstOrNull { it.isDefault } ?: accounts.firstOrNull())
     }
     var selectedDate    by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDateSheet   by remember { mutableStateOf(false) }
-    var showRepeat      by remember { mutableStateOf(false) }
-    var showReminder    by remember { mutableStateOf(false) }
-    var showFullDate    by remember { mutableStateOf(false) }
-    var showAccSheet    by remember { mutableStateOf(false) }
+    var selectedCurrency  by remember { mutableStateOf(selectedAccount?.currency ?: "UAH") }
+    LaunchedEffect(selectedAccount?.currency) { selectedCurrency = selectedAccount?.currency ?: "UAH" }
+    val currencySymbol = CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency
+
+    var showDateSheet      by remember { mutableStateOf(false) }
+    var showRepeat         by remember { mutableStateOf(false) }
+    var showReminder       by remember { mutableStateOf(false) }
+    var showFullDate       by remember { mutableStateOf(false) }
+    var showAccSheet       by remember { mutableStateOf(false) }
+    var showCurrencyPicker by remember { mutableStateOf(false) }
     var repeatMode     by remember { mutableStateOf("NEVER") }
     var reminderMode   by remember { mutableStateOf("NEVER") }
+    var amountError    by remember { mutableStateOf(false) }
+
+    LaunchedEffect(amountError) {
+        if (amountError) { delay(600); amountError = false }
+    }
+
+    val amountDisplayColor by animateColorAsState(
+        targetValue    = if (amountError) MaterialTheme.colorScheme.error else displayColor,
+        animationSpec  = tween(150),
+        label          = "amountColor"
+    )
 
     // ── Логіка ────────────────────────────────────────────────────────────
     fun onConfirm() {
         val amt   = calc.result()
         val accId = selectedAccount?.id ?: return
         if (amt > 0.0) {
-            onSave(accId, amt, note.trim(), selectedDate)
+            onSave(accId, amt, note.trim(), selectedDate, repeatMode, reminderMode)
+        } else {
+            amountError = true
         }
     }
 
@@ -302,7 +325,7 @@ fun QuickExpenseSheet(
                 // Панель категорії (catColor bg)
                 @Composable
                 fun CatPanel(labelText: String, textAlign: Alignment.Horizontal, modifier: Modifier) {
-                    Box(modifier = modifier.fillMaxHeight().background(catColor)) {
+                    Box(modifier = modifier.fillMaxHeight().background(catColor).clickable { onDismiss() }) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -369,7 +392,7 @@ fun QuickExpenseSheet(
             }
 
             // ── 2. Відображення виразу / суми ─────────────────────────────
-            val displayText = calc.displayExpr("₴")
+            val displayText = calc.displayExpr(currencySymbol)
 
             Column(
                 modifier            = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -378,13 +401,13 @@ fun QuickExpenseSheet(
                 Text(
                     if (isIncome) "Дохід" else "Витрата",
                     style = MaterialTheme.typography.labelMedium,
-                    color = displayColor
+                    color = amountDisplayColor
                 )
                 Text(
                     text       = displayText,
                     fontSize   = 34.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = displayColor,
+                    color      = amountDisplayColor,
                     maxLines   = 1,
                     overflow   = TextOverflow.Ellipsis
                 )
@@ -405,10 +428,12 @@ fun QuickExpenseSheet(
             // ── 4. Клавіатура-калькулятор ─────────────────────────────────
             val keyBg = MaterialTheme.colorScheme.surfaceVariant
             SharedCalcKeypad(
-                calc         = calc,
-                modifier     = Modifier.weight(1f).fillMaxWidth(),
-                onConfirm    = { onConfirm() },
-                row2ExtraKey = {
+                calc            = calc,
+                modifier        = Modifier.weight(1f).fillMaxWidth(),
+                currencySymbol  = currencySymbol,
+                onCurrencyClick = { showCurrencyPicker = true },
+                onConfirm       = { onConfirm() },
+                row2ExtraKey    = {
                     // Кнопка календаря у правому куті 2-го рядка
                     Box(
                         modifier         = Modifier.weight(1f).fillMaxHeight()
@@ -430,6 +455,16 @@ fun QuickExpenseSheet(
                 modifier  = Modifier.fillMaxWidth().padding(vertical = 5.dp)
             )
         }
+    }
+
+    // ── Вибір валюти ─────────────────────────────────────────────────────────
+    if (showCurrencyPicker) {
+        CurrencyPickerSheet(
+            selected  = selectedCurrency,
+            title     = "Валюта транзакції",
+            onSelect  = { selectedCurrency = it; showCurrencyPicker = false },
+            onDismiss = { showCurrencyPicker = false }
+        )
     }
 
     // ── Вибір дати (аркуш) ────────────────────────────────────────────────────

@@ -46,10 +46,13 @@ fun BudgetScreen(
     val expenseColor        = Color(0xFFD81B60)
     val incomeColor         = Color(0xFF26A69A)
     val monthLabel          = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
-    var showSettingsSheet   by remember { mutableStateOf(false) }
-    var currentExpensesMode by remember { mutableStateOf(false) }
-    val settingsVisible     = showSettings || showSettingsSheet
-    var incomeBudgetRow     by remember { mutableStateOf<BudgetCatRow?>(null) }
+    var showSettingsSheet      by remember { mutableStateOf(false) }
+    var currentExpensesMode   by remember { mutableStateOf(false) }
+    val settingsVisible        = showSettings || showSettingsSheet
+    var showIncomeBudgetSheet  by remember { mutableStateOf(false) }
+    var incomeCatToEdit        by remember { mutableStateOf<BudgetCatRow?>(null) }
+
+    val effectiveIncomeBudget = state.incomeSection.totalBudget
 
     Column(
         modifier = Modifier
@@ -95,7 +98,7 @@ fun BudgetScreen(
                 SavingsSectionCard(
                     expenseTotal  = state.expenseSection.totalAmount,
                     incomeTotal   = state.incomeSection.totalAmount,
-                    incomeBudget  = state.incomeSection.totalBudget,
+                    incomeBudget  = effectiveIncomeBudget,
                     expenseBudget = state.expenseSection.totalBudget,
                     daysInMonth   = state.daysInMonth,
                     daysPassed    = state.daysPassed
@@ -115,27 +118,42 @@ fun BudgetScreen(
             }
         }
         IncomeBudgetBar(
-            incomeSection = state.incomeSection,
-            expenseTotal  = state.expenseSection.totalAmount,
-            onClick = {
-                val row = state.incomeSection.rows.firstOrNull { it.category.budgetAmount == 0.0 }
-                    ?: state.incomeSection.rows.firstOrNull()
-                incomeBudgetRow = row
+            effectiveIncomeBudget   = effectiveIncomeBudget,
+            expenseTotal            = state.expenseSection.totalAmount,
+            hasIncomeCategories     = state.incomeSection.rows.isNotEmpty(),
+            onClick                 = {
+                val rows = state.incomeSection.rows
+                if (rows.size == 1) incomeCatToEdit = rows.first()
+                else showIncomeBudgetSheet = true
             },
-            modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
+            modifier                = Modifier.padding(bottom = padding.calculateBottomPadding())
         )
     }
 
-    incomeBudgetRow?.let { row ->
+    if (showIncomeBudgetSheet) {
+        IncomeCategoryPickerSheet(
+            rows        = state.incomeSection.rows,
+            monthLabel  = monthLabel,
+            accentColor = incomeColor,
+            onPick      = { row ->
+                incomeCatToEdit       = row
+                showIncomeBudgetSheet = false
+            },
+            onDismiss   = { showIncomeBudgetSheet = false }
+        )
+    }
+
+    incomeCatToEdit?.let { row ->
         BudgetInputSheet(
             catRow      = row,
             monthLabel  = monthLabel,
             accentColor = incomeColor,
             amountLabel = "отримано",
-            onDismiss   = { incomeBudgetRow = null },
-            onConfirm   = { newBudget ->
-                viewModel.updateCategoryBudget(row.category, newBudget)
-                incomeBudgetRow = null
+            onIconClick = { incomeCatToEdit = null; showIncomeBudgetSheet = true },
+            onDismiss   = { incomeCatToEdit = null },
+            onConfirm   = { newBudget, currency ->
+                viewModel.updateCategoryBudget(row.category, newBudget, currency)
+                incomeCatToEdit = null
             }
         )
     }
@@ -230,7 +248,7 @@ private fun BudgetSectionCard(
     accentColor:         Color,
     monthLabel:          String,
     currentExpensesMode: Boolean = false,
-    onUpdateBudget:      (CategoryEntity, Double) -> Unit
+    onUpdateBudget:      (CategoryEntity, Double, String) -> Unit
 ) {
     var expanded    by remember { mutableStateOf(false) }
     var editingRow  by remember { mutableStateOf<BudgetCatRow?>(null) }
@@ -250,8 +268,8 @@ private fun BudgetSectionCard(
             accentColor = accentColor,
             amountLabel = amountLabel,
             onDismiss   = { editingRow = null },
-            onConfirm   = { newBudget ->
-                onUpdateBudget(row.category, newBudget)
+            onConfirm   = { newBudget, currency ->
+                onUpdateBudget(row.category, newBudget, currency)
                 editingRow = null
             }
         )
@@ -652,20 +670,20 @@ private fun SavingsSectionCard(
 
 @Composable
 private fun IncomeBudgetBar(
-    incomeSection: BudgetSectionData,
-    expenseTotal:  Double,
-    onClick:       () -> Unit,
-    modifier:      Modifier = Modifier
+    effectiveIncomeBudget: Double,
+    expenseTotal:          Double,
+    hasIncomeCategories:   Boolean,
+    onClick:               () -> Unit,
+    modifier:              Modifier = Modifier
 ) {
-    val hasBudget     = incomeSection.totalBudget > 0.0
-    val hasCategories = incomeSection.rows.isNotEmpty()
-    val overspend     = expenseTotal - incomeSection.totalBudget
+    val hasBudget      = effectiveIncomeBudget > 0.0
+    val overspend      = expenseTotal - effectiveIncomeBudget
     val overspendColor = Color(0xFFD81B60)
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (!hasBudget && hasCategories) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(if (hasIncomeCategories) Modifier.clickable(onClick = onClick) else Modifier),
         color = if (hasBudget && overspend > 0)
                     overspendColor.copy(alpha = 0.08f)
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
@@ -697,7 +715,7 @@ private fun IncomeBudgetBar(
                     }
                 }
                 hasBudget -> {
-                    val available = incomeSection.totalBudget - expenseTotal
+                    val available = effectiveIncomeBudget - expenseTotal
                     Text(
                         "Доступно в бюджеті: ${formatMoney(available)} ₴",
                         style      = MaterialTheme.typography.bodyMedium,

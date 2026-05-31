@@ -36,9 +36,27 @@ Several layouts intentionally mimic 1Money behavior, especially categories, mont
 
 `SettingsScreen` and `EditCategoriesScreen` are rendered as full-screen Compose overlays inside `MainScreen`, not as separate navigation destinations. This keeps the `NavGraph` minimal (only `Main` and `AddTx` routes). Do not add routes for settings or category editing.
 
-## ADR-010: Shared Calculator/Date Components Live In `ui/components/calculator`
+## ADR-010: Shared UI Components Live In `ui/components/`
 
-`CalcStateHolder`, `SharedCalcKeypad`, `AmountCalculatorSheet`, `CalcDateSheet`, `AccountPickerSheet`, and related helpers were extracted from `CategorySheets.kt` into `ui/components/calculator/`. Import calculator and date-picker components from `ui.components.calculator`, NOT from `ui.categories`.
+All reusable composables that are used across multiple feature packages must live in `ui/components/`, not inside a feature package. The `ui/components/` folder has four sub-packages:
+
+| Sub-package | File | Contents |
+|---|---|---|
+| `calculator/` | `CalcState.kt`, `CalcKeypad.kt`, `CalcDateSheet.kt` | `CalcStateHolder`, `SharedCalcKeypad`, `AmountCalculatorSheet`, `CalcDateSheet`, `AccountPickerSheet` |
+| `dialogs/` | `TextInputDialog.kt`, `ConfirmationDialog.kt` | Generic alert dialogs |
+| `currency/` | `CurrencyPicker.kt` | `CurrencyPickerSheet` (Dialog-based), `CurrencyPageContent` (bare column) |
+| `form/` | `FormComponents.kt` | `FormSectionHeader`, `FormNavRow`, `FormValueRow` |
+| `icons/` | `IconBox.kt` | `CircleIconBox`, `RoundedIconBox` |
+
+**`CurrencyPickerSheet`** — full-screen Dialog with 3 tabs (Main / Other / Crypto). Use when opening from a bottom sheet or form.
+
+**`CurrencyPageContent`** — bare `Column(fillMaxSize)`. Caller wraps in `Dialog` or uses as a navigation page (SettingsScreen).
+
+**`CircleIconBox(icon, color, boxSize=40dp, iconSize=20dp, tint=White, modifier)`** — icon in a colored circle. Default 40×20dp.
+
+**`RoundedIconBox(icon, color, cornerRadius=12dp, boxSize=48dp, iconSize=26dp, tint=White, modifier)`** — icon in a rounded rectangle.
+
+**Rule:** Do not define currency pickers, icon-in-circle boxes, or form row helpers inside feature packages. Import from `ui.components.*`. If a helper is used from only one file, keep it private in that file — move to components only when a second caller appears.
 
 ## ADR-011: ViewModels Live In Separate Files From Screens
 
@@ -285,29 +303,31 @@ projectedSavings  = incomeBudget - projectedExpenses
 
 Forecast is shown only when `daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0` (i.e., current month with some spend data). Past/future months show only actual savings. This is intentionally simple linear extrapolation — do not replace with complex models without a product decision.
 
-## ADR-030: EditCategoriesScreen Reuses CategoriesGridContent Without Badges (2026-05-31, updated 2026-05-31)
+## ADR-030: EditCategoriesScreen Reuses CategoriesGridContent Without Badges (2026-05-31)
 
-`EditCategoriesScreen` lives in `CategoryFormSheets.kt` (not a separate file). It is the full-screen "Редагувати категорії / Редагувати субкатегорії" overlay and reuses `CategoriesGridContent` directly.
+`EditCategoriesScreen` lives in **`EditCategoriesScreen.kt`** (its own file, not `CategoryFormSheets.kt`). It is the full-screen "Редагувати категорії" overlay and reuses `CategoriesGridContent` directly.
 
 Key constraints:
-- `childCounts = emptyMap()` is always passed — suppresses all +N subcategory badges.
+- `childCounts = emptyMap()` — suppresses all +N subcategory badges without requiring a new parameter on `CategoriesGridContent`.
 - Chip tap and long-press both open `CategoryFormSheet` for editing (not `QuickExpenseSheet`).
-- The "Субкатегорії" `TextButton` in the top bar toggles `showSubcategories`. **Title is context-sensitive**: `"Редагувати субкатегорії"` when `showSubcategories = true`, `"Редагувати категорії"` otherwise.
-- Subcategory mode uses **the same orbital layout** as category mode (donut centred, chips surrounding). `showChildBadge = !showSubcategories` throughout `CategoriesGridContent` — badges hidden for subcategories.
-- `topRow/midLeft/midRight/extCats` in `CategoriesGridContent` are now computed unconditionally from `display` (no `if (!showSubcategories)` guard). The if/else branch that rendered a full-width donut for subcategory mode was removed.
+- The "Субкатегорії" `TextButton` in the top bar toggles `showSubcategories` state, forwarded to `CategoriesGridContent` exactly as in the main screen.
 - The screen receives all data as parameters from `MainScreen` (no own ViewModel); mutations go through callbacks.
+
+File: `ui/categories/EditCategoriesScreen.kt`.
 
 ## ADR-031: Budget Savings Header Shows Budget-Based Savings, Not Cash-Flow Savings
 
-`SavingsSectionCard` header shows `incomeBudget − expenseTotal` (when a budget is set), not `incomeTotal − expenseTotal`.
+`SavingsSectionCard` header shows `effectiveIncomeBudget − expenseTotal` (when a budget is set), not `incomeTotal − expenseTotal`.
 
-**Reason:** `incomeTotal` is often 0 for most of the month (salary arrives once), making `incomeTotal − expenseTotal` a large misleading negative. `incomeBudget − expenseTotal` ("how much of your planned income remains after expenses") is the number users expect to see — it matches the "Доступно в бюджеті" bar at the bottom.
+**Reason:** `incomeTotal` is often 0 for most of the month (salary arrives once), making `incomeTotal − expenseTotal` a large misleading negative. `effectiveIncomeBudget − expenseTotal` ("how much of your planned income remains after expenses") is the number users expect to see — it matches the "Доступно в бюджеті" bar at the bottom.
+
+`effectiveIncomeBudget = incomeSection.totalBudget` — sum of per-category income `budgetAmount` values, computed in `BudgetScreen`, passed to both `SavingsSectionCard` and `IncomeBudgetBar` so they always agree.
 
 **Internal name split:**
 - `realSavings = incomeTotal − expenseTotal` — used only for the "збережено" subtitle label, and only when `incomeTotal > 0`
 - `actualSavings = if (incomeBudget > 0) incomeBudget − expenseTotal else realSavings` — drives the header
 
-**Rule:** Do not revert to `incomeTotal − expenseTotal` as the header without also replacing the bottom bar "Доступно в бюджеті" (which shows the same budget-based number). They must agree.
+**Rule:** Do not revert to `incomeTotal − expenseTotal` as the header without also replacing the bottom bar "Доступно в бюджеті". They must use the same budget source. Do not pass different income budget values to `SavingsSectionCard` and `IncomeBudgetBar` — both must receive `effectiveIncomeBudget`.
 
 ## ADR-032: CategoryFormSheet Title And Subcategory Section Are Context-Sensitive
 
@@ -324,9 +344,29 @@ Key constraints:
 
 New subcategory creation flow: caller sets `addSubcategoryTo = parent`, opens a new `CategoryFormSheet(forParentId = parent.id)`, on save calls `viewModel.add(..., parentId = parent.id)`. Single-parent uniqueness is enforced at the DB level by the `parentId` field — no UI-level deduplication needed.
 
-**Rule:** Do not add a nested subcategory level (subcategory of a subcategory). One level of hierarchy is the product constraint.
-
 **Rule:** Do not add nested subcategory levels (subcategory of a subcategory). One level of hierarchy is the product constraint.
+
+## ADR-036: Income Budget Is Per-Category, Declared Via BudgetInputSheet (2026-05-31)
+
+The "Введіть суму очікуваного доходу" bottom bar opens a **per-category income budget** flow, not a global budget stored in `SettingsRepository`.
+
+**Rationale:** Income budgets are declarative intentions ("I expect to receive 10 000 salary this month"). There is no account involved — money has not arrived yet, so no account balance should be touched. Using `CategoryEntity.budgetAmount` for income categories is the same mechanism already used for expense budgets, keeping the model uniform.
+
+**Entry-point routing** (in `BudgetScreen.kt`):
+- If income has exactly **1 category** → open `BudgetInputSheet` directly for that category.
+- If income has **2+ categories** → open `IncomeCategoryPickerSheet` (list of income categories) → user picks one → `BudgetInputSheet` opens for the chosen category.
+
+**`IncomeCategoryPickerSheet`** (`BudgetSheets.kt`): lists `state.incomeSection.rows` with category icon, name, "отримано N ₴" subtitle, and either the current budget amount or an `Add` icon as trailing.
+
+**`BudgetInputSheet`** is shared between expense and income categories. For income, `amountLabel = "отримано"` is passed so the subtitle reads "отримано N ₴" instead of "витрачено N ₴".
+
+**Storage:** `BudgetViewModel.updateCategoryBudget(category, newBudget, currency)` calls `categoryRepo.update(category.copy(budgetAmount = newBudget, currencyCode = currency))`. No `SettingsRepository` is involved.
+
+**`effectiveIncomeBudget`:** `state.incomeSection.totalBudget` — sum of `budgetAmount` across all income categories. No global fallback.
+
+**Rule:** Do not restore a global income budget in `SettingsRepository`. Both `IncomeBudgetBar` and `SavingsSectionCard` derive the income budget from `incomeSection.totalBudget` — no account is needed.
+
+**Rule:** Do not add account selection to `BudgetInputSheet` or `IncomeCategoryPickerSheet`. Declaring an income budget is not a transaction — it does not affect account balances.
 
 ## ADR-025: Overview List Falls Back To Transactions When No Categories
 
@@ -370,6 +410,76 @@ DonutChart(
 
 **Rule:** Do not pass the full `categories` list to DonutChart when `hasExpandedStrip == true`. Passing all categories while showing a strip makes the donut misleading — the expanded parent's slice stays dominant and the children are invisible in the ring.
 
+## ADR-035: Account Icons Show Currency Symbol Badge (2026-05-31)
+
+Every account icon has a small circular badge at the bottom-right corner showing the currency symbol (₴, $, €, £, ₿…). Symbol is resolved from `CURRENCIES_ALL` (130+ currencies in `ui/settings/data/CurrencyData.kt`), truncated to 2 chars. Falls back to the first 2 chars of the currency code.
+
+**Affected composables:**
+- `AccountIconBox` in `AccountsScreen.kt` — 20dp circle, 8sp Bold text
+- `AccountPickerSheet` in `CalcDateSheet.kt` — 16dp circle, 7sp Bold text
+
+**Rule:** The badge uses `MaterialTheme.colorScheme.surface` as background. Text color is adaptive — see ADR-037. The star badge (default account indicator, `Alignment.BottomStart`) and the currency badge (`Alignment.BottomEnd`) never overlap.
+
+## ADR-037: Adaptive Icon Tint For Light-Colored Account Backgrounds (2026-05-31)
+
+Account icons and card content that sit on `colorHex` background must use `luminance()` to choose a readable tint. White-on-white is unreadable when an account color is near `#FFFFFF`.
+
+**Pattern:**
+```kotlin
+val isLightBg  = accentColor.luminance() > 0.5f
+val iconTint   = if (isLightBg) Color(0xFF1C1B1F) else Color.White
+val badgeColor = if (isLightBg) Color(0xFF1C1B1F) else accentColor
+```
+
+**Why `0xFF1C1B1F`:** Material 3 "on-surface" dark token — near-black, readable on any light background including white.
+
+**Affected composables (as of 2026-05-31):**
+- `AccountIconBox` (`AccountsScreen.kt`) — icon tint + currency badge text
+- `AccountActionSheet` card (`AccountPickerSheets.kt`) — all card content (icon box bg, icon tint, name text, balance text, star icon) uses `onCard`
+- `AccountFormSheet` icon preview (`AccountSheets.kt`) — `iconTint`
+
+**Rule:** Never hardcode `tint = Color.White` on an icon or text where the background comes from `account.colorHex`. Always compute from `luminance()`. The threshold `> 0.5f` is a standard WCAG-adjacent approximation — do not lower it without measuring contrast ratios.
+
+## ADR-036: Subcategory Mode Shows Only Subcategories (2026-05-31)
+
+`showSubcategories = true` must display **only items with `parentId != null`**. Before this fix, the main `CategoriesScreen` passed `allCategoriesForTab` (all categories, including roots) to `CategoriesGridContent`, and the `sorted` algorithm grouped roots with their children — causing root categories to appear interleaved with subcategories.
+
+**Fix — two changes:**
+
+1. **`CategoriesScreen.kt`** (main screen): `categories` is now filtered to subcategories only when in subcategory mode:
+   ```kotlin
+   val categories = if (!state.showSubcategories) {
+       allCategoriesForTab.filter { it.parentId == null }
+   } else {
+       allCategoriesForTab.filter { it.parentId != null }
+   }
+   ```
+   `EditCategoriesScreen` already applied this filter correctly.
+
+2. **`CategoriesGridContent`**: Removed the complex `sorted` grouping (`roots.flatMap { [root] + children } + orphans`). Replaced with a simple sort:
+   ```kotlin
+   val sorted = categories.sortedByDescending { spending[it.id] ?: 0.0 }
+   ```
+   `parentColors` now resolves parent colors from `allCategoriesForTab` (which still contains all categories) instead of from `categories` (which no longer contains roots in subcategory mode).
+
+**Rule:** Do not restore the `roots.flatMap { }` grouping logic. The caller is responsible for passing the correct set of categories — `CategoriesGridContent` just sorts and renders what it receives.
+
+## ADR-034: AccountsScreen Action Callbacks Are Wired In MainScreen (2026-05-31)
+
+`AccountsScreen` exposes four action callbacks — `onViewTx`, `onAddIncome`, `onAddExpense`, `onAddTransfer` — that default to `{}` if not passed. Prior to this fix they were omitted from the `AccountsScreen` call in `MainScreen`, making four of the six `AccountActionSheet` buttons silently do nothing.
+
+**Current wiring** (in `MainScreen.kt`):
+```kotlin
+onViewTx      = { scope.launch { pagerState.animateScrollToPage(txTabIndex) } }
+onAddIncome   = { onAddTransaction() }
+onAddExpense  = { onAddTransaction() }
+onAddTransfer = { onAddTransaction() }
+```
+
+**Known limitation:** The `AccountEntity` parameter is available in each callback but is not forwarded to the `AddTransaction` screen. All three transaction-creation actions open the form without a pre-selected account. To fix this, the NavGraph route or `AddTransactionScreen` would need to accept an `accountId` argument.
+
+**Rule:** When adding new action callbacks to `AccountsScreen`, always wire them in `MainScreen` — never leave them at the default `{}`. A silent no-op is indistinguishable from a crash to the user.
+
 ## ADR-034: Overview Screen Uses `categoryIconFor` From `CategoryIcons.kt` (2026-05-31)
 
 `OverviewScreen.kt` previously had its own local `iconVectorFor()` function with only 13 icon mappings. Any icon name not in that list fell back to `Icons.Default.Category` — causing wrong icons for "Переказ" (transfer), "Доставка" (delivery), "AliExpress" (aliexpress), "Електроніка" (devices), and others.
@@ -377,3 +487,235 @@ DonutChart(
 **Fix:** Removed `iconVectorFor()` from `OverviewScreen.kt`. Now calls `categoryIconFor(iconName)` from `org.pixelrush.moneyiq.ui.categories.CategoryIcons`, which covers all 48 icon keys. `categoryIconFor` was changed from `internal` to `public` to allow cross-package access.
 
 **Rule:** Do not add a new local icon mapper in any screen file. Always call `categoryIconFor()` from `CategoryIcons.kt`. If a new icon key is added to the app, add it to `CATEGORY_ICONS_LIST` in `CategoryIcons.kt` — that is the single source of truth for all icon name → vector mappings.
+
+## ADR-038: AccountEntity Has Credit Limit Field Stored In DB (2026-05-31)
+
+`AccountEntity.creditLimit: Double` (default `0.0`) stores the credit limit for card/debt accounts. Added via migration 26→27 (`ALTER TABLE accounts ADD COLUMN creditLimit REAL NOT NULL DEFAULT 0.0`).
+
+**UI wiring:**
+- "Кредитний ліміт" row in `AccountFormSheet` ("Баланс" section) opens `AmountCalculatorSheet` on tap
+- State is `var creditLimit by remember { mutableStateOf(existing?.creditLimit ?: 0.0) }`
+- Included as the **9th parameter** of `onSave` in `AccountFormSheet`
+- All callers (`AccountsScreen.kt`, `MainScreen.kt`) destructure and forward it
+
+**Rule:** The `AccountFormSheet.onSave` callback has 9 parameters as of migration 26→27. Do not add new fields to `AccountEntity` without: (1) adding a migration, (2) updating `onSave` and all callers, (3) updating this doc and `DB_SCHEMA.md`.
+
+## ADR-039: AddTransactionScreen Currency Key Opens CurrencyPickerSheet (2026-05-31)
+
+The currency symbol key in `AddTransactionScreen`'s `SharedCalcKeypad` opens `CurrencyPickerSheet` so the user can override the transaction's display currency.
+
+**State pattern:**
+```kotlin
+var selectedCurrency by remember { mutableStateOf(fromAccount?.currency ?: "UAH") }
+LaunchedEffect(fromAccount?.currency) { selectedCurrency = fromAccount?.currency ?: "UAH" }
+val currencySymbol = remember(selectedCurrency) {
+    CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency
+}
+```
+
+**`CurrencyPickerSheet` change:** Added `title: String = "Валюта рахунку"` parameter so the sheet can be reused across contexts. Default is unchanged; `AddTransactionScreen` passes "Валюта транзакції".
+
+**Rule:** `selectedCurrency` is UI-only display state — `TransactionEntity` has no `currency` field. Do not persist it to the DB without adding a migration and a new entity field.
+
+**Rule:** Account-switch resets `selectedCurrency` to the new account's currency via `LaunchedEffect(fromAccount?.currency)`. This is intentional — the account is the natural source of currency for a transaction.
+
+## ADR-035: CategoryFormSheet Has Per-Category Currency Picker (2026-05-31)
+
+`CategoryFormSheet` includes a "Валюта категорії" `ListItem` row in the "Налаштування" section. Tapping it opens `CurrencyPageContent` as a full-screen `Dialog` overlay — the same pattern used by `ColorIconPickerSheet`.
+
+- `currencyCode: String` state defaults to `"UAH"` (or `existing?.currencyCode` when editing). Stored in `CategoryEntity.currencyCode`.
+- The row's `supportingContent` shows the live label looked up from `CURRENCIES_MAIN + CURRENCIES_OTHER + CURRENCIES_CRYPTO` (e.g. `"Українська гривня – ₴"`).
+- `CurrencyPageContent` (in `SettingsSubScreens.kt`) has an optional `title: String = "Валюта за замовчуванням"` param. Called with `title = "Валюта категорії"`.
+- `onSave` lambda signature has `currencyCode: String` as the **8th parameter** (after `archived`).
+- `CategoriesViewModel.add()` has `currencyCode: String = "UAH"` and `parentId: Long? = null` params.
+- `MainScreen` `onSave` lambda destructures `currency` and passes it to both `existing.copy(currencyCode = currency)` and `categoriesViewModel.add(..., currencyCode = currency)`.
+
+DB: `CategoryEntity.currencyCode TEXT NOT NULL DEFAULT 'UAH'` added via migration 20→21.
+
+## ADR-035: Extended Icon Set And `repairIconKeys()` Startup Migration (2026-05-31)
+
+14 new icon keys were added to `CATEGORY_ICONS_LIST` in `CategoryIcons.kt` to cover categories that previously showed the generic `Category` fallback icon (triangle+square):
+
+| Key | Material Icon | For |
+|---|---|---|
+| `server` | `Storage` | Хостінг, VPS |
+| `flower` | `LocalFlorist` | Квіти |
+| `souvenir` | `Redeem` | Сувеніри (distinct from gift/`CardGiftcard`) |
+| `store` | `Storefront` | Rozetka, eBay, Маркетплейс |
+| `shoes` | `AutoMirrored.DirectionsWalk` | Взуття |
+| `tools` | `Build` | Інструменти |
+| `hardware` | `Foundation` | Будматеріали |
+| `toys` | `SmartToy` | Іграшки |
+| `fitness` | `FitnessCenter` | Спортивні товари |
+| `dental` | `Healing` | Стоматолог |
+| `train` | `Train` | Залізниця |
+| `hotel` | `Hotel` | Готель |
+| `book` | `MenuBook` | Книги |
+| `auto_parts` | `Handyman` | Автозапчастини |
+
+**Why:** Many user-created and MonoFlow-imported categories had icon keys not in `CATEGORY_ICONS_LIST`, so the UI showed a generic icon. Some seeder categories also had wrong keys (e.g., "взуття" → "clothes" hanger, "краса" → "shopping" cart).
+
+**`repairIconKeys()` in `CategoryRepository`:** Called in `MoneyIQApp.seedInitialData()` on every app start (idempotent). It:
+1. Applies name-based overrides (e.g., "взуття" → "shoes", "stomatolog" → "dental", "ebay" → "store") regardless of current stored key.
+2. For any remaining category whose icon key is not in `validKeys` set, re-runs `suggestCategoryStyle(name, type)` and updates the DB.
+
+**Rule:** When adding a new icon key to `CATEGORY_ICONS_LIST`, also add it to the `validKeys` set inside `repairIconKeys()` and to `iconColorMap` in `CategoryStyleUtil.kt`. All three must stay in sync. Do not add icon keys to `CATEGORY_ICONS_LIST` without a corresponding `suggestCategoryStyle` rule — otherwise auto-suggest will never assign the new key to new categories.
+
+## ADR-040: BudgetInputSheet Has In-Sheet Currency Picker (2026-05-31)
+
+`BudgetInputSheet` (used for both expense and income category budgets) allows the user to change the budget currency via the currency key in `SharedCalcKeypad`.
+
+**State:**
+- `pickedCurrency` initialised from `catRow.category.currencyCode`, resynced via `LaunchedEffect(catRow.category.id)`.
+- `currencySymbol` derived from `CURRENCIES_ALL` lookup.
+
+**Currency picker:** `onCurrencyClick = { showCurrencyPicker = true }` is passed to `SharedCalcKeypad`. Tapping the currency key opens a full-screen `Dialog` (`usePlatformDefaultWidth = false`) containing `CurrencyPageContent` (3 tabs: Основні / Інші / Крипто — 130+ currencies). The Dialog is placed **after** the main `ModalBottomSheet` in the composition tree so it renders on top. A previous implementation used a nested `ModalBottomSheet` — it silently appeared behind the main sheet and was invisible to the user.
+
+**`SharedCalcKeypad` parameter:** `onCurrencyClick: (() -> Unit)? = null`. When non-null, the currency key uses `primaryContainer` background (interactive cue); when null, `surfaceVariant` (inert).
+
+**`onConfirm` callback:** `(Double, String) -> Unit` — both the new budget amount and the selected currency code are passed to the caller.
+
+**Rule:** Do not use `remember(someState?.property)` for deriving a symbol from a nested state object — use a separate `var` state with a `LaunchedEffect` sync instead. The `remember` pattern misses the initial render when the parent state is already set.
+
+**Rule:** `BudgetInputSheet` owns the currency picker for category budgets. The initial currency comes from the category entity — the user may override it per-session but the change only persists when they confirm.
+
+**Rule:** Do not use a nested `ModalBottomSheet` for a picker that must appear on top of another `ModalBottomSheet`. Compose renders composables in declaration order — a sheet declared before the parent sheet appears behind it. Always use `Dialog(properties = DialogProperties(usePlatformDefaultWidth = false))` for overlays on top of sheets.
+
+## ADR-040: Amount Display Currency Symbol Is A Separate Clickable Text (2026-05-31)
+
+The "0 ₴" amount row in `AddTransactionScreen` is a `Row` containing **two separate `Text` composables**, not one combined string:
+
+```kotlin
+Row(verticalAlignment = CenterVertically) {
+    Text(calc.displayExprNoSymbol(), fontSize = 34.sp, ...)     // numeric — not clickable
+    Text(" $currencySymbol", fontSize = 34.sp,                  // symbol — clickable
+        modifier = Modifier.clickable { showCurrencyPicker = true })
+}
+```
+
+This gives the user a second tap target for `CurrencyPickerSheet`, in addition to the keyboard currency key already documented in ADR-039.
+
+**`CalcStateHolder.displayExprNoSymbol()`** (new method): returns the numeric expression without the symbol. `displayExpr(symbol)` now delegates to it: `"${displayExprNoSymbol()} $symbol"`. All existing callers of `displayExpr` are unaffected — output is identical.
+
+**Rule:** Do not collapse the numeric and symbol parts back into a single `Text`. A monolithic string cannot carry a partial tap target. If the amount row needs interactive behaviour, keep the symbol as a separate composable.
+
+## ADR-041: CategoryPickerSheet Simplified Mode Via `currentType` (2026-05-31)
+
+`CategoryPickerSheet` previously always showed 3 tabs (Income / Expense / Transfer) regardless of context. `AddTransactionScreen` needed a version that opens directly to the current transaction type without letting the user change type via tabs.
+
+**Decision:** Add `currentType: TransactionType? = null` parameter. When non-null, the sheet renders in **simplified mode**: no `TabRow`, single type header row, smaller height (55% vs 67% screen). Category grid or account list shown based on `currentType`. When null — full 3-tab layout (default, used by search and other callers).
+
+**`AddTransactionScreen` right-panel migration:**
+- Before: `DropdownMenu` for both category and transfer to-account.
+- After: `CategoryPickerSheet(currentType = state.type)` — one sheet handles all three types.
+- Right panel label: "До категорії" for EXPENSE/INCOME, "На рахунок" for TRANSFER.
+- `onSelect` callback also calls `viewModel.setType(cat.type)` to keep type in sync with the chosen category.
+
+**`initialTab: Int = 1`** (default = Expense tab, index 1): used by full-tab callers to open the correct tab based on context.
+
+**Rule:** Do not revert to `DropdownMenu` for category or transfer-account selection in `AddTransactionScreen`. The `CategoryPickerSheet` path provides consistent UX (search, spending amounts, account list) that a `DropdownMenu` cannot.
+
+**Rule:** Do not add a 4th tab or nested navigation inside `CategoryPickerSheet`. Complex category browsing belongs in `EditCategoriesScreen` (full-screen). The picker is a quick selection surface only.
+
+## ADR-042: Repeat Transaction Feature — Full Stack (2026-05-31)
+
+Повторение и напоминания для транзакций реализованы end-to-end. До этого ADR они были UI-only stubs (данные терялись при подтверждении).
+
+### DB (migration 27→28)
+
+```
+transactions.repeatMode:     TEXT NOT NULL DEFAULT 'NEVER'
+transactions.reminderMode:   TEXT NOT NULL DEFAULT 'NEVER'
+transactions.nextRepeatDate: INTEGER (nullable Long)
+```
+
+`nextRepeatDate` — UTC timestamp следующего автоматически создаваемого вхождения. `null` = обычная транзакция или серия исчерпана.
+
+### Жизненный цикл
+
+1. Пользователь выбирает `repeatMode` / `reminderMode` через `CalcDateSheet → RepeatDialog / ReminderDialog` в `QuickExpenseSheet`.
+2. `onSave(accountId, amount, note, date, repeatMode, reminderMode)` (6 параметров) передаёт данные в `CategoriesViewModel.recordTransaction` / `TransactionsListViewModel.recordTransaction`.
+3. ViewModel вычисляет `nextRepeatDate = calculateNextRepeatDate(date, repeatMode)` и сохраняет все 3 поля в `TransactionEntity`.
+4. `RepeatTransactionWorker` (ежесуточно в 00:01 + при каждом старте приложения):
+   - Находит `nextRepeatDate <= today` → создаёт копию транзакции с `date = nextRepeatDate`, `nextRepeatDate = следующее`, обновляет баланс счёта (`AccountDao.updateBalance`), сбрасывает `nextRepeatDate = NULL` у «использованного» шаблона.
+   - Повторяет пока не закончатся просроченные вхождения (catch-up за несколько дней без запуска).
+   - Для транзакций с `reminderMode != 'NEVER'`: если `startOfDay(nextRepeatDate - offset_days) == today` → отправляет уведомление в канале `moneyiq_repeat_reminder`.
+
+### Ключевые артефакты
+
+| Файл | Роль |
+|---|---|
+| `util/RepeatUtil.kt` | `calculateNextRepeatDate`, `startOfDay`, `reminderOffsetDays` |
+| `workers/RepeatTransactionWorker.kt` | Воркер; Hilt EntryPoint (`TransactionDao`, `AccountDao`) |
+| `TransactionDao` | `getDueRepeatTransactions(today)`, `clearNextRepeatDate(id)`, `getTransactionsWithReminder()` |
+
+### UX-исправление: нулевая сумма
+
+`QuickExpenseSheet.onConfirm()` теперь при `amt == 0.0` устанавливает `amountError = true`, что запускает `animateColorAsState(error)` с флэшем на 600мс, вместо молчаливого игнорирования нажатия.
+
+### Правила
+
+**Rule:** `nextRepeatDate` — всегда дата БУДУЩЕГО вхождения. После создания вхождения оно обнуляется у шаблона. Никогда не читайте его как «дата последнего создания».
+
+**Rule:** Баланс счёта в воркере обновляется inline (дублирует логику `TransactionRepository.addTransaction`). При изменении логики баланса в репозитории — синхронизировать с воркером.
+
+**Rule:** `QuickExpenseSheet.onSave` имеет 6 параметров. `TransferQuickSheet` и `AddTransactionScreen` используют свои независимые save-пути и не включают repeat (Transfer и AddTx form — отдельный UX).
+
+**Rule:** `BackupSerializer` сериализует новые поля. При восстановлении из старого бэкапа (без полей) используются `optString/optLong` с дефолтами `"NEVER"` / `null` — обратная совместимость гарантирована.
+
+## ADR-043: EditCategoriesScreen Subcategories Filter Fix (2026-05-31)
+
+**Problem:** In `EditCategoriesScreen`, switching to "Субкатегорії" mode showed ALL categories (roots + children) instead of only child categories.
+
+**Root cause:** `localCats.toList()` returned the full list without filtering. The linter periodically rewrites `EditCategoriesScreen.kt` and resets the fix.
+
+**Fix (line ~62):**
+```kotlin
+val categories = if (!showSubcategories)
+    localCats.filter { it.parentId == null }
+else
+    localCats.filter { it.parentId != null }  // was: localCats.toList()
+```
+
+**Rule:** If the linter rewrites `EditCategoriesScreen.kt`, the `else` branch for `showSubcategories` must filter `parentId != null`. `localCats.toList()` (unfiltered) is always wrong in this branch.
+
+## ADR-044: BudgetInputSheet — Icon Click + Currency Picker (2026-05-31)
+
+`BudgetInputSheet` (category budget entry, `BudgetSheets.kt`) gained two new capabilities:
+
+**1. Category icon click (`onIconClick: (() -> Unit)? = null`)**
+- The floating icon circle (top-right) becomes clickable when `onIconClick` is non-null.
+- In `BudgetScreen`, income `BudgetInputSheet` wires `onIconClick = { incomeCatToEdit = null; showIncomeBudgetSheet = true }` — tapping the icon returns to the income category picker.
+- Expense `BudgetInputSheet` (inside `BudgetSectionCard`) does not pass `onIconClick` (defaults to null = inert).
+
+**2. Currency picker**
+- `var pickedCurrency by remember { mutableStateOf(catRow.category.currencyCode) }`
+- `LaunchedEffect(catRow.category.id)` syncs when the row changes.
+- `currencySymbol` derived directly (not via `remember(key)` — avoids anti-pattern).
+- `onCurrencyClick = { showCurrencyPicker = true }` passed to `SharedCalcKeypad`.
+- Currency picker lists `CURRENCIES_MAIN`; selecting updates `pickedCurrency` and closes.
+- `onConfirm` signature: `(Double, String) -> Unit` — passes `(amount, currency)`.
+- `BudgetViewModel.updateCategoryBudget` now accepts optional `currency: String = category.currencyCode` and saves `currencyCode` alongside `budgetAmount`.
+
+**Rule:** `onConfirm` in `BudgetInputSheet` always passes both amount AND currency. Any new caller must handle both params.
+
+## ADR-045: QuickExpenseSheet — Category Panel Click + Currency (2026-05-31)
+
+`QuickExpenseSheet` (`ui/categories/CategorySheets.kt`) was the actual screen behind the "add transaction" quick entry (opened by tapping a category chip in the categories grid or transactions list). Not `AddTransactionScreen`, which is a separate full-screen navigation destination.
+
+**Changes:**
+
+**1. Category panel clickable**
+- `CatPanel` (the right colored panel showing category name/icon) now has `.clickable { onDismiss() }`.
+- Tapping it dismisses the sheet, returning the user to the categories grid to pick a different category.
+
+**2. Currency support**
+- `var selectedCurrency` initialised from `selectedAccount?.currency ?: "UAH"`.
+- `LaunchedEffect(selectedAccount?.currency)` syncs when account changes.
+- `val currencySymbol = CURRENCIES_ALL.find { it.code == selectedCurrency }?.symbol ?: selectedCurrency`
+- `calc.displayExpr(currencySymbol)` — amount display uses correct symbol.
+- `SharedCalcKeypad(currencySymbol = currencySymbol, onCurrencyClick = { showCurrencyPicker = true }, ...)` — ₴ key highlighted and interactive.
+- `CurrencyPickerSheet` shown when `showCurrencyPicker = true`.
+- Imports added: `CurrencyPickerSheet`, `CURRENCIES_ALL`.
+
+**Rule:** Always check `CategorySheets.kt / QuickExpenseSheet` (not `AddTransactionScreen`) when debugging the quick-entry transaction sheet opened from the categories grid or `TransactionsListScreen`.

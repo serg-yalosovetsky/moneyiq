@@ -15,12 +15,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import org.pixelrush.moneyiq.ui.components.calculator.SharedCalcKeypad
 import org.pixelrush.moneyiq.ui.components.calculator.rememberCalcState
 import org.pixelrush.moneyiq.ui.main.formatMoney
+import org.pixelrush.moneyiq.ui.components.currency.CurrencyPageContent
+import org.pixelrush.moneyiq.ui.components.icons.CircleIconBox
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 
 // ── Діалог введення бюджету категорії ────────────────────────────────────────
 
@@ -31,17 +39,25 @@ internal fun BudgetInputSheet(
     monthLabel:  String,
     accentColor: Color,
     amountLabel: String = "витрачено",
+    onIconClick: (() -> Unit)? = null,
     onDismiss:   () -> Unit,
-    onConfirm:   (Double) -> Unit
+    onConfirm:   (Double, String) -> Unit
 ) {
     val catColor = remember(catRow.category.colorHex) {
         try { Color(android.graphics.Color.parseColor(catRow.category.colorHex)) }
         catch (_: Exception) { accentColor }
     }
+    val isLightBg    = catColor.luminance() > 0.5f
+    val onCatColor   = if (isLightBg) Color(0xFF1C1B1F) else Color.White
+    val displayColor = if (isLightBg) Color(0xFF1C1B1F) else catColor
 
-    // ── Стан калькулятора ─────────────────────────────────────────────────
-    val calc        = rememberCalcState(catRow.category.budgetAmount)
-    val displayText = calc.displayExpr("₴")
+    var pickedCurrency     by remember { mutableStateOf(catRow.category.currencyCode) }
+    var showCurrencyPicker by remember { mutableStateOf(false) }
+    LaunchedEffect(catRow.category.id) { pickedCurrency = catRow.category.currencyCode }
+    val currencySymbol = CURRENCIES_ALL.find { it.code == pickedCurrency }?.symbol ?: pickedCurrency
+
+    val calc           = rememberCalcState(catRow.category.budgetAmount)
+    val displayText    = calc.displayExpr(currencySymbol)
     val budgetProgress = if (catRow.category.budgetAmount > 0.0) {
         (catRow.amount / catRow.category.budgetAmount).toFloat().coerceIn(0f, 1f)
     } else {
@@ -60,7 +76,7 @@ internal fun BudgetInputSheet(
                 Box(
                     Modifier.size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.35f))
+                        .background(onCatColor.copy(alpha = 0.35f))
                 )
             }
         }
@@ -69,17 +85,15 @@ internal fun BudgetInputSheet(
             Column(Modifier.fillMaxWidth()) {
                 Spacer(Modifier.height(22.dp))
 
-                // Назва категорії
                 Text(
                     catRow.category.name,
                     modifier   = Modifier.padding(horizontal = 20.dp),
                     style      = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color      = Color.White
+                    color      = onCatColor
                 )
                 Spacer(Modifier.height(10.dp))
 
-                // Місяць + суми
                 Row(
                     modifier          = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -87,28 +101,28 @@ internal fun BudgetInputSheet(
                     Column(Modifier.weight(1f)) {
                         Text(monthLabel,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.9f))
+                            color = onCatColor.copy(alpha = 0.9f))
                         Text("$amountLabel ${formatMoney(catRow.amount)} ₴",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f))
+                            color = onCatColor.copy(alpha = 0.7f))
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = Color.White.copy(alpha = 0.22f)
+                            color = onCatColor.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 "${formatMoney(catRow.amount)} ₴",
                                 modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style      = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color      = Color.White
+                                color      = onCatColor
                             )
                         }
                         Spacer(Modifier.height(2.dp))
                         Text("в бюджеті ${formatMoney(catRow.category.budgetAmount)} ₴",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f))
+                            color = onCatColor.copy(alpha = 0.7f))
                     }
                 }
 
@@ -121,13 +135,12 @@ internal fun BudgetInputSheet(
                         .padding(horizontal = 20.dp)
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
-                    color      = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.25f)
+                    color      = onCatColor,
+                    trackColor = onCatColor.copy(alpha = 0.25f)
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                // Белая секция с клавиатурой
                 Column(
                     modifier            = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -136,29 +149,30 @@ internal fun BudgetInputSheet(
                     Text(
                         "Бюджет на місяць",
                         style = MaterialTheme.typography.labelLarge,
-                        color = catColor
+                        color = displayColor
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text       = displayText,
                         style      = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color      = catColor,
+                        color      = displayColor,
                         maxLines   = 1,
-                        overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow   = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(8.dp))
                     SharedCalcKeypad(
-                        calc         = calc,
-                        modifier     = Modifier.fillMaxWidth().height(252.dp),
-                        confirmColor = catColor,
-                        onConfirm    = { onConfirm(calc.result()) }
+                        calc            = calc,
+                        modifier        = Modifier.fillMaxWidth().height(252.dp),
+                        currencySymbol  = currencySymbol,
+                        confirmColor    = displayColor,
+                        onCurrencyClick = { showCurrencyPicker = true },
+                        onConfirm       = { onConfirm(calc.result(), pickedCurrency) }
                     )
                     Spacer(Modifier.height(24.dp))
                 }
             }
 
-            // FAB-иконка категории в правом верхнем углу
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -167,13 +181,109 @@ internal fun BudgetInputSheet(
                     .size(72.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape),
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape)
+                    .then(if (onIconClick != null) Modifier.clickable(onClick = onIconClick) else Modifier),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     resolvedCatIcon(catRow.category.icon, catRow.category.name, catRow.category.type), null,
                     modifier = Modifier.size(34.dp),
-                    tint     = catColor
+                    tint     = displayColor
+                )
+            }
+        }
+    }
+
+    if (showCurrencyPicker) {
+        Dialog(
+            onDismissRequest = { showCurrencyPicker = false },
+            properties       = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            CurrencyPageContent(
+                title    = "Валюта бюджету",
+                selected = pickedCurrency,
+                onSelect = { code -> pickedCurrency = code; showCurrencyPicker = false },
+                onClose  = { showCurrencyPicker = false }
+            )
+        }
+    }
+}
+
+// ── Picker дохідних категорій ─────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun IncomeCategoryPickerSheet(
+    rows:        List<BudgetCatRow>,
+    monthLabel:  String,
+    accentColor: Color,
+    onPick:      (BudgetCatRow) -> Unit,
+    onDismiss:   () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor   = MaterialTheme.colorScheme.surface
+    ) {
+        Text(
+            "Бюджет доходів",
+            modifier   = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            style      = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            monthLabel,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+            style    = MaterialTheme.typography.bodySmall,
+            color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+        )
+        LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
+            items(rows) { row ->
+                val catColor = remember(row.category.colorHex) {
+                    try { Color(android.graphics.Color.parseColor(row.category.colorHex)) }
+                    catch (_: Exception) { accentColor }
+                }
+                ListItem(
+                    modifier       = Modifier.clickable { onPick(row) },
+                    leadingContent = {
+                        CircleIconBox(
+                            icon  = resolvedCatIcon(row.category.icon, row.category.name, row.category.type),
+                            color = catColor
+                        )
+                    },
+                    headlineContent = { Text(row.category.name) },
+                    supportingContent = {
+                        Text(
+                            "отримано ${formatMoney(row.amount)} ₴",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (row.amount > 0) catColor
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        )
+                    },
+                    trailingContent = {
+                        if (row.category.budgetAmount > 0) {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "${formatMoney(row.category.budgetAmount)} ₴",
+                                    style      = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color      = accentColor
+                                )
+                                Text(
+                                    "в бюджеті",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                                )
+                            }
+                        } else {
+                            Icon(Icons.Default.Add, null, tint = accentColor)
+                        }
+                    }
+                )
+                HorizontalDivider(
+                    modifier  = Modifier.padding(start = 72.dp),
+                    thickness = 0.5.dp,
+                    color     = MaterialTheme.colorScheme.outlineVariant
                 )
             }
         }
@@ -201,7 +311,6 @@ internal fun BudgetSettingsSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            // Header: back arrow + month label
             Row(
                 modifier          = Modifier
                     .fillMaxWidth()
@@ -219,17 +328,15 @@ internal fun BudgetSettingsSheet(
                 )
             }
 
-            // "Операції" section header
             Text(
                 "Операції",
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-                style    = MaterialTheme.typography.labelLarge,
-                color    = MaterialTheme.colorScheme.primary,
+                modifier   = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                style      = MaterialTheme.typography.labelLarge,
+                color      = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // "Поточні витрати" checkbox item
             ListItem(
                 modifier          = Modifier.clickable { onToggleMode(!currentExpensesMode) },
                 leadingContent    = {
@@ -249,7 +356,6 @@ internal fun BudgetSettingsSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // "Видалити бюджет"
             ListItem(
                 modifier       = Modifier.clickable(onClick = onDeleteBudget),
                 leadingContent = {
@@ -262,4 +368,3 @@ internal fun BudgetSettingsSheet(
         }
     }
 }
-
