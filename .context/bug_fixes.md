@@ -19,6 +19,34 @@
 
 ## Known Bugs Fixed
 
+### CategoryFormSheet — Keyboard Not Dismissed / Back Closes Dialog (2026-05-31)
+
+**Symptom:** Tapping the `←` back arrow while the name field was focused closed the entire dialog instead of hiding the keyboard. The Enter/Done key also failed to dismiss the keyboard.
+
+**Root cause:** Back arrow called `onDismiss()` unconditionally. `keyboardActions.onDone` called `focusManager.clearFocus()` but not `keyboardController?.hide()`.
+
+**Fix (`CategoryFormSheets.kt`):**
+1. Track `isNameFocused` via `Modifier.onFocusChanged { isNameFocused = it.isFocused }` on `BasicTextField`.
+2. `BackHandler(enabled = isNameFocused)` — system back hides keyboard when field is focused.
+3. Back arrow: if `isNameFocused` → clear focus + hide keyboard; else → `onDismiss()`.
+4. `onDone` handler now calls both `focusManager.clearFocus()` and `keyboardController?.hide()`.
+
+**Regression rule:** Any new full-screen Dialog with text input must follow this same pattern.
+
+---
+
+### CI Release APK Not Attached to GitHub Release (2026-05-31)
+
+**Symptom:** Tag push produced a GitHub Release with only auto-generated source code zips — no APK attached.
+
+**Root cause:** Sentry Gradle plugin's `includeSourceContext = true` added an upload task to `assembleRelease`. Without `SENTRY_AUTH_TOKEN` secret in GitHub, the task failed and the entire `release` CI job failed before `softprops/action-gh-release` ran.
+
+**Fix:** `includeSourceContext = sentryToken.isNotEmpty()` in `build.gradle.kts` — upload task only runs when token is present.
+
+**Regression rule:** Do not set `includeSourceContext = true` unconditionally. Keep it conditional on token availability.
+
+---
+
 ### CategoriesScreen — ExtCat Strip Showed Two Disconnected Highlighted Elements (2026-05-31)
 
 **Symptom:** Double-tapping a chip in the bottom grid (extCats) produced two separate blue-tinted areas: one for the expansion strip (above the grid) and one for the expanded chip in the grid. They looked like independent elements despite belonging to the same parent→child relationship.

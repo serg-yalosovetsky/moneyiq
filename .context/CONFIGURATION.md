@@ -29,8 +29,8 @@ From `app/build.gradle.kts`:
 - minSdk: `26`
 - targetSdk: `36`
 - compileSdk: `36`
-- versionName: `1.0.0`
-- versionCode: `1`
+- versionName: `1.0.2`
+- versionCode: `3`
 
 ## Permissions
 
@@ -91,10 +91,12 @@ Org: `serg-yalosovetsky`, project: `one_money`.
 
 ## CI/CD (GitHub Actions)
 
-Two workflows in `.github/workflows/`:
+One workflow: `.github/workflows/build.yml`
 
-- **`build.yml`** — triggers on push to `main`, PRs, and version tags (`v*.*.*`). Runs unit tests, then builds a debug APK (push to main), or a signed release APK + GitHub Release (on tags).
-- **`ci.yml`** — fast compile + unit test check on push/PRs.
+| Trigger | Jobs run |
+|---|---|
+| push to `main` or PR | `test` (unit tests only) |
+| tag `v*.*.*` | `test` → `release` (signed APK + GitHub Release) |
 
 GitHub Actions secrets required for release:
 | Secret | Purpose |
@@ -103,14 +105,8 @@ GitHub Actions secrets required for release:
 | `STORE_PASSWORD` | Keystore password |
 | `KEY_ALIAS` | Key alias in the keystore |
 | `KEY_PASSWORD` | Key password |
-| `SENTRY_AUTH_TOKEN` | ProGuard mapping upload |
+| `SENTRY_AUTH_TOKEN` | ProGuard mapping upload (optional — source context skipped if absent) |
 
-**Important:** `gradlew` must have the executable bit in git. Fix with:
-```bash
-git update-index --chmod=+x moneyiq/gradlew
-```
-Without this, CI fails with `Permission denied: ./gradlew`.
+**Important:** `gradlew` already has the executable bit in git (`100755`). Each CI job also runs `chmod +x gradlew` as a safety step.
 
-## Known Build Warning
-
-Android Gradle Plugin `8.7.3` warns that it was tested up to compile SDK 35 while this app uses compile SDK 36. This is a warning only; builds succeed. Suppress with `android.suppressUnsupportedCompileSdk=36` in `gradle.properties` if needed.
+**Sentry on CI:** `build.gradle.kts` sets `includeSourceContext = sentryToken.isNotEmpty()`. Without `SENTRY_AUTH_TOKEN` secret, the upload task is skipped entirely — the build does not fail.

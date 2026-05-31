@@ -42,6 +42,7 @@
 - `AndroidManifest.xml` contains `io.sentry.auto-init=false` — disables `SentryInitProvider` (the ContentProvider that fires before `Application.onCreate()`). Without this the app crashes if no DSN is in the manifest.
 - Initialized in `MoneyIQApp.onCreate` via `SentryAndroid.init` with: DSN hardcoded, `isDebug = BuildConfig.DEBUG`, `environment = "debug"|"production"`, `release = "moneyiq@<versionName>"`, `tracesSampleRate = 1.0`, `attachScreenshot = true`, `attachViewHierarchy = true`, `enableUserInteractionTracing = true`.
 - Auth token for the build plugin is read from `local.properties` (`sentry.auth.token`) with `SENTRY_AUTH_TOKEN` env-var fallback for CI. Never commit the token.
+- `includeSourceContext` is set to `sentryToken.isNotEmpty()` — if the token is absent (e.g. CI without the secret), source upload is skipped and the build still succeeds.
 
 ## Testing
 
