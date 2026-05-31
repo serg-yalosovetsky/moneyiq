@@ -655,11 +655,16 @@ internal fun CategoriesGridContent(
                                 }
                             }
                         }
+                        val donutCats    = if (hasExpandedStrip) expandedChildren else categories
+                        val donutExpense = if (hasExpandedStrip && selectedTab == 0)
+                            expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalExpense
+                        val donutIncome  = if (hasExpandedStrip && selectedTab == 1)
+                            expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalIncome
                         DonutChart(
-                            categories   = categories,
+                            categories   = donutCats,
                             spending     = spending,
-                            totalExpense = totalExpense,
-                            totalIncome  = totalIncome,
+                            totalExpense = donutExpense,
+                            totalIncome  = donutIncome,
                             selectedTab  = selectedTab,
                             onToggle     = onToggleTab,
                             modifier     = Modifier.weight(1f).height(DONUT_SECTION_HEIGHT).padding(4.dp),
