@@ -141,12 +141,13 @@ fun MainScreen(
     val goBack: () -> Unit = {
         if (currentPage != homeTabIndex) scope.launch { pagerState.animateScrollToPage(homeTabIndex) }
     }
+    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
     BackHandler(enabled = showEditCategories) { showEditCategories = false }
     BackHandler(enabled = currentPage != homeTabIndex) { goBack() }
 
     ModalNavigationDrawer(
         drawerState     = drawerState,
-        gesturesEnabled = false,
+        gesturesEnabled = drawerState.isOpen,
         drawerContent   = {
             AppDrawerContent(
                 onClose         = { scope.launch { drawerState.close() } },

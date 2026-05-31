@@ -2,7 +2,9 @@ package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,7 +52,7 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "pets"       to Icons.Outlined.Pets,
     "gift"       to Icons.Outlined.CardGiftcard,
     "phone"      to Icons.Outlined.PhoneAndroid,
-    "sports"     to Icons.Outlined.DirectionsRun,
+    "sports"     to Icons.AutoMirrored.Outlined.DirectionsRun,
     "wifi"       to Icons.Outlined.Wifi,
     "delivery"   to Icons.Outlined.LocalShipping,
     "devices"    to Icons.Outlined.Devices,
@@ -81,7 +83,7 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "server"       to Icons.Outlined.Storage,
     "train"        to Icons.Outlined.Train,
     "hotel"        to Icons.Outlined.Hotel,
-    "book"         to Icons.Outlined.MenuBook,
+    "book"         to Icons.AutoMirrored.Outlined.MenuBook,
     "auto_parts"   to Icons.Outlined.Handyman,
     "refund"       to Icons.AutoMirrored.Outlined.AssignmentReturn,
 )

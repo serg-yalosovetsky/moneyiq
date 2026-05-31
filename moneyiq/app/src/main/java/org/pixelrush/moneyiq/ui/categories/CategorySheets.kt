@@ -128,33 +128,31 @@ fun CategoryActionSheet(
                         )
                     }
                     Spacer(Modifier.height(10.dp))
-                    val clamped = progress.coerceIn(0f, 1f)
-                    BoxWithConstraints(
+                    val clamped    = progress.coerceIn(0f, 1f)
+                    val showInside = clamped >= 0.4f
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(16.dp)
                             .clip(RoundedCornerShape(8.dp))
                     ) {
-                        val totalWidth = maxWidth
-                        val fillWidth  = totalWidth * clamped
-                        val showInside = fillWidth >= 44.dp
                         Spacer(Modifier.fillMaxSize().background(onCatColor.copy(alpha = 0.28f)))
                         if (clamped > 0f) {
                             Spacer(Modifier.fillMaxHeight().fillMaxWidth(clamped).background(onCatColor))
                         }
-                        Text(
-                            "$percent%",
-                            color      = if (showInside) catColor else onCatColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize   = 11.sp,
-                            lineHeight = 11.sp,
-                            modifier   = Modifier
-                                .align(Alignment.CenterStart)
-                                .offset(x = if (showInside)
-                                    (fillWidth - 40.dp).coerceAtLeast(4.dp)
-                                else
-                                    (fillWidth + 4.dp).coerceAtMost(totalWidth - 40.dp))
-                        )
+                        Box(
+                            Modifier.fillMaxWidth(clamped.coerceAtLeast(0.15f)).fillMaxHeight(),
+                            contentAlignment = if (showInside) Alignment.CenterEnd else Alignment.CenterStart
+                        ) {
+                            Text(
+                                "$percent%",
+                                color      = if (showInside) catColor else onCatColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize   = 11.sp,
+                                lineHeight = 11.sp,
+                                modifier   = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth()) {
@@ -401,8 +399,8 @@ fun QuickExpenseSheet(
                 Box(
                     modifier = Modifier
                         .size(badgeD)
-                        .align(Alignment.TopStart)
-                        .offset(x = halfW - badgeD - 8.dp)
+                        .align(Alignment.TopCenter)
+                        .offset(x = -(badgeD / 2 + 8.dp))
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
