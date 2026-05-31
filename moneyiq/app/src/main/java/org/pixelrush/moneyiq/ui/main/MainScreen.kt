@@ -311,6 +311,9 @@ fun MainScreen(
                     categoriesViewModel.add(name, type, color, icon, budget, period, currency)
                 }
             },
+            onAddSubcategory = { name, type, color, icon, budget, period, currency, parentId ->
+                categoriesViewModel.add(name, type, color, icon, budget, period, currency, parentId)
+            },
             onDelete  = { categoriesViewModel.delete(it) },
             onDismiss = { showEditCategories = false }
         )

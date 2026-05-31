@@ -76,6 +76,7 @@ fun CategoriesScreen(
     var actionCategory     by remember { mutableStateOf<CategoryEntity?>(null) }
     var budgetCategory     by remember { mutableStateOf<CategoryEntity?>(null) }
     var editCategory       by remember { mutableStateOf<CategoryEntity?>(null) }
+    var addSubcategoryTo   by remember { mutableStateOf<CategoryEntity?>(null) }
     var expandedCategoryId by remember { mutableStateOf<Long?>(null) }
     var showAddSheet       by remember { mutableStateOf(false) }
 
@@ -198,10 +199,13 @@ fun CategoriesScreen(
 
     // ── Редагування категорії ────────────────────────────────────────────────
     editCategory?.let { cat ->
+        val catChildren = allCategoriesForTab.filter { it.parentId == cat.id }
         CategoryFormSheet(
-            existing    = cat,
-            defaultType = cat.type,
-            onSave      = { name, type, color, icon, budget, period, archived, currency ->
+            existing         = cat,
+            children         = catChildren,
+            onAddSubcategory = if (cat.parentId == null) ({ addSubcategoryTo = cat }) else null,
+            defaultType      = cat.type,
+            onSave           = { name, type, color, icon, budget, period, archived, currency ->
                 viewModel.update(cat.copy(
                     name         = name,
                     type         = type,
@@ -216,6 +220,20 @@ fun CategoriesScreen(
             },
             onDelete  = { viewModel.delete(cat); editCategory = null },
             onDismiss = { editCategory = null }
+        )
+    }
+
+    // ── Форма нової підкатегорії ─────────────────────────────────────────────
+    addSubcategoryTo?.let { parent ->
+        CategoryFormSheet(
+            existing    = null,
+            forParentId = parent.id,
+            defaultType = parent.type,
+            onSave      = { name, type, color, icon, budget, period, _, currency ->
+                viewModel.add(name, type, color, icon, budget, period, currency, parentId = parent.id)
+                addSubcategoryTo = null
+            },
+            onDismiss   = { addSubcategoryTo = null }
         )
     }
 

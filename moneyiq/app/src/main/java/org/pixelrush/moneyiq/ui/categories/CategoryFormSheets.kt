@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -53,11 +54,14 @@ import org.pixelrush.moneyiq.util.suggestCategoryStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFormSheet(
-    existing:    CategoryEntity?,
-    defaultType: TransactionType = TransactionType.EXPENSE,
-    onSave:      (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
-    onDelete:    (() -> Unit)? = null,
-    onDismiss:   () -> Unit
+    existing:         CategoryEntity?,
+    forParentId:      Long?                 = null,
+    children:         List<CategoryEntity>  = emptyList(),
+    onAddSubcategory: (() -> Unit)?         = null,
+    defaultType:      TransactionType       = TransactionType.EXPENSE,
+    onSave:           (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
+    onDelete:         (() -> Unit)?         = null,
+    onDismiss:        () -> Unit
 ) {
     var name     by remember { mutableStateOf(existing?.name     ?: "") }
     var type     by remember { mutableStateOf(existing?.type     ?: defaultType) }
@@ -122,7 +126,14 @@ fun CategoryFormSheet(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text(if (existing != null) "Категорія" else "Нова категорія") },
+                    title = {
+                        Text(when {
+                            existing == null && forParentId != null -> "Нова субкатегорія"
+                            existing == null                         -> "Нова категорія"
+                            existing.parentId != null                -> "Субкатегорія"
+                            else                                     -> "Категорія"
+                        })
+                    },
                     navigationIcon = {
                         IconButton(onClick = {
                             if (isNameFocused) {
@@ -299,32 +310,62 @@ fun CategoryFormSheet(
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }
 
-                // ── Підкатегорії ─────────────────────────────────────────────
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Підкатегорії",
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        style      = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = MaterialTheme.colorScheme.primary
-                    )
-                }
+                // ── Підкатегорії (тільки для кореневих категорій) ────────────
+                if (existing != null && existing.parentId == null) {
+                    item {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Підкатегорії",
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                            style      = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                item {
-                    ListItem(
-                        leadingContent  = {
-                            Icon(Icons.Default.Add, null,
-                                tint     = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp))
-                        },
-                        headlineContent = {
-                            Text("Додати підкатегорію",
-                                color = MaterialTheme.colorScheme.primary)
-                        },
-                        modifier = Modifier.clickable {}
-                    )
-                    HorizontalDivider()
+                    items(children) { child ->
+                        val childColor = remember(child.colorHex) {
+                            try { Color(android.graphics.Color.parseColor(child.colorHex)) }
+                            catch (_: Exception) { Color.Gray }
+                        }
+                        ListItem(
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(childColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        categoryIconFor(child.icon), null,
+                                        tint     = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            },
+                            headlineContent = { Text(child.name) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                    }
+
+                    if (onAddSubcategory != null) {
+                        item {
+                            ListItem(
+                                leadingContent  = {
+                                    Icon(Icons.Default.Add, null,
+                                        tint     = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp))
+                                },
+                                headlineContent = {
+                                    Text("Додати підкатегорію",
+                                        color = MaterialTheme.colorScheme.primary)
+                                },
+                                modifier = Modifier.clickable { onAddSubcategory() }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
                 }
 
                 // ── Архів ────────────────────────────────────────────────────
@@ -595,18 +636,20 @@ internal fun ColorIconPickerSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditCategoriesScreen(
-    expenseCategories: List<CategoryEntity>,
-    incomeCategories:  List<CategoryEntity>,
-    monthSpending:     Map<Long, Double>    = emptyMap(),
-    monthIncome:       Map<Long, Double>    = emptyMap(),
-    totalExpense:      Double               = 0.0,
-    totalIncome:       Double               = 0.0,
-    onSave:   (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String, existing: CategoryEntity?) -> Unit,
-    onDelete: (CategoryEntity) -> Unit,
-    onDismiss: () -> Unit
+    expenseCategories:  List<CategoryEntity>,
+    incomeCategories:   List<CategoryEntity>,
+    monthSpending:      Map<Long, Double>    = emptyMap(),
+    monthIncome:        Map<Long, Double>    = emptyMap(),
+    totalExpense:       Double               = 0.0,
+    totalIncome:        Double               = 0.0,
+    onSave:             (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String, existing: CategoryEntity?) -> Unit,
+    onAddSubcategory:   ((name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, currencyCode: String, parentId: Long) -> Unit)? = null,
+    onDelete:           (CategoryEntity) -> Unit,
+    onDismiss:          () -> Unit
 ) {
     var selectedTab       by remember { mutableIntStateOf(0) }
     var editCategory      by remember { mutableStateOf<CategoryEntity?>(null) }
+    var addSubcategoryTo  by remember { mutableStateOf<CategoryEntity?>(null) }
     var showAddSheet      by remember { mutableStateOf(false) }
     var showSubcategories by remember { mutableStateOf(false) }
 
@@ -687,15 +730,33 @@ fun EditCategoriesScreen(
     }
 
     editCategory?.let { cat ->
+        val catChildren = (if (cat.type == TransactionType.EXPENSE) expenseCategories else incomeCategories)
+            .filter { it.parentId == cat.id }
         CategoryFormSheet(
-            existing    = cat,
-            defaultType = cat.type,
-            onSave      = { name, type, color, icon, budget, period, arch, currency ->
+            existing         = cat,
+            children         = catChildren,
+            onAddSubcategory = if (cat.parentId == null && onAddSubcategory != null)
+                                   ({ addSubcategoryTo = cat }) else null,
+            defaultType      = cat.type,
+            onSave           = { name, type, color, icon, budget, period, arch, currency ->
                 onSave(name, type, color, icon, budget, period, arch, currency, cat)
                 editCategory = null
             },
             onDelete    = { onDelete(cat); editCategory = null },
             onDismiss   = { editCategory = null }
+        )
+    }
+
+    addSubcategoryTo?.let { parent ->
+        CategoryFormSheet(
+            existing    = null,
+            forParentId = parent.id,
+            defaultType = parent.type,
+            onSave      = { name, type, color, icon, budget, period, _, currency ->
+                onAddSubcategory?.invoke(name, type, color, icon, budget, period, currency, parent.id)
+                addSubcategoryTo = null
+            },
+            onDismiss   = { addSubcategoryTo = null }
         )
     }
 
