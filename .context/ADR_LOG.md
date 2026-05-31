@@ -267,6 +267,35 @@ This matches the user mental model: root categories are the primary management o
 
 `allCategoriesForTab` (all non-archived categories of the tab type) is always passed separately to `CategoriesGridContent` for badge count and budget aggregation purposes, even when `categories` is filtered.
 
+## ADR-031: Budget Savings Header Shows Budget-Based Savings, Not Cash-Flow Savings
+
+`SavingsSectionCard` header shows `incomeBudget − expenseTotal` (when a budget is set), not `incomeTotal − expenseTotal`.
+
+**Reason:** `incomeTotal` is often 0 for most of the month (salary arrives once), making `incomeTotal − expenseTotal` a large misleading negative. `incomeBudget − expenseTotal` ("how much of your planned income remains after expenses") is the number users expect to see — it matches the "Доступно в бюджеті" bar at the bottom.
+
+**Internal name split:**
+- `realSavings = incomeTotal − expenseTotal` — used only for the "збережено" subtitle label, and only when `incomeTotal > 0`
+- `actualSavings = if (incomeBudget > 0) incomeBudget − expenseTotal else realSavings` — drives the header
+
+**Rule:** Do not revert to `incomeTotal − expenseTotal` as the header without also replacing the bottom bar "Доступно в бюджеті" (which shows the same budget-based number). They must agree.
+
+## ADR-032: CategoryFormSheet Title And Subcategory Section Are Context-Sensitive
+
+`CategoryFormSheet` title adapts to category kind:
+
+| Condition | Title |
+|---|---|
+| `existing == null && forParentId != null` | "Нова субкатегорія" |
+| `existing == null` | "Нова категорія" |
+| `existing.parentId != null` | "Субкатегорія" |
+| `existing.parentId == null` | "Категорія" |
+
+"Підкатегорії" section is rendered **only for root categories** (`existing != null && existing.parentId == null`). It shows existing children as icon rows and a "Додати підкатегорію" button (only when `onAddSubcategory != null`). Child categories never show this section.
+
+New subcategory creation flow: caller sets `addSubcategoryTo = parent`, opens a new `CategoryFormSheet(forParentId = parent.id)`, on save calls `viewModel.add(..., parentId = parent.id)`. Single-parent uniqueness is enforced at the DB level by the `parentId` field — no UI-level deduplication needed.
+
+**Rule:** Do not add a nested subcategory level (subcategory of a subcategory). One level of hierarchy is the product constraint.
+
 **Rule:** Do not revert to passing all categories as `categories` — the filtered list is intentional. Bottom padding for the dialog's `CategoriesGridContent` must include `WindowInsets.navigationBars` to prevent the last row from being hidden.
 
 ## ADR-025: Overview List Falls Back To Transactions When No Categories

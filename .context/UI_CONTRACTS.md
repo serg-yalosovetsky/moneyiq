@@ -240,6 +240,32 @@ When creating a new category (existing == null), `CategoryFormSheet` runs a `Lau
 
 Seeder defaults: "Дозвілля" root → `theater` (`#F73579`); "Таксі" child → `taxi` (`#FDD835`).
 
+### CategoryFormSheet — Title Logic
+
+The `TopAppBar` title in `CategoryFormSheet` is context-sensitive:
+
+| Condition | Title |
+|---|---|
+| `existing == null && forParentId != null` | "Нова субкатегорія" |
+| `existing == null` | "Нова категорія" |
+| `existing.parentId != null` | "Субкатегорія" |
+| `existing.parentId == null` | "Категорія" |
+
+`forParentId: Long?` is a parameter passed when the form is opened to create a child under a known parent.
+
+### CategoryFormSheet — Subcategories Section
+
+The "Підкатегорії" section is **only rendered for root categories** (`existing != null && existing.parentId == null`):
+
+1. Existing children are displayed as icon rows (color circle + name) via `items(children)`.
+2. **"Додати підкатегорію"** button shown only when `onAddSubcategory != null` (callback provided by caller).
+3. Clicking "Додати підкатегорію" invokes `onAddSubcategory()` → caller opens a new `CategoryFormSheet` with `forParentId = parent.id`.
+4. New subcategory is saved with `parentId` set, enforcing single-parent uniqueness at the DB level.
+
+Child categories (`existing.parentId != null`) do **not** show the "Підкатегорії" section at all — subcategories cannot have sub-subcategories.
+
+**Rule**: Do not add "Підкатегорії" to child category forms. One level of hierarchy is the maximum.
+
 ### CategoryFormSheet — Name Input
 
 Category name is edited via an **inline `BasicTextField`** directly inside the form header (not a separate dialog). Behaviour:
@@ -264,28 +290,34 @@ Category name is edited via an **inline `BasicTextField`** directly inside the f
 
 `BudgetScreen` (`Бюджет` tab) is a `Column { LazyColumn(weight=1f) + IncomeBudgetBar }` layout.
 
-### SavingsSectionCard — Forecast (added 2026-05-31)
+### SavingsSectionCard — Formula and Display
 
-`SavingsSectionCard` in `BudgetScreen.kt` now computes a monthly savings forecast based on elapsed days:
+`SavingsSectionCard` in `BudgetScreen.kt` computes savings with this priority:
 
 ```
+realSavings   = incomeTotal - expenseTotal         // actual cash flow
+actualSavings = if (incomeBudget > 0) incomeBudget - expenseTotal
+                else realSavings                   // header amount
+
 daysPassed  = BudgetUiState.daysPassed (computed in BudgetViewModel)
               - past month: = daysInMonth
               - current month: = Calendar.DAY_OF_MONTH
               - future month: = 0
-actualSavings     = incomeTotal - expenseTotal
+hasForecast = daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0
 projectedExpenses = expenseTotal / daysPassed * daysInMonth   (linear extrapolation)
-projectedSavings  = incomeBudget - projectedExpenses
+projectedSavings  = if (incomeBudget > 0) incomeBudget - projectedExpenses
+                    else realSavings - (projectedExpenses - expenseTotal)
 ```
 
 Display logic:
-- **Header right** (large): `projectedSavings` when forecast available; otherwise `actualSavings`
+- **Header right** (large): `projectedSavings` when `hasForecast`; otherwise `actualSavings` (= incomeBudget − expenses when budget set)
 - **"прогноз"** label below header when forecast is active
 - **"пройшло X з Y днів"** below title when forecast is active
-- **"збережено X ₴"** (actual) in subtitle left
-- **"витрати до кінця ~X ₴"** (projected total expenses) in subtitle right
-- Forecast shown only when `daysPassed > 0 && daysInMonth > daysPassed && expenseTotal > 0`
+- **"збережено X ₴"** (subtitle left): shown only when `incomeTotal > 0` (hidden when no income received yet)
+- **"витрати до кінця ~X ₴"** in subtitle right when hasForecast; otherwise **"в бюджеті X ₴"** (incomeBudget)
 - Color: green (`#26A69A`) when ≥ 0, pink/red (`#D81B60`) when negative
+
+**Rule**: The header shows budget-based savings (incomeBudget − expenses), not cash-flow savings. This matches "Доступно в бюджеті" in `IncomeBudgetBar`.
 
 ### IncomeBudgetBar Layout (CRITICAL)
 
