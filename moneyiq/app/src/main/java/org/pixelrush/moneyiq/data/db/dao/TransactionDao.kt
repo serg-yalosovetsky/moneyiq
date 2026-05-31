@@ -129,4 +129,13 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM transactions WHERE nextRepeatDate IS NOT NULL AND nextRepeatDate <= :today ORDER BY date ASC")
+    suspend fun getDueRepeatTransactions(today: Long): List<TransactionEntity>
+
+    @Query("UPDATE transactions SET nextRepeatDate = NULL WHERE id = :id")
+    suspend fun clearNextRepeatDate(id: Long)
+
+    @Query("SELECT * FROM transactions WHERE nextRepeatDate IS NOT NULL AND reminderMode != 'NEVER' ORDER BY nextRepeatDate ASC")
+    suspend fun getTransactionsWithReminder(): List<TransactionEntity>
 }

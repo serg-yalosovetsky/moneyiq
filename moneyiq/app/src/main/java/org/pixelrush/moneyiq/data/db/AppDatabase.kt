@@ -230,6 +230,20 @@ val MIGRATION_24_25 = object : Migration(24, 25) {
     }
 }
 
+val MIGRATION_26_27 = object : Migration(26, 27) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE accounts ADD COLUMN creditLimit REAL NOT NULL DEFAULT 0.0")
+    }
+}
+
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE transactions ADD COLUMN repeatMode TEXT NOT NULL DEFAULT 'NEVER'")
+        database.execSQL("ALTER TABLE transactions ADD COLUMN reminderMode TEXT NOT NULL DEFAULT 'NEVER'")
+        database.execSQL("ALTER TABLE transactions ADD COLUMN nextRepeatDate INTEGER")
+    }
+}
+
 val MIGRATION_25_26 = object : Migration(25, 26) {
     override fun migrate(database: SupportSQLiteDatabase) {
         // Insert Зарплата income category if no income category with similar name exists
@@ -278,12 +292,14 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_22_23,
     MIGRATION_23_24,
     MIGRATION_24_25,
-    MIGRATION_25_26
+    MIGRATION_25_26,
+    MIGRATION_26_27,
+    MIGRATION_27_28
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 26,
+    version = 28,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

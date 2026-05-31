@@ -19,7 +19,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import java.text.SimpleDateFormat
 import java.util.*
@@ -401,11 +403,26 @@ fun AccountPickerSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(accColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Box(modifier = Modifier.size(46.dp)) {
+                        Box(
+                            modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(accColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                        }
+                        val sym = remember(acc.currency) {
+                            CURRENCIES_ALL.find { it.code == acc.currency }?.symbol?.take(2) ?: acc.currency.take(2)
+                        }
+                        Box(
+                            modifier         = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = sym, color = accColor, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(acc.name, fontWeight = FontWeight.Medium)

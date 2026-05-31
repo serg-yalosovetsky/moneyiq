@@ -28,15 +28,18 @@ class CalcStateHolder(initial: Double = 0.0) {
         }
     }
 
-    fun displayExpr(symbol: String = "₴"): String {
+    fun displayExprNoSymbol(): String {
         val nf = NumberFormat.getNumberInstance(Locale.getDefault())
         nf.minimumFractionDigits = 0
         nf.maximumFractionDigits = 2
         return if (pendingOp != null)
-            "${nf.format(pendingVal)} $pendingOp $currentStr $symbol"
+            "${nf.format(pendingVal)} $pendingOp $currentStr"
         else
-            "$currentStr $symbol"
+            currentStr
     }
+
+    fun displayExpr(symbol: String = "₴"): String =
+        "${displayExprNoSymbol()} $symbol"
 
     fun onKey(key: String) {
         when (key) {

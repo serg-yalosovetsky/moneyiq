@@ -43,5 +43,8 @@ data class TransactionEntity(
     val categoryId: Long? = null,
     val note: String = "",
     val date: Long = System.currentTimeMillis(),
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val repeatMode: String = "NEVER",    // NEVER / DAILY / WEEKLY / MONTHLY / …
+    val reminderMode: String = "NEVER",  // NEVER / SAME_DAY / 1_DAY / … / 7_DAYS
+    val nextRepeatDate: Long? = null     // timestamp следующего вхождения
 )

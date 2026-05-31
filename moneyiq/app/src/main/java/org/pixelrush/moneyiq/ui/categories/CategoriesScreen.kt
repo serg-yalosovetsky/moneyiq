@@ -19,8 +19,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -95,7 +100,7 @@ fun CategoriesScreen(
     val categories = if (!state.showSubcategories) {
         allCategoriesForTab.filter { it.parentId == null }
     } else {
-        allCategoriesForTab
+        allCategoriesForTab.filter { it.parentId != null }
     }
 
     val effectiveSpending: Map<Long, Double> = if (!state.showSubcategories) {
@@ -177,7 +182,7 @@ fun CategoriesScreen(
             accentColor = if (cat.type == TransactionType.INCOME) Color(0xFF26A69A) else Color(0xFFD81B60),
             amountLabel = if (cat.type == TransactionType.INCOME) "отримано" else "витрачено",
             onDismiss   = { budgetCategory = null },
-            onConfirm   = { newBudget ->
+            onConfirm   = { newBudget, _ ->
                 viewModel.update(cat.copy(budgetAmount = newBudget))
                 budgetCategory = null
             }
@@ -189,8 +194,8 @@ fun CategoriesScreen(
         QuickExpenseSheet(
             category  = cat,
             accounts  = state.accounts,
-            onSave    = { accountId, amount, note, date ->
-                viewModel.recordTransaction(accountId, cat, amount, note, date)
+            onSave    = { accountId, amount, note, date, repeatMode, reminderMode ->
+                viewModel.recordTransaction(accountId, cat, amount, note, date, repeatMode, reminderMode)
                 quickCategory = null
             },
             onDismiss = { quickCategory = null }
@@ -266,12 +271,14 @@ private fun CategoryGridSlot(
     showChildBadge:    Boolean,
     isCompact:         Boolean,
     inlineStripShown:  Boolean = false,
+    suppressLongPress: Boolean = false,
+    extraModifier:     Modifier = Modifier,
     onChipClick:       (CategoryEntity) -> Unit,
     onChipLongClick:   (CategoryEntity) -> Unit,
     onChipDoubleClick: (Long?) -> Unit
 ) {
     Box(
-        Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH),
+        Modifier.width(if (isCompact) CHIP_WIDTH_COMPACT else CHIP_WIDTH).then(extraModifier),
         contentAlignment = Alignment.Center
     ) {
         if (category != null) {
@@ -280,7 +287,7 @@ private fun CategoryGridSlot(
                 spending       = spending[category.id] ?: 0.0,
                 onClick        = { onChipClick(category) },
                 childCount     = childCounts[category.id] ?: 0,
-                onLongPress    = { onChipLongClick(category) },
+                onLongPress    = if (suppressLongPress) null else ({ onChipLongClick(category) }),
                 onDoubleClick  = {
                     if ((childCounts[category.id] ?: 0) > 0) onChipDoubleClick(category.id)
                     else onChipClick(category)
@@ -307,6 +314,8 @@ private fun CategoryGridRow(
     showChildBadge:    Boolean,
     isCompact:         Boolean,
     inlineStripShown:  Boolean = false,
+    suppressLongPress: Boolean = false,
+    extraChipModifier: (CategoryEntity?) -> Modifier = { Modifier },
     onChipClick:       (CategoryEntity) -> Unit,
     onChipLongClick:   (CategoryEntity) -> Unit,
     onChipDoubleClick: (Long?) -> Unit,
@@ -318,8 +327,9 @@ private fun CategoryGridRow(
         verticalAlignment = Alignment.Top
     ) {
         repeat(4) { i ->
+            val cat = rowCats.getOrNull(i)
             CategoryGridSlot(
-                category          = rowCats.getOrNull(i),
+                category          = cat,
                 spending          = spending,
                 displayBudgets    = displayBudgets,
                 childCounts       = childCounts,
@@ -328,6 +338,8 @@ private fun CategoryGridRow(
                 showChildBadge    = showChildBadge,
                 isCompact         = isCompact,
                 inlineStripShown  = inlineStripShown,
+                suppressLongPress = suppressLongPress,
+                extraModifier     = extraChipModifier(cat),
                 onChipClick       = onChipClick,
                 onChipLongClick   = onChipLongClick,
                 onChipDoubleClick = onChipDoubleClick
@@ -464,31 +476,21 @@ internal fun CategoriesGridContent(
     onChipDoubleClick:     (Long?) -> Unit          = {},
     expandedCategoryId:    Long?                    = null,
     onAdd:                 () -> Unit,
-    showSubcategories:     Boolean          = false,
-    onToggleSubcategories: () -> Unit       = {},
-    childCounts:           Map<Long, Int>   = emptyMap(),
-    isCompact:             Boolean          = false
+    showSubcategories:     Boolean                  = false,
+    onToggleSubcategories: () -> Unit               = {},
+    childCounts:           Map<Long, Int>           = emptyMap(),
+    isCompact:             Boolean                  = false,
+    sortBySpending:        Boolean                          = true,
+    chipExtraModifier:     (CategoryEntity?) -> Modifier    = { Modifier },
+    onChipDragSwap:        ((Long, Long) -> Unit)?          = null
 ) {
     val chipHeight = if (isCompact) CHIP_HEIGHT_COMPACT else CHIP_HEIGHT
     val chipW      = if (isCompact) CHIP_WIDTH_COMPACT  else CHIP_WIDTH
-    val sorted: List<CategoryEntity> = if (showSubcategories) {
-        val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId!! }
-        val roots    = categories.filter { it.parentId == null }
-            .sortedByDescending { spending[it.id] ?: 0.0 }
-        val orphans  = categories.filter { child ->
-            child.parentId != null && categories.none { it.id == child.parentId }
-        }.sortedByDescending { spending[it.id] ?: 0.0 }
-        roots.flatMap { root ->
-            listOf(root) + (childMap[root.id] ?: emptyList())
-                .sortedByDescending { spending[it.id] ?: 0.0 }
-        } + orphans
-    } else {
-        categories.sortedByDescending { spending[it.id] ?: 0.0 }
-    }
+    val sorted: List<CategoryEntity> = categories.sortedByDescending { spending[it.id] ?: 0.0 }
 
     val parentColors: Map<Long, String> = if (showSubcategories) {
-        val parentMap = categories.filter { it.parentId == null }.associateBy { it.id }
-        categories.filter { it.parentId != null }.mapNotNull { child ->
+        val parentMap = allCategoriesForTab.filter { it.parentId == null }.associateBy { it.id }
+        categories.mapNotNull { child ->
             parentMap[child.parentId]?.let { child.id to it.colorHex }
         }.toMap()
     } else emptyMap()
@@ -504,7 +506,65 @@ internal fun CategoriesGridContent(
     } else emptyMap()
 
     // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
-    val display = sorted
+    val display = if (sortBySpending) sorted else categories
+
+    // ── Drag-to-swap (only when onChipDragSwap != null) ───────────────────────
+    val chipCenters = if (onChipDragSwap != null) remember { mutableStateMapOf<Long, Offset>() } else null
+    var draggingId  by remember { mutableStateOf<Long?>(null) }
+    var hoverTarget by remember { mutableStateOf<Long?>(null) }
+
+    val dragModifier: (CategoryEntity?) -> Modifier = if (onChipDragSwap != null && chipCenters != null) {
+        { cat ->
+            if (cat == null) Modifier else {
+                val a = when {
+                    draggingId == null   -> 1f
+                    cat.id == draggingId -> 0.38f
+                    cat.id == hoverTarget -> 1f
+                    else -> 0.70f
+                }
+                Modifier
+                    .alpha(a)
+                    .onGloballyPositioned { coords ->
+                        val pos = coords.positionInRoot()
+                        chipCenters[cat.id] = Offset(
+                            pos.x + coords.size.width / 2f,
+                            pos.y + coords.size.height / 2f
+                        )
+                    }
+                    .pointerInput(cat.id) {
+                        var acc = Offset.Zero
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { _ ->
+                                draggingId = cat.id; hoverTarget = null; acc = Offset.Zero
+                            },
+                            onDrag = { change, d ->
+                                change.consume()
+                                acc += d
+                                val center = chipCenters[cat.id]
+                                    ?: return@detectDragGesturesAfterLongPress
+                                val finger = center + acc
+                                hoverTarget = chipCenters.entries
+                                    .filter { (id, _) -> id != cat.id }
+                                    .minByOrNull { (_, c) -> (c - finger).getDistance() }
+                                    ?.key
+                            },
+                            onDragEnd = {
+                                hoverTarget?.let { onChipDragSwap(cat.id, it) }
+                                draggingId = null; hoverTarget = null; acc = Offset.Zero
+                            },
+                            onDragCancel = {
+                                draggingId = null; hoverTarget = null; acc = Offset.Zero
+                            }
+                        )
+                    }
+            }
+        }
+    } else { { _ -> Modifier } }
+
+    // Merge external visual modifier with internal drag modifier
+    val effectiveChipModifier: (CategoryEntity?) -> Modifier = { cat ->
+        chipExtraModifier(cat).then(dragModifier(cat))
+    }
 
     // Layout: top 4 | [left2 | donut | right2] | + | ext rows of 4
     val topRow   = display.take(4)
@@ -575,6 +635,8 @@ internal fun CategoriesGridContent(
                             showChildBadge    = !showSubcategories,
                             isCompact         = isCompact,
                             inlineStripShown  = topStripShown,
+                            suppressLongPress = onChipDragSwap != null,
+                            extraChipModifier = effectiveChipModifier,
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
@@ -619,6 +681,8 @@ internal fun CategoriesGridContent(
                                         showChildBadge    = !showSubcategories,
                                         isCompact         = isCompact,
                                         inlineStripShown  = midStripShown,
+                                        suppressLongPress = onChipDragSwap != null,
+                                        extraModifier     = effectiveChipModifier(cat),
                                         onChipClick       = onChipClick,
                                         onChipLongClick   = onChipLongClick,
                                         onChipDoubleClick = onChipDoubleClick
@@ -657,6 +721,8 @@ internal fun CategoriesGridContent(
                                         showChildBadge    = !showSubcategories,
                                         isCompact         = isCompact,
                                         inlineStripShown  = midStripShown,
+                                        suppressLongPress = onChipDragSwap != null,
+                                        extraModifier     = effectiveChipModifier(cat),
                                         onChipClick       = onChipClick,
                                         onChipLongClick   = onChipLongClick,
                                         onChipDoubleClick = onChipDoubleClick
@@ -694,6 +760,8 @@ internal fun CategoriesGridContent(
                             showChildBadge    = !showSubcategories,
                             isCompact         = isCompact,
                             inlineStripShown  = rowStripShown,
+                            suppressLongPress = onChipDragSwap != null,
+                            extraChipModifier = effectiveChipModifier,
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,

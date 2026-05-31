@@ -44,7 +44,7 @@ internal fun CategoryChip(
     spending:       Double,
     onClick:        () -> Unit,
     childCount:     Int     = 0,
-    onLongPress:    () -> Unit = {},
+    onLongPress:    (() -> Unit)? = null,
     onDoubleClick:  () -> Unit = {},
     showChildBadge: Boolean = false,
     groupColorHex:  String? = null,

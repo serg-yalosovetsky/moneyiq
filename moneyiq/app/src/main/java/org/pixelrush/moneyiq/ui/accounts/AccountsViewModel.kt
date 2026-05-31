@@ -35,7 +35,8 @@ class AccountsViewModel @Inject constructor(
         currency: String = "UAH",
         description: String = "",
         includeInTotal: Boolean = true,
-        icon: String = "account_balance_wallet"
+        icon: String = "account_balance_wallet",
+        creditLimit: Double = 0.0
     ) {
         viewModelScope.launch {
             val isFirst = repo.getAllAccounts().first().isEmpty()
@@ -46,7 +47,8 @@ class AccountsViewModel @Inject constructor(
                     isDefault = isFirst,
                     description = description,
                     includeInTotal = includeInTotal,
-                    icon = icon
+                    icon = icon,
+                    creditLimit = creditLimit
                 )
             )
         }

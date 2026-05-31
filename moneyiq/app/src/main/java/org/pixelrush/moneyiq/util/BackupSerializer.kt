@@ -78,9 +78,12 @@ object BackupSerializer {
                 put("accountId",   t.accountId)
                 put("toAccountId", t.toAccountId ?: JSONObject.NULL)
                 put("categoryId",  t.categoryId  ?: JSONObject.NULL)
-                put("note",        t.note)
-                put("date",        t.date)
-                put("createdAt",   t.createdAt)
+                put("note",           t.note)
+                put("date",           t.date)
+                put("createdAt",      t.createdAt)
+                put("repeatMode",     t.repeatMode)
+                put("reminderMode",   t.reminderMode)
+                put("nextRepeatDate", t.nextRepeatDate ?: JSONObject.NULL)
             })
         }
         root.put("transactions", txArr)
@@ -145,9 +148,12 @@ object BackupSerializer {
                 accountId   = t.getLong("accountId"),
                 toAccountId = if (t.isNull("toAccountId")) null else t.getLong("toAccountId"),
                 categoryId  = if (t.isNull("categoryId"))  null else t.getLong("categoryId"),
-                note        = t.optString("note", ""),
-                date        = t.getLong("date"),
-                createdAt   = t.optLong("createdAt", System.currentTimeMillis())
+                note           = t.optString("note", ""),
+                date           = t.getLong("date"),
+                createdAt      = t.optLong("createdAt", System.currentTimeMillis()),
+                repeatMode     = t.optString("repeatMode", "NEVER"),
+                reminderMode   = t.optString("reminderMode", "NEVER"),
+                nextRepeatDate = if (t.has("nextRepeatDate") && !t.isNull("nextRepeatDate")) t.getLong("nextRepeatDate") else null
             )
         }
 

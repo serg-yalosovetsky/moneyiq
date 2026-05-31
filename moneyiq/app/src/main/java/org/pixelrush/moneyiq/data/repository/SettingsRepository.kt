@@ -48,7 +48,10 @@ data class AppSettings(
     val monoflowUrl: String       = "",
     val monoflowToken: String     = "",
     val monoflowAutoSync: Boolean = false,
-    val monoflowLastSyncMs: Long  = 0L
+    val monoflowLastSyncMs: Long  = 0L,
+    // Income budget (global, not per-category)
+    val expectedMonthlyIncome: Double = 0.0,
+    val incomeBudgetAccountId: Long   = -1L
 )
 
 @Singleton
@@ -79,6 +82,9 @@ class SettingsRepository @Inject constructor(
         val KEY_MONOFLOW_TOKEN      = stringPreferencesKey("monoflow_token")
         val KEY_MONOFLOW_AUTO_SYNC  = booleanPreferencesKey("monoflow_auto_sync")
         val KEY_MONOFLOW_LAST_SYNC  = longPreferencesKey("monoflow_last_sync")
+        // Income budget
+        val KEY_INCOME_BUDGET_AMOUNT     = doublePreferencesKey("income_budget_amount")
+        val KEY_INCOME_BUDGET_ACCOUNT_ID = longPreferencesKey("income_budget_account_id")
     }
 
     val settings: Flow<AppSettings> = ds.data.map { p ->
@@ -104,8 +110,17 @@ class SettingsRepository @Inject constructor(
             monoflowToken          = p[KEY_MONOFLOW_TOKEN]?.takeIf { it.isNotBlank() }
                                         ?: if (BuildConfig.DEBUG) BuildConfig.DEBUG_MONOFLOW_TOKEN else "",
             monoflowAutoSync       = p[KEY_MONOFLOW_AUTO_SYNC] ?: false,
-            monoflowLastSyncMs     = p[KEY_MONOFLOW_LAST_SYNC] ?: 0L
+            monoflowLastSyncMs     = p[KEY_MONOFLOW_LAST_SYNC] ?: 0L,
+            expectedMonthlyIncome  = p[KEY_INCOME_BUDGET_AMOUNT] ?: 0.0,
+            incomeBudgetAccountId  = p[KEY_INCOME_BUDGET_ACCOUNT_ID] ?: -1L
         )
+    }
+
+    suspend fun setIncomeBudget(accountId: Long, amount: Double) {
+        ds.edit { p ->
+            p[KEY_INCOME_BUDGET_AMOUNT]     = amount
+            p[KEY_INCOME_BUDGET_ACCOUNT_ID] = accountId
+        }
     }
 
     suspend fun update(block: MutablePreferences.() -> Unit) {

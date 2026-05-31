@@ -1,6 +1,8 @@
 package org.pixelrush.moneyiq.ui.categories
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -66,6 +68,22 @@ internal val CATEGORY_ICONS_LIST: List<Pair<String, ImageVector>> = listOf(
     "theater"      to Icons.Outlined.TheaterComedy,
     "celebration"  to Icons.Outlined.Celebration,
     "spa"          to Icons.Outlined.Spa,
+    // Extended icon set
+    "flower"       to Icons.Outlined.LocalFlorist,
+    "souvenir"     to Icons.Outlined.Redeem,
+    "store"        to Icons.Outlined.Storefront,
+    "shoes"        to Icons.AutoMirrored.Outlined.DirectionsWalk,
+    "tools"        to Icons.Outlined.Build,
+    "hardware"     to Icons.Outlined.Foundation,
+    "toys"         to Icons.Outlined.SmartToy,
+    "fitness"      to Icons.Outlined.FitnessCenter,
+    "dental"       to Icons.Outlined.Healing,
+    "server"       to Icons.Outlined.Storage,
+    "train"        to Icons.Outlined.Train,
+    "hotel"        to Icons.Outlined.Hotel,
+    "book"         to Icons.Outlined.MenuBook,
+    "auto_parts"   to Icons.Outlined.Handyman,
+    "refund"       to Icons.AutoMirrored.Outlined.AssignmentReturn,
 )
 
 fun categoryIconFor(iconName: String): ImageVector =

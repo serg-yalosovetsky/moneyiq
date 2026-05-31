@@ -26,6 +26,7 @@ fun EditCategoriesScreen(
     onSave:            (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currency: String, existing: CategoryEntity?) -> Unit,
     onAddSubcategory:  (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, currency: String, parentId: Long) -> Unit,
     onDelete:          (CategoryEntity) -> Unit,
+    onReorder:         (List<CategoryEntity>) -> Unit = {},
     onDismiss:         () -> Unit
 ) {
     var selectedTab       by remember { mutableIntStateOf(0) }
@@ -38,6 +39,13 @@ fun EditCategoriesScreen(
         .filter { !it.archived }
     val rawSpending = if (selectedTab == 0) monthSpending else monthIncome
 
+    // Local mutable list for drag reordering (reset when tab changes)
+    val localCats = remember(selectedTab) { mutableStateListOf<CategoryEntity>() }
+    LaunchedEffect(allCategoriesForTab) {
+        localCats.clear()
+        localCats.addAll(allCategoriesForTab)
+    }
+
     val effectiveSpending: Map<Long, Double> = run {
         val result = rawSpending.toMutableMap()
         allCategoriesForTab.filter { it.parentId != null }.forEach { child ->
@@ -49,9 +57,9 @@ fun EditCategoriesScreen(
     }
 
     val categories = if (!showSubcategories)
-        allCategoriesForTab.filter { it.parentId == null }
+        localCats.filter { it.parentId == null }
     else
-        allCategoriesForTab
+        localCats.filter { it.parentId != null }
 
     Box(
         modifier = Modifier
@@ -70,14 +78,14 @@ fun EditCategoriesScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                 }
                 Text(
-                    "Редагувати категорії",
+                    if (showSubcategories) "Редагувати субкатегорії" else "Редагувати категорії",
                     style    = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp)
                 )
                 TextButton(onClick = { showSubcategories = !showSubcategories }) {
-                    Text("Субкатегорії")
+                    Text(if (showSubcategories) "Категорії" else "Субкатегорії")
                 }
             }
 
@@ -108,11 +116,22 @@ fun EditCategoriesScreen(
                 onToggleTab           = { selectedTab = if (selectedTab == 0) 1 else 0 },
                 bottomPadding         = 0.dp,
                 onChipClick           = { cat -> editCategory = cat },
-                onChipLongClick       = { cat -> editCategory = cat },
+                onChipLongClick       = {},  // suppress edit form — drag handles long press
                 onAdd                 = { showAddSheet = true },
                 showSubcategories     = showSubcategories,
                 onToggleSubcategories = { showSubcategories = !showSubcategories },
-                childCounts           = emptyMap()  // no +N badges in edit mode
+                childCounts           = emptyMap(),
+                sortBySpending        = false,
+                onChipDragSwap        = { fromId, toId ->
+                    val idxA = localCats.indexOfFirst { it.id == fromId }
+                    val idxB = localCats.indexOfFirst { it.id == toId }
+                    if (idxA >= 0 && idxB >= 0) {
+                        val tmp = localCats[idxA]
+                        localCats[idxA] = localCats[idxB]
+                        localCats[idxB] = tmp
+                        onReorder(localCats.toList())
+                    }
+                }
             )
         }
     }

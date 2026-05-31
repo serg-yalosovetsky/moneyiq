@@ -16,6 +16,7 @@ import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
+import org.pixelrush.moneyiq.util.calculateNextRepeatDate
 import java.util.*
 import javax.inject.Inject
 
@@ -129,23 +130,36 @@ class CategoriesViewModel @Inject constructor(
         viewModelScope.launch { repo.delete(category) }
     }
 
+    fun reorderCategories(ordered: List<CategoryEntity>) {
+        viewModelScope.launch {
+            repo.updateAll(ordered.mapIndexed { idx, cat -> cat.copy(sortOrder = idx) })
+        }
+    }
+
     /** Записывает транзакцию (расход или доход) с балансовым обновлением счёта */
     fun recordTransaction(
-        accountId:  Long,
-        category:   CategoryEntity,
-        amount:     Double,
-        note:       String,
-        date:       Long = System.currentTimeMillis()
+        accountId:    Long,
+        category:     CategoryEntity,
+        amount:       Double,
+        note:         String,
+        date:         Long   = System.currentTimeMillis(),
+        repeatMode:   String = "NEVER",
+        reminderMode: String = "NEVER"
     ) {
         viewModelScope.launch {
+            val nextRepeatDate = if (repeatMode != "NEVER")
+                calculateNextRepeatDate(date, repeatMode) else null
             txRepo.addTransaction(
                 TransactionEntity(
-                    type       = category.type,
-                    amount     = amount,
-                    accountId  = accountId,
-                    categoryId = category.id,
-                    note       = note,
-                    date       = date
+                    type           = category.type,
+                    amount         = amount,
+                    accountId      = accountId,
+                    categoryId     = category.id,
+                    note           = note,
+                    date           = date,
+                    repeatMode     = repeatMode,
+                    reminderMode   = reminderMode,
+                    nextRepeatDate = nextRepeatDate
                 )
             )
         }

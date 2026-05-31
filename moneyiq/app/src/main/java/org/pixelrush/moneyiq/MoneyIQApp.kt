@@ -12,6 +12,7 @@ import org.pixelrush.moneyiq.data.db.dao.AccountDao
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
+import org.pixelrush.moneyiq.workers.RepeatTransactionWorker
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -35,11 +36,14 @@ class MoneyIQApp : Application() {
             options.isEnableUserInteractionTracing = true
         }
         appScope.launch { seedInitialData() }
+        RepeatTransactionWorker.scheduleOnce(this)
     }
 
     private suspend fun seedInitialData() {
         // Категории по умолчанию (seedDefaults внутри проверяет count > 0)
         categoryRepository.seedDefaults()
+        // Починяем ключи иконок для существующих категорий
+        categoryRepository.repairIconKeys()
 
         // Счёт по умолчанию — только при первом запуске
         if (accountDao.count() == 0) {

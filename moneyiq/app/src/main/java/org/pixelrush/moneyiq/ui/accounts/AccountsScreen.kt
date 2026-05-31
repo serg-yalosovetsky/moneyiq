@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,8 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.pixelrush.moneyiq.data.db.entities.AccountEntity
+import org.pixelrush.moneyiq.ui.settings.data.CURRENCIES_ALL
 import org.pixelrush.moneyiq.data.db.entities.AccountType
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
@@ -142,7 +145,7 @@ fun AccountsScreen(
         AccountFormSheet(
             initialType = acc.type,
             existing    = acc,
-            onSave      = { name, type, balance, color, currency, description, includeInTotal, icon ->
+            onSave      = { name, type, balance, color, currency, description, includeInTotal, icon, creditLimit ->
                 viewModel.update(
                     acc.copy(
                         name           = name,
@@ -152,7 +155,8 @@ fun AccountsScreen(
                         currency       = currency,
                         description    = description,
                         includeInTotal = includeInTotal,
-                        icon           = icon
+                        icon           = icon,
+                        creditLimit    = creditLimit
                     )
                 )
                 editAccount = null
@@ -371,6 +375,13 @@ private fun AccountListItem(
 
 @Composable
 private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
+    val currencySymbol = remember(account.currency) {
+        CURRENCIES_ALL.find { it.code == account.currency }?.symbol?.take(2) ?: account.currency.take(2)
+    }
+    val isLightBg  = accentColor.luminance() > 0.5f
+    val iconTint   = if (isLightBg) Color(0xFF1C1B1F) else Color.White
+    val badgeColor = if (isLightBg) Color(0xFF1C1B1F) else accentColor
+
     Box(modifier = Modifier.size(64.dp)) {
         Box(
             modifier         = Modifier
@@ -382,8 +393,25 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
             Icon(
                 imageVector = accountIconFromKey(account.icon),
                 contentDescription = null,
-                tint        = Color.White,
+                tint        = iconTint,
                 modifier    = Modifier.size(28.dp)
+            )
+        }
+        Box(
+            modifier         = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 2.dp, y = 2.dp)
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text       = currencySymbol,
+                color      = badgeColor,
+                fontSize   = 8.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines   = 1
             )
         }
         if (account.isDefault) {

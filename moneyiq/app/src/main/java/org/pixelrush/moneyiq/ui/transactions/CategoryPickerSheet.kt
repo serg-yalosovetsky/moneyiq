@@ -37,14 +37,18 @@ internal fun CategoryPickerSheet(
     incomeCategories:  List<CategoryEntity>,
     accounts:          List<AccountEntity>,
     categorySpending:  Map<Long?, Double>,
+    initialTab:        Int = 1,
+    currentType:       TransactionType? = null,
     onSelect:          (CategoryEntity) -> Unit,
     onTransfer:        (AccountEntity) -> Unit,
     onDismiss:         () -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(1) }  // 0=Дохід, 1=Витрата, 2=Переказ
-    val screenH = LocalConfiguration.current.screenHeightDp.dp
+    val screenH    = LocalConfiguration.current.screenHeightDp.dp
+    // selectedTab is always created (Compose rule: no remember inside conditionals)
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
 
-    data class TabDef(val type: TransactionType?, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+    data class TabDef(val type: TransactionType?, val label: String,
+                      val icon: androidx.compose.ui.graphics.vector.ImageVector)
     val tabDefs = listOf(
         TabDef(TransactionType.INCOME,  "Дохід",   Icons.Default.ArrowUpward),
         TabDef(TransactionType.EXPENSE, "Витрата", Icons.Default.ArrowDownward),
@@ -56,115 +60,149 @@ internal fun CategoryPickerSheet(
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor   = MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.67f)) {
-
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor   = MaterialTheme.colorScheme.surface,
-                contentColor     = MaterialTheme.colorScheme.primary
-            ) {
-                tabDefs.forEachIndexed { i, tab ->
-                    val active = selectedTab == i
-                    val tint = if (active) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    Tab(
-                        selected = active,
-                        onClick  = { selectedTab = i },
-                        text     = {
-                            Row(
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clip(CircleShape)
-                                        .border(1.5.dp, tint, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(tab.icon, null, tint = tint, modifier = Modifier.size(14.dp))
-                                }
-                                Text(
-                                    tab.label,
-                                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                                    color      = tint
-                                )
-                            }
-                        }
-                    )
-                }
+        if (currentType != null) {
+            // ── Упрощённый режим: один тип, без вкладок ──────────────────────
+            val typeIcon  = when (currentType) {
+                TransactionType.INCOME   -> Icons.Default.ArrowUpward
+                TransactionType.TRANSFER -> Icons.Default.SwapHoriz
+                else                     -> Icons.Default.ArrowDownward
             }
-
-            val currentType = tabDefs[selectedTab].type
-            val categories  = when (currentType) {
-                TransactionType.INCOME  -> incomeCategories
-                TransactionType.EXPENSE -> expenseCategories
-                else                   -> emptyList()
+            val typeLabel = when (currentType) {
+                TransactionType.INCOME   -> "Дохід"
+                TransactionType.TRANSFER -> "Переказ"
+                else                     -> "Витрата"
             }
-
-            if (currentType == null) {
-                val totalBal = accounts.filter { it.includeInTotal }.sumOf { it.balance }
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Рахунки",
-                            style      = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "${formatMoney(totalBal)} ₴",
-                            style      = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color      = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    accounts.forEach { acc ->
-                        AccountPickerRow(account = acc, onClick = { onTransfer(acc) })
-                    }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns            = GridCells.Fixed(4),
-                    modifier           = Modifier.fillMaxSize(),
-                    contentPadding     = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement   = Arrangement.spacedBy(12.dp)
+            Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.55f)) {
+                Row(
+                    modifier              = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    items(categories) { cat ->
-                        CategoryPickerCell(
-                            cat      = cat,
-                            amount   = categorySpending[cat.id] ?: 0.0,
-                            onClick  = { onSelect(cat) }
+                    Icon(typeIcon, null,
+                        tint     = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(typeLabel,
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.primary)
+                }
+                HorizontalDivider()
+
+                if (currentType == TransactionType.TRANSFER) {
+                    val totalBal = accounts.filter { it.includeInTotal }.sumOf { it.balance }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Text("Рахунки", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface)
+                        }
+                        accounts.forEach { acc -> AccountPickerRow(account = acc, onClick = { onTransfer(acc) }) }
+                    }
+                } else {
+                    val cats = if (currentType == TransactionType.INCOME) incomeCategories else expenseCategories
+                    CategoryGrid(cats, categorySpending, onSelect)
+                }
+            }
+        } else {
+            // ── Режим з вкладками (для фільтра транзакцій) ───────────────────
+
+            Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.67f)) {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor   = MaterialTheme.colorScheme.surface,
+                    contentColor     = MaterialTheme.colorScheme.primary
+                ) {
+                    tabDefs.forEachIndexed { i, tab ->
+                        val active = selectedTab == i
+                        val tint = if (active) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                        Tab(
+                            selected = active,
+                            onClick  = { selectedTab = i },
+                            text     = {
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(26.dp).clip(CircleShape)
+                                            .border(1.5.dp, tint, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) { Icon(tab.icon, null, tint = tint, modifier = Modifier.size(14.dp)) }
+                                    Text(tab.label,
+                                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                        color      = tint)
+                                }
+                            }
                         )
                     }
-                    item {
-                        Column(
-                            modifier            = Modifier.padding(vertical = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                }
+
+                val tabType   = tabDefs[selectedTab].type
+                val tabCats   = when (tabType) {
+                    TransactionType.INCOME  -> incomeCategories
+                    TransactionType.EXPENSE -> expenseCategories
+                    else                   -> emptyList()
+                }
+
+                if (tabType == null) {
+                    val totalBal = accounts.filter { it.includeInTotal }.sumOf { it.balance }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Spacer(Modifier.height(30.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(CircleShape)
-                                    .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Add, null,
-                                    tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                            Text("Рахунки", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface)
                         }
+                        accounts.forEach { acc -> AccountPickerRow(acc) { onTransfer(acc) } }
                     }
+                } else {
+                    CategoryGrid(tabCats, categorySpending, onSelect)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryGrid(
+    categories:      List<CategoryEntity>,
+    categorySpending: Map<Long?, Double>,
+    onSelect:        (CategoryEntity) -> Unit
+) {
+    LazyVerticalGrid(
+        columns               = GridCells.Fixed(4),
+        modifier              = Modifier.fillMaxSize(),
+        contentPadding        = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement   = Arrangement.spacedBy(12.dp)
+    ) {
+        items(categories) { cat ->
+            CategoryPickerCell(cat = cat, amount = categorySpending[cat.id] ?: 0.0, onClick = { onSelect(cat) })
+        }
+        item {
+            Column(modifier = Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(30.dp))
+                Box(
+                    modifier = Modifier.size(54.dp).clip(CircleShape)
+                        .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Add, null,
+                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        modifier = Modifier.size(22.dp))
                 }
             }
         }

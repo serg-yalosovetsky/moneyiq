@@ -117,6 +117,7 @@ fun MainScreen(
     var openTxSearch           by remember { mutableStateOf(false) }
     var showBudgetSettings     by remember { mutableStateOf(false) }
     var filterByCategoryId     by remember { mutableStateOf<Long?>(null) }
+    var filterByAccountId      by remember { mutableStateOf<Long?>(null) }
     var categoriesCompact      by remember { mutableStateOf(false) }
 
     if (showDataScreen) {
@@ -218,9 +219,16 @@ fun MainScreen(
             ) { page ->
                 when (pageToContent(page)) {
                     0 -> AccountsScreen(
-                             padding      = bottomPadding,
-                             embeddedMode = true,
-                             onRequestAdd = triggerNewAccount
+                             padding       = bottomPadding,
+                             embeddedMode  = true,
+                             onRequestAdd  = triggerNewAccount,
+                             onViewTx      = { acc ->
+                                 filterByAccountId = acc.id
+                                 scope.launch { pagerState.animateScrollToPage(txTabIndex) }
+                             },
+                             onAddIncome   = { onAddTransaction() },
+                             onAddExpense  = { onAddTransaction() },
+                             onAddTransfer = { onAddTransaction() }
                          )
                     1 -> CategoriesScreen(
                              padding          = bottomPadding,
@@ -236,12 +244,14 @@ fun MainScreen(
                              }
                          )
                     2 -> TransactionsListScreen(
-                             padding                = bottomPadding,
-                             embeddedMode           = true,
-                             openSearch             = openTxSearch,
-                             onSearchDismissed      = { openTxSearch = false },
-                             initialCategoryFilter  = filterByCategoryId,
-                             onInitialFilterApplied = { filterByCategoryId = null }
+                             padding                       = bottomPadding,
+                             embeddedMode                  = true,
+                             openSearch                    = openTxSearch,
+                             onSearchDismissed             = { openTxSearch = false },
+                             initialCategoryFilter         = filterByCategoryId,
+                             onInitialFilterApplied        = { filterByCategoryId = null },
+                             initialAccountFilter          = filterByAccountId,
+                             onInitialAccountFilterApplied = { filterByAccountId = null }
                          )
                     3 -> BudgetScreen(
                              padding           = bottomPadding,
@@ -276,8 +286,8 @@ fun MainScreen(
         AccountFormSheet(
             initialType = type,
             existing    = null,
-            onSave      = { name, accType, balance, color, currency, description, includeInTotal, icon ->
-                accountsViewModel.add(name, accType, balance, color, currency, description, includeInTotal, icon)
+            onSave      = { name, accType, balance, color, currency, description, includeInTotal, icon, creditLimit ->
+                accountsViewModel.add(name, accType, balance, color, currency, description, includeInTotal, icon, creditLimit)
                 pendingAccType = null
             },
             onDismiss   = { pendingAccType = null }
@@ -315,6 +325,7 @@ fun MainScreen(
                 categoriesViewModel.add(name, type, color, icon, budget, period, currency, parentId)
             },
             onDelete  = { categoriesViewModel.delete(it) },
+            onReorder = { categoriesViewModel.reorderCategories(it) },
             onDismiss = { showEditCategories = false }
         )
     }

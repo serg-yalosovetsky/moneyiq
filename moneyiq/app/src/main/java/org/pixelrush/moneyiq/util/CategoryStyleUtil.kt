@@ -21,9 +21,16 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "aliexpress" to listOf("aliexpress", "ali ", "алиекспресс", "аліекспрес",
                                "temu", "shein", "wish", "banggood", "gearbest"),
 
+        // Hosting / VPS / servers (more specific than generic cloud)
+        "server"     to listOf("хостинг", "хостінг", "hosting", "vps", "сервер", "server"),
+
         // Cloud storage / subscriptions
         "cloud"      to listOf("cloud", "хмар", "icloud", "google drive", "dropbox",
-                               "onedrive", "mega ", "backblaze", "хостинг", "vps", "сервер"),
+                               "onedrive", "mega ", "backblaze"),
+
+        // Refund / cashback / compensation (before transfer — more specific)
+        "refund"     to listOf("повернення", "повернен", "повернул", "refund",
+                               "cashback", "кешбек", "компенсац", "компенсація"),
 
         // Transfers & money moves
         "transfer"   to listOf("переказ", "перевод", "перевід", "transfer", "відправк", "розрахун"),
@@ -50,8 +57,15 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "beauty"     to listOf("краса", "beauty", "салон", "перукарн", "косметик",
                                "манікюр", "педикюр", "спа", "spa", "spa-"),
 
+        // Shoes / footwear (before clothes — more specific)
+        "shoes"      to listOf("взуття", "взутт", "shoes", "boots", "взуттєв", "footwear"),
+
         // Clothing (before shopping to avoid overlap)
-        "clothes"    to listOf("одяг", "взуття", "fashion", "одежд"),
+        "clothes"    to listOf("одяг", "fashion", "одежд"),
+
+        // Toys (before family — more specific than general family spending)
+        "toys"       to listOf("іграшк", "toys", "toy ", "ляльк", "конструктор", "lego",
+                               "плюшев", "настільна гра"),
 
         // Family
         "family"     to listOf("сім'я", "сімей", "family", "дітям", "дитяч",
@@ -74,12 +88,23 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "grocery"    to listOf("продукти", "продукт", "продовольч",
                                "атб", "сільпо", "фора", "новус"),
 
+        // Flowers / florists
+        "flower"     to listOf("квіти", "квіт", "цвіти", "цвіт", "flower", "флорист",
+                               "bouquet", "букет"),
+
+        // Souvenirs (distinct from gifts)
+        "souvenir"   to listOf("сувенір", "souvenir"),
+
         // Parties / celebrations (more specific than theater — must come before it)
         "celebration" to listOf("розваг", "свят", "party", "праздн", "вечірк", "банкет"),
 
         // Broad leisure/entertainment (дозвілля, театр)
         "theater"    to listOf("дозвілл", "театр", "концерт", "шоу",
                                "entertainment", "festival", "відпочин"),
+
+        // Books / libraries
+        "book"       to listOf("книги", "книга", "книжк", "book", "бібліотек",
+                               "bookshop", "читанн", "літератур"),
 
         // Cinema / movies specifically
         "movie"      to listOf("кіно", "cinema", "фільм", "кінотеатр", "netflix"),
@@ -100,6 +125,14 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         // Music specifically
         "music"      to listOf("музик", "music", "spotify"),
 
+        // Specific online marketplaces / stores (before general shopping)
+        "store"      to listOf("rozetka", "розетка", "ebay", "prom.ua", "hotline",
+                               "маркетплейс", "marketplace", "OLX", "olx"),
+
+        // Sports goods stores (before generic sports activity)
+        "fitness"    to listOf("спортивні товари", "спорттовар", "спортмастер",
+                               "спортивн магаз", "sport shop", "decathlon"),
+
         // Shopping (general)
         "shopping"   to listOf("покупки", "магазин", "market", "shopping", "ринок"),
 
@@ -109,13 +142,29 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         // Gas station (before car — more specific)
         "gas_station" to listOf("азс", "азц", "заправк", "wog", "okko", "socar", "brsm", "нафтан"),
 
+        // Railway (before general bus/transport)
+        "train"      to listOf("залізниця", "залізн", "потяг", "поїзд", "train",
+                               "укрзалізниц", "intercity", "інтерсіті", "railway"),
+
         // Transport (general — bus/metro/public)
-        "bus"        to listOf("транспорт", "автобус", "метро", "маршрутк",
+        "bus"        to listOf("транспорт", "громадськ", "автобус", "метро", "маршрутк",
                                "bus", "transit", "електричк", "трамвай", "тролейбус"),
+
+        // Car parts / auto service (before generic car)
+        "auto_parts" to listOf("запчастин", "автозапч", "car parts", "автосерв",
+                               "шиномонтаж", "ремонт авто", "мийк", "car repair"),
 
         // Car / auto (personal vehicle)
         "car"        to listOf("авто", "машин", "автомоб", "car",
                                "паркінг", "бензин", "пальне"),
+
+        // Power tools / instruments (before building materials)
+        "tools"      to listOf("інструмент", "tool", "дриль", "пилк", "верстат",
+                               "молоток", "шуруповерт", "болгарк", "зварювальн"),
+
+        // Building materials / construction supplies (before generic home)
+        "hardware"   to listOf("будматеріал", "будівельн", "будівель", "стройматер",
+                               "будмат", "цегла", "плитк", "ламінат", "паркет"),
 
         // Home / utilities
         "home"       to listOf("комунальн", "комунал", "квартир", "аренд", "оренд",
@@ -137,13 +186,21 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "pharmacy"   to listOf("аптек", "ліки", "ліків", "pharmacy", "medication",
                                "таблетк", "пігулк", "препарат"),
 
+        // Dental (before general doctor)
+        "dental"     to listOf("стоматолог", "стоматологі", "дантист", "dental",
+                               "зубн", "ортодонт"),
+
         // Medical / hospital / clinic
-        "doctor"     to listOf("медицин", "лікар", "клінік", "стоматолог",
+        "doctor"     to listOf("медицин", "лікар", "клінік",
                                "health", "doctor", "лікарн", "hospital"),
+
+        // Hotel / accommodation (more specific than generic travel)
+        "hotel"      to listOf("готель", "hotel", "hostel", "хостел", "airbnb",
+                               "апартамент"),
 
         // Travel / flights
         "flight"     to listOf("відпочин", "туризм", "відпустк", "перельот",
-                               "flight", "travel", "готель", "hotel", "booking"),
+                               "flight", "travel", "booking"),
 
         // Finance / savings
         "money"      to listOf("фінанс", "інвестиц", "інвестицій", "банк", "крипто",
@@ -213,7 +270,23 @@ fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, Stri
         "beauty"     to "#AD1457",  // dark-pink     — Краса
         "clothes"    to "#00838F",  // dark-cyan     — Одяг
         "family"     to "#7A48F2",  // purple        — Сім'я
-        "receipt"    to "#546E7A"   // blue-grey     — Рахунки
+        "receipt"    to "#546E7A",  // blue-grey     — Рахунки
+        // Extended
+        "server"     to "#37474F",  // dark-grey     — Хостінг/Сервер
+        "flower"     to "#E91E63",  // pink          — Квіти
+        "souvenir"   to "#7B1FA2",  // purple        — Сувеніри
+        "store"      to "#1E88E5",  // blue          — Rozetka/eBay/Маркетплейс
+        "shoes"      to "#5D4037",  // dark-brown    — Взуття
+        "tools"      to "#546E7A",  // blue-grey     — Інструменти
+        "hardware"   to "#BF360C",  // deep-orange   — Будматеріали
+        "toys"       to "#FF6D00",  // orange        — Іграшки
+        "fitness"    to "#D32F2F",  // dark-red      — Спортивні товари
+        "dental"     to "#0097A7",  // teal          — Стоматолог
+        "train"      to "#1565C0",  // dark-blue     — Залізниця
+        "hotel"      to "#4527A0",  // deep-purple   — Готель
+        "book"       to "#5E35B1",  // purple        — Книги
+        "auto_parts" to "#E64A19",  // deep-orange   — Автозапчастини
+        "refund"     to "#00897B"   // teal          — Повернення/Cashback
     )
 
     for ((icon, keywords) in rules) {

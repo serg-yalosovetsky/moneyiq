@@ -342,6 +342,18 @@ c.name.trim().lowercase() != cat.name.trim().lowercase()
 **Regression rule:** Do not re-introduce side columns or midLeft/midRight slot assignment. If a side-panel UX is ever wanted again, re-introduce it as a separate opt-in mode, not the default layout.
 
 ---
+
+### BudgetInputSheet — Currency Picker Invisible (Behind Main Sheet) (2026-05-31)
+
+**Symptom:** Tapping the "₴" currency key in `BudgetInputSheet`'s `SharedCalcKeypad` appeared to do nothing — no currency picker was visible.
+
+**Root cause:** The currency picker was a `ModalBottomSheet` declared **before** the main budget `ModalBottomSheet` in the same composable. Compose renders composables in declaration order; earlier composables are drawn behind later ones — so the currency picker appeared behind the main budget sheet and was invisible.
+
+**Fix:** Removed the nested `ModalBottomSheet`. Replaced with `Dialog(properties = DialogProperties(usePlatformDefaultWidth = false))` containing `CurrencyPageContent` (3 tabs: Основні / Інші / Крипто). The Dialog is declared **after** the main sheet, so it renders on top. Also gains the full 130+ currency list instead of just `CURRENCIES_MAIN`.
+
+**Regression rule:** Never use a nested `ModalBottomSheet` for a picker that must appear above another `ModalBottomSheet`. Use `Dialog` instead. See ADR-040 Rule.
+
+---
 ## Verification Checklist
 
 - Kotlin compile passes.

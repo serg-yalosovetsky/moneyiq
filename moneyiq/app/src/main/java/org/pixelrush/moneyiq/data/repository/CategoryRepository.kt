@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import org.pixelrush.moneyiq.data.db.dao.CategoryDao
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
+import org.pixelrush.moneyiq.util.suggestCategoryStyle
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,7 +21,70 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
 
     suspend fun update(category: CategoryEntity) = dao.updateCategory(category)
 
+    suspend fun updateAll(categories: List<CategoryEntity>) = dao.updateCategories(categories)
+
     suspend fun delete(category: CategoryEntity) = dao.deleteCategory(category)
+
+    suspend fun repairIconKeys() {
+        val validKeys = setOf(
+            "category", "shopping", "restaurant", "car", "bus", "taxi", "gas_station",
+            "parking", "home", "key", "work", "laptop", "school", "health", "pharmacy",
+            "doctor", "percent", "gavel", "flight", "music", "movie", "gaming", "telegram",
+            "dating", "ticket", "money", "coffee", "pets", "gift", "phone", "sports",
+            "wifi", "delivery", "devices", "transfer", "family", "receipt", "beauty",
+            "ai", "aliexpress", "cloud", "clothes", "grocery", "volunteer", "theater",
+            "celebration", "spa",
+            // Extended icons added 2026-05-31
+            "flower", "souvenir", "store", "shoes", "tools", "hardware", "toys",
+            "fitness", "dental", "server", "train", "hotel", "book", "auto_parts"
+        )
+        // Name-based overrides: force specific icons for well-known category names
+        val nameOverrides = listOf(
+            "взуття"              to "shoes",
+            "взутт"               to "shoes",
+            "rozetka"             to "store",
+            "розетка"             to "store",
+            "ebay"                to "store",
+            "маркетплейс"         to "store",
+            "marketplace"         to "store",
+            "квіти"               to "flower",
+            "цвіти"               to "flower",
+            "сувенір"             to "souvenir",
+            "іграшк"              to "toys",
+            "інструмент"          to "tools",
+            "будматеріал"         to "hardware",
+            "спортивні товари"    to "fitness",
+            "спорттовар"          to "fitness",
+            "стоматолог"          to "dental",
+            "дантист"             to "dental",
+            "хостінг"             to "server",
+            "hosting"             to "server",
+            "залізниц"            to "train",
+            "готель"              to "hotel",
+            "книги"               to "book",
+            "книга"               to "book",
+            "автозапч"            to "auto_parts",
+            "запчастин"           to "auto_parts",
+            "громадськ"           to "bus",
+            "краса"               to "beauty",
+            "азс"                 to "gas_station",
+            "dating"              to "dating",
+            "gaming"              to "gaming",
+        )
+
+        dao.getAllCategoriesOnce().forEach { cat ->
+            val nameLower = cat.name.lowercase().trim()
+            val forced = nameOverrides.firstOrNull { nameLower.contains(it.first) }?.second
+            val newIcon = when {
+                forced != null && forced != cat.icon -> forced
+                cat.icon !in validKeys              -> suggestCategoryStyle(cat.name, cat.type).first
+                else                                -> cat.icon
+            }
+            if (newIcon != cat.icon) {
+                dao.updateCategory(cat.copy(icon = newIcon))
+            }
+        }
+    }
 
     suspend fun seedDefaults() {
         if (dao.count() > 0) return

@@ -48,13 +48,15 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsListScreen(
-    padding:                  PaddingValues = PaddingValues(),
-    embeddedMode:             Boolean        = false,
-    openSearch:               Boolean        = false,
-    onSearchDismissed:        () -> Unit     = {},
-    initialCategoryFilter:    Long?          = null,
-    onInitialFilterApplied:   () -> Unit     = {},
-    viewModel:                TransactionsListViewModel = hiltViewModel()
+    padding:                        PaddingValues = PaddingValues(),
+    embeddedMode:                   Boolean        = false,
+    openSearch:                     Boolean        = false,
+    onSearchDismissed:              () -> Unit     = {},
+    initialCategoryFilter:          Long?          = null,
+    onInitialFilterApplied:         () -> Unit     = {},
+    initialAccountFilter:           Long?          = null,
+    onInitialAccountFilterApplied:  () -> Unit     = {},
+    viewModel:                      TransactionsListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -76,6 +78,13 @@ fun TransactionsListScreen(
         initialCategoryFilter?.let { catId ->
             filterCategoryIds = setOf(catId)
             onInitialFilterApplied()
+        }
+    }
+
+    LaunchedEffect(initialAccountFilter) {
+        initialAccountFilter?.let { accId ->
+            filterAccountIds = setOf(accId)
+            onInitialAccountFilterApplied()
         }
     }
 
@@ -250,8 +259,8 @@ fun TransactionsListScreen(
         QuickExpenseSheet(
             category  = cat,
             accounts  = state.accounts,
-            onSave    = { accountId, amount, note, date ->
-                viewModel.recordTransaction(accountId, cat, amount, note, date)
+            onSave    = { accountId, amount, note, date, repeatMode, reminderMode ->
+                viewModel.recordTransaction(accountId, cat, amount, note, date, repeatMode, reminderMode)
                 quickCategory = null
             },
             onDismiss = { quickCategory = null }

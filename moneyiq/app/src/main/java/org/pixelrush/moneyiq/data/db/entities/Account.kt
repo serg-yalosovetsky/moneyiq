@@ -18,5 +18,6 @@ data class AccountEntity(
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
     val description: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val creditLimit: Double = 0.0
 )

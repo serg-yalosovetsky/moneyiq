@@ -16,6 +16,7 @@ import org.pixelrush.moneyiq.data.repository.AppMonth
 import org.pixelrush.moneyiq.data.repository.CategoryRepository
 import org.pixelrush.moneyiq.data.repository.SelectedMonthRepository
 import org.pixelrush.moneyiq.data.repository.TransactionRepository
+import org.pixelrush.moneyiq.util.calculateNextRepeatDate
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -84,16 +85,29 @@ class TransactionsListViewModel @Inject constructor(
     fun goToMonth(year: Int, month: Int) = monthRepo.goToMonth(year, month)
     fun setPeriod(appMonth: AppMonth)    = monthRepo.setPeriod(appMonth)
 
-    fun recordTransaction(accountId: Long, category: CategoryEntity, amount: Double, note: String, date: Long) {
+    fun recordTransaction(
+        accountId:    Long,
+        category:     CategoryEntity,
+        amount:       Double,
+        note:         String,
+        date:         Long,
+        repeatMode:   String = "NEVER",
+        reminderMode: String = "NEVER"
+    ) {
         viewModelScope.launch {
+            val nextRepeatDate = if (repeatMode != "NEVER")
+                calculateNextRepeatDate(date, repeatMode) else null
             txRepo.addTransaction(
                 TransactionEntity(
-                    type       = category.type,
-                    amount     = amount,
-                    accountId  = accountId,
-                    categoryId = category.id,
-                    note       = note,
-                    date       = date
+                    type           = category.type,
+                    amount         = amount,
+                    accountId      = accountId,
+                    categoryId     = category.id,
+                    note           = note,
+                    date           = date,
+                    repeatMode     = repeatMode,
+                    reminderMode   = reminderMode,
+                    nextRepeatDate = nextRepeatDate
                 )
             )
         }
