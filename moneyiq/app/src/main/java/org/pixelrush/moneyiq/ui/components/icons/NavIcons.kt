@@ -208,3 +208,67 @@ val ToolbarEditIcon: ImageVector by lazy {
         }
     }.build()
 }
+
+// 1Money's nav_settings.xml vector with lighter stroke for the top bar.
+val ToolbarSettingsIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "ToolbarSettingsIcon",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(
+            fill = SolidColor(Color.Transparent),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.25f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(10.637f, 3.036f)
+            arcToRelative(1.835f, 1.835f, 0f, false, false, 2.726f, 0f)
+            lineTo(14.25f, 2.063f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, 3.197f, 1.325f)
+            lineToRelative(-0.067f, 1.313f)
+            arcToRelative(1.836f, 1.836f, 0f, false, false, 1.923f, 1.926f)
+            lineToRelative(1.313f, -0.067f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, 1.322f, 3.197f)
+            lineToRelative(-0.977f, 0.881f)
+            arcToRelative(1.837f, 1.837f, 0f, false, false, 0f, 2.727f)
+            lineToRelative(0.977f, 0.881f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, -1.325f, 3.197f)
+            lineToRelative(-1.313f, -0.067f)
+            arcToRelative(1.836f, 1.836f, 0f, false, false, -1.928f, 1.928f)
+            lineToRelative(0.067f, 1.313f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, -3.189f, 1.321f)
+            lineToRelative(-0.882f, -0.976f)
+            arcToRelative(1.837f, 1.837f, 0f, false, false, -2.726f, 0f)
+            lineToRelative(-0.886f, 0.976f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, -3.193f, -1.32f)
+            lineToRelative(0.068f, -1.313f)
+            arcToRelative(1.836f, 1.836f, 0f, false, false, -1.928f, -1.928f)
+            lineToRelative(-1.313f, 0.067f)
+            arcToRelative(1.836f, 1.836f, 0f, false, true, -1.327f, -3.194f)
+            lineToRelative(0.976f, -0.881f)
+            arcToRelative(1.837f, 1.837f, 0f, false, false, 0f, -2.727f)
+            lineToRelative(-0.976f, -0.886f)
+            arcToRelative(1.836f, 1.836f, 0f, false, true, 1.32f, -3.193f)
+            lineToRelative(1.313f, 0.067f)
+            arcToRelative(1.836f, 1.836f, 0f, false, false, 1.929f, -1.931f)
+            lineToRelative(-0.062f, -1.315f)
+            arcToRelative(1.837f, 1.837f, 0f, false, true, 3.193f, -1.321f)
+            close()
+        }
+        path(
+            fill = SolidColor(Color.Transparent),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.25f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(7.781f, 12.001f)
+            arcToRelative(4.219f, 4.219f, 0f, true, false, 8.438f, 0f)
+            arcToRelative(4.219f, 4.219f, 0f, true, false, -8.438f, 0f)
+        }
+    }.build()
+}

@@ -25,7 +25,7 @@ android {
         targetSdk = 36
         versionCode = 4
         versionName = "1.1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "org.pixelrush.moneyiq.HiltTestRunner"
         multiDexKeepProguard = file("multidex-keep.pro")
     }
 
@@ -145,6 +145,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    kspAndroidTest(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
     // Coroutines
@@ -188,6 +189,7 @@ dependencies {
     androidTestImplementation(libs.coroutines.test)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.hilt.android.testing)
 }
 
 val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")

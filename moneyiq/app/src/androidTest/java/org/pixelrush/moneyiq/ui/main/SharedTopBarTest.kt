@@ -1,5 +1,6 @@
 package org.pixelrush.moneyiq.ui.main
 
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,6 +18,7 @@ class SharedTopBarTest {
 
     @Test
     fun actionIconMatchesCurrentPageContract() {
+        val page = mutableIntStateOf(0)
         val pages = listOf(
             0 to "Новий рахунок",
             1 to "Редагувати категорії",
@@ -25,17 +27,18 @@ class SharedTopBarTest {
             4 to "Налаштування"
         )
 
-        pages.forEach { (page, description) ->
-            compose.setContent {
-                MoneyIQTheme {
-                    SharedTopBar(
-                        totalBalance = 1234.56,
-                        currentPage = page,
-                        onPlusClick = {}
-                    )
-                }
+        compose.setContent {
+            MoneyIQTheme {
+                SharedTopBar(
+                    totalBalance = 1234.56,
+                    currentPage = page.intValue,
+                    onPlusClick = {}
+                )
             }
+        }
 
+        pages.forEach { (pageValue, description) ->
+            compose.runOnIdle { page.intValue = pageValue }
             compose.onNodeWithText("Всі рахунки").assertIsDisplayed()
             compose.onNodeWithContentDescription(description).assertIsDisplayed()
         }
@@ -48,32 +51,31 @@ class SharedTopBarTest {
         var search = 0
         var budget = 0
         var settings = 0
+        val page = mutableIntStateOf(0)
 
-        fun render(page: Int) {
-            compose.setContent {
-                MoneyIQTheme {
-                    SharedTopBar(
-                        totalBalance = 0.0,
-                        currentPage = page,
-                        onPlusClick = { add++ },
-                        onEditCategories = { edit++ },
-                        onSearchTx = { search++ },
-                        onBudgetSettings = { budget++ },
-                        onSettings = { settings++ }
-                    )
-                }
+        compose.setContent {
+            MoneyIQTheme {
+                SharedTopBar(
+                    totalBalance = 0.0,
+                    currentPage = page.intValue,
+                    onPlusClick = { add++ },
+                    onEditCategories = { edit++ },
+                    onSearchTx = { search++ },
+                    onBudgetSettings = { budget++ },
+                    onSettings = { settings++ }
+                )
             }
         }
 
-        render(0)
+        compose.runOnIdle { page.intValue = 0 }
         compose.onNodeWithContentDescription("Новий рахунок").performClick()
-        render(1)
+        compose.runOnIdle { page.intValue = 1 }
         compose.onNodeWithContentDescription("Редагувати категорії").performClick()
-        render(2)
+        compose.runOnIdle { page.intValue = 2 }
         compose.onNodeWithContentDescription("Пошук операцій").performClick()
-        render(3)
+        compose.runOnIdle { page.intValue = 3 }
         compose.onNodeWithContentDescription("Налаштування бюджету").performClick()
-        render(4)
+        compose.runOnIdle { page.intValue = 4 }
         compose.onNodeWithContentDescription("Налаштування").performClick()
 
         compose.runOnIdle {

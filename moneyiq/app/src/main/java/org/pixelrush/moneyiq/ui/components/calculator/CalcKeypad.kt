@@ -18,6 +18,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,7 @@ private fun QKey(
     Box(
         modifier = modifier
             .fillMaxHeight()
+            .testTag("calc_key_$label")
             .clip(RoundedCornerShape(10.dp))
             .background(bg)
             .clickable(onClick = onClick),
@@ -186,7 +188,7 @@ fun SharedCalcKeypad(
                 } else {
                     Icon(
                         Icons.Default.Check,
-                        null,
+                        "Зберегти транзакцію",
                         tint     = Color.White,
                         modifier = Modifier.size(34.dp)
                     )

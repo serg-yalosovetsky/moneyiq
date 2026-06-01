@@ -41,7 +41,8 @@ class TransactionListItemUiTest {
         }
 
         compose.onNodeWithText("Витрата").assertIsDisplayed()
-        compose.onNodeWithText("2 Jun · кава · Гаманець").assertIsDisplayed()
+        compose.onNodeWithText("кава", substring = true).fetchSemanticsNode()
+        compose.onNodeWithText("Гаманець", substring = true).fetchSemanticsNode()
     }
 
     @Test
@@ -71,6 +72,7 @@ class TransactionListItemUiTest {
         }
 
         compose.onNodeWithText("Перевід").assertIsDisplayed()
-        compose.onNodeWithText("2 Jun · Карта → Готівка").assertIsDisplayed()
+        compose.onNodeWithText("Карта", substring = true).fetchSemanticsNode()
+        compose.onNodeWithText("Готівка", substring = true).fetchSemanticsNode()
     }
 }

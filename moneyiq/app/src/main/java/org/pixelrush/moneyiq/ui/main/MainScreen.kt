@@ -76,6 +76,7 @@ import org.pixelrush.moneyiq.ui.categories.EditCategoriesScreen
 import org.pixelrush.moneyiq.ui.components.icons.DoubleChevronRight
 import org.pixelrush.moneyiq.ui.components.icons.ToolbarEditIcon
 import org.pixelrush.moneyiq.ui.components.icons.ToolbarProfileIcon
+import org.pixelrush.moneyiq.ui.components.icons.ToolbarSettingsIcon
 import org.pixelrush.moneyiq.ui.data.DataScreen
 import org.pixelrush.moneyiq.ui.overview.OverviewScreen
 import org.pixelrush.moneyiq.ui.settings.SettingsScreen
@@ -512,7 +513,7 @@ fun SharedTopBar(
                 ToolbarProfileIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(34.dp)
             )
         }
 
@@ -548,7 +549,7 @@ fun SharedTopBar(
             1    -> Triple(ToolbarEditIcon,         "Редагувати категорії", onEditCategories)
             2    -> Triple(Icons.Default.Search,    "Пошук операцій",       onSearchTx)
             3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету", onBudgetSettings)
-            else -> Triple(Icons.Outlined.Settings, "Налаштування",         onSettings)
+            else -> Triple(ToolbarSettingsIcon,     "Налаштування",         onSettings)
         }
 
         IconButton(
@@ -559,7 +560,7 @@ fun SharedTopBar(
                 icon,
                 contentDescription = description,
                 tint               = MaterialTheme.colorScheme.onSurface,
-                modifier           = Modifier.size(if (currentPage == 1) 34.dp else 22.dp)
+                modifier           = Modifier.size(if (currentPage == 2) 22.dp else 34.dp)
             )
         }
     }

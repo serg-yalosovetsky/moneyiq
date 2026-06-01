@@ -2,6 +2,7 @@
 package org.pixelrush.moneyiq.ui.transactions
 
 import androidx.core.graphics.toColorInt
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
@@ -59,12 +60,14 @@ import org.pixelrush.moneyiq.data.db.entities.AccountEntity
 import org.pixelrush.moneyiq.data.db.entities.CategoryEntity
 import org.pixelrush.moneyiq.data.db.entities.TransactionType
 import org.pixelrush.moneyiq.data.repository.MONTH_NAMES_UA_FULL
+import org.pixelrush.moneyiq.R
 import org.pixelrush.moneyiq.ui.categories.QuickExpenseSheet
 import org.pixelrush.moneyiq.ui.main.SectionHeader
 import org.pixelrush.moneyiq.ui.main.SharedMonthNavPill
 import org.pixelrush.moneyiq.ui.main.TransactionListItem
 import org.pixelrush.moneyiq.ui.main.formatMoney
 import org.pixelrush.moneyiq.ui.main.horizontalSwipe
+import androidx.compose.ui.res.painterResource
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -527,10 +530,10 @@ private fun SummaryChip(label: String, containerColor: Color, contentColor: Colo
 private fun EmptyMonthState(sel: TxSelectedMonth, isFiltered: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 40.dp)) {
-            Icon(
-                Icons.AutoMirrored.Filled.ReceiptLong, null,
-                modifier = Modifier.size(96.dp),
-                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            Image(
+                painter = painterResource(R.drawable.empty_transactions),
+                contentDescription = null,
+                modifier = Modifier.size(width = 220.dp, height = 165.dp)
             )
             Spacer(Modifier.height(20.dp))
             Text(
