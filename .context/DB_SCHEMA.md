@@ -2,7 +2,7 @@
 
 Room database: `AppDatabase`
 
-Current version: `29`
+Current version: `30`
 
 Entities:
 
@@ -107,5 +107,6 @@ Indices:
 - `26 -> 27`: **structural** — adds `accounts.creditLimit REAL NOT NULL DEFAULT 0.0`
 - `27 -> 28`: **structural** — adds `transactions.repeatMode TEXT NOT NULL DEFAULT 'NEVER'`, `transactions.reminderMode TEXT NOT NULL DEFAULT 'NEVER'`, `transactions.nextRepeatDate INTEGER` (nullable)
 - `28 -> 29`: data migration — fixes root-level imported categories stuck on `family` icon: `home`/`#546E7A` (LIKE `%комунал%`), `phone`/`#3F51B5` (LIKE `%зв%язок%`, apostrophe-agnostic), `wifi`/`#00BCD4` (= `інтернет`). Unconditional — no icon guard, since `family` is a valid key and prior name-based migrations were bypassed when these categories were imported after migration.
+- `29 -> 30`: data migration — one-time `sortOrder` fix for 9 root expense categories: продукти→1, ресторація→2, дозвілля→3, транспорт→4, здоров'я→5, подарунки→6, сім'я→7, покупки→8, робота→9. Uses LIKE for apostrophe names. After this migration `sortOrder` is user-controlled and never reset on startup.
 
 Any schema change must add a migration and update this file.

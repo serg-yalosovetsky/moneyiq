@@ -278,6 +278,23 @@ val MIGRATION_28_29 = object : Migration(28, 29) {
     }
 }
 
+// One-time sort order fix for root expense categories.
+// Uses LIKE for apostrophe names (Здоров'я, Сім'я) to handle import variants.
+// After this migration, sortOrder is user-controlled — never reset on startup.
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("UPDATE categories SET sortOrder = 1 WHERE name = 'Продукти'   AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 2 WHERE name = 'Ресторація' AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 3 WHERE name = 'Дозвілля'   AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 4 WHERE name = 'Транспорт'  AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 5 WHERE name LIKE 'Здоров%' AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 6 WHERE name = 'Подарунки'  AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 7 WHERE name LIKE 'Сім%'    AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 8 WHERE name = 'Покупки'    AND parentId IS NULL AND type = 'EXPENSE'")
+        database.execSQL("UPDATE categories SET sortOrder = 9 WHERE name = 'Робота'     AND parentId IS NULL AND type = 'EXPENSE'")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -306,12 +323,13 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_25_26,
     MIGRATION_26_27,
     MIGRATION_27_28,
-    MIGRATION_28_29
+    MIGRATION_28_29,
+    MIGRATION_29_30
 )
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 29,
+    version = 30,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

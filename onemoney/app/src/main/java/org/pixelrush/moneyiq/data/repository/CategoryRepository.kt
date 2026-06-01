@@ -124,30 +124,6 @@ class CategoryRepository @Inject constructor(private val dao: CategoryDao) {
             }
     }
 
-    suspend fun repairDefaultOrder() {
-        val canonical = mapOf(
-            "продукти"   to 1,
-            "ресторація" to 2,
-            "дозвілля"   to 3,
-            "транспорт"  to 4,
-            "здоров'я"   to 5,
-            "подарунки"  to 6,
-            "сім'я"      to 7,
-            "покупки"    to 8,
-            "робота"     to 9,
-        )
-        dao.getAllCategoriesOnce()
-            .filter { it.parentId == null && it.type == TransactionType.EXPENSE }
-            .forEach { cat ->
-                val key = cat.name.lowercase().trim()
-                    .replace("'", "'").replace("ʼ", "'").replace("`", "'")
-                val target = canonical[key]
-                if (target != null && cat.sortOrder != target) {
-                    dao.updateCategory(cat.copy(sortOrder = target))
-                }
-            }
-    }
-
     suspend fun seedDefaults() {
         if (dao.count() > 0) return
 

@@ -435,10 +435,11 @@ val badgeColor = if (isLightBg) Color(0xFF1C1B1F) else accentColor
 
 **Why `0xFF1C1B1F`:** Material 3 "on-surface" dark token — near-black, readable on any light background including white.
 
-**Affected composables (as of 2026-05-31):**
+**Affected composables (as of 2026-06-01):**
 - `AccountIconBox` (`AccountsScreen.kt`) — icon tint + currency badge text
 - `AccountActionSheet` card (`AccountPickerSheets.kt`) — all card content (icon box bg, icon tint, name text, balance text, star icon) uses `onCard`
 - `AccountFormSheet` icon preview (`AccountSheets.kt`) — `iconTint`
+- `AccountPickerSheet` (`CalcDateSheet.kt`) — header `contentColor` + per-row `itemContentColor`; `FallbackAccountColor=#3949AB`, `DarkOnLightColor=#1C1B1F`
 
 **Rule:** Never hardcode `tint = Color.White` on an icon or text where the background comes from `account.colorHex`. Always compute from `luminance()`. The threshold `> 0.5f` is a standard WCAG-adjacent approximation — do not lower it without measuring contrast ratios.
 
@@ -1131,6 +1132,156 @@ UPDATE categories SET icon='wifi',  colorHex='#00BCD4' WHERE LOWER(TRIM(name)) =
 
 **Rule:** The three normalization points (MonoFlowSyncWorker, normalizeImportedCategory, repairIconKeys) must handle the same `genericIcons` set. If a new generic icon is identified, update all three.
 
+## ADR-066: Grid Alignment, Blue Current-Month Pill, Lighter Nav/Pill Text (2026-06-01)
+
+**Problem:** Four visual issues after ADR-065:
+1. Top-row chips were horizontally offset from mid-section side columns — caused by `chipW` having an upper bound (`coerceIn(68, 86)`). On phones wider than 370dp the chips clamped to 86dp, `Arrangement.spacedBy(6.dp, CenterHorizontally)` added centering offset, while the mid-section Columns had no such offset.
+2. Month pill always red even when showing the current month.
+3. Bottom nav active label was `FontWeight.Medium` → looked heavy.
+4. Month/year text in pill was `FontWeight.Medium` → looked bold.
+
+**Decisions:**
+
+**Grid alignment** (`CategoriesScreen.kt`):
+```kotlin
+// was: .coerceIn(68.dp, 86.dp)  — capped at 86dp on wide phones
+// now: .coerceAtLeast(68.dp)    — no upper bound; chipW fills row exactly
+```
+With no upper bound, `4*chipW + 3*6dp == maxWidth - 8dp` always, so `CenterHorizontally` has no offset and top-row chips align perfectly with mid-section side columns.
+
+**Rule:** Never add an upper bound to `chipW`. If chips feel too wide on tablets, handle via a tablet-specific layout, not by capping `chipW`.
+
+**Blue pill for current month** (`SharedMonthNavPill.kt`):
+```kotlin
+val isCurrentMonth = appMonth.mode == PeriodMode.MONTH &&
+    appMonth.month == today.get(Calendar.MONTH) &&
+    appMonth.year  == today.get(Calendar.YEAR)
+val pillColor = if (isCurrentMonth) Color(0xFF2196F3) else MonthRed
+val pillBg    = if (isCurrentMonth) Color(0xFFD4E8FF) else MonthRedLight
+```
+All pill elements (left arrow, badge border, badge text, label, chevron) use `pillColor`. Right arrow is always `Color(0xFF111111)`.
+
+**Rule:** Non-current periods (past months, other modes) always use `MonthRed`. Only `PeriodMode.MONTH` at current calendar month+year gets the blue treatment.
+
+**Lighter text:**
+- Bottom nav labels: `fontWeight = FontWeight.Normal` for all tabs (removed Medium for active tab).
+- Month pill badge + label text: `fontWeight = FontWeight.Normal` (was Medium).
+
+## ADR-065: Category Chip Width Formula + Title Weight Fix (2026-06-01)
+
+**Problem:** Two visual bugs remained after ADR-064:
+1. `categoryTitle` was `11sp Medium` — appeared too bold on device.
+2. Top-row chips overlapped each other — `chipW` was computed from `(maxWidth - hPad*2) / 4` which didn't account for `CategoryGridRow`'s own `padding(horizontal = 4.dp)` and `Arrangement.spacedBy(6.dp)` (3 gaps × 6dp = 18dp). A 360dp screen gave `chipW = 82dp`, but 4×82+3×6 = 346dp > 344dp available → chips overflowed.
+
+**Decision:**
+
+`OneMoneyTokens.kt` — `categoryTitle`: `11sp Medium` → **`10sp Normal`**
+
+`CategoriesScreen.kt` — `chipW` formula inside `BoxWithConstraints`:
+```kotlin
+// OLD (wrong — didn't subtract row padding or gaps):
+val topRowCellW = (maxWidth - hPad * 2) / 4
+val chipW = topRowCellW.coerceIn(72.dp, 92.dp)
+
+// NEW (correct):
+val rowPad  = 4.dp   // CategoryGridRow padding(horizontal=4dp)
+val chipGap = 6.dp   // spacedBy(6dp), 3 gaps for 4 chips
+val chipW   = ((maxWidth - rowPad * 2 - chipGap * 3) / 4).coerceIn(68.dp, 86.dp)
+```
+
+**Rule:** Any change to `CategoryGridRow`'s horizontal padding or `Arrangement.spacedBy` value must also update the `chipW` formula in `CategoriesGridContent`. The two must stay in sync.
+
+## ADR-064: Categories Grid Adaptive Sizing + Visual Overhaul v2 (2026-06-01)
+
+**Problem:** After the initial token refactoring, the grid used static `CHIP_WIDTH/HEIGHT` constants that didn't adapt to device screen width. Circle backgrounds were too saturated. DonutChart ring was too thick with no inner white fill. Several global token values (`centerRing`, `topBarLabel/Balance`, `BottomNavActivePill`) were still incorrect.
+
+**Decision:**
+
+**Adaptive grid** — `CategoriesGridContent` now wraps its layout in `BoxWithConstraints`. Three values are computed at runtime:
+```kotlin
+val hPad       = when { maxWidth < 360.dp → 12.dp; < 420.dp → 16.dp; else → 20.dp }
+val chipW      = ((maxWidth - hPad * 2) / 4).coerceIn(72.dp, 92.dp)
+val circleSize = when { maxWidth < 360.dp → 46.dp; < 420.dp → 50.dp; else → 54.dp }
+val chipHeight = when { maxHeight < 700.dp → 92.dp; < 800.dp → 100.dp; else → 108.dp }
+```
+These are threaded through `CategoryGridRow(chipWidth, chipHeight, circleSize)` → `CategoryGridSlot(chipWidth, chipHeight, circleSize)` → `CategoryChip(overrideWidth, overrideHeight, overrideCircle)`. Static constants (`CHIP_WIDTH` etc.) are kept as compile-time defaults for backward-compat callers.
+
+**Circle backgrounds** — `CategoryScreenTokens.byName` colors lightened ~20% toward white (lerp factor 0.20). Fallback alpha: `hasBudget` 0.28f → **0.22f**, no-budget 0.13f → **0.10f**.
+
+**DonutChart** — stroke `minDim * 0.04f` (was 0.045f). White filled circle drawn before ring arcs for clean inner background. Ring color `#E6E6EB` (via `OneMoneyTheme.colors.centerRing`).
+
+**Token corrections:**
+
+| Token | Was | Now |
+|-------|-----|-----|
+| `centerRing` | #E3E3E8 | **#E6E6EB** |
+| `BottomNavActivePill` | #E3E4F2 | **#E7E7F2** |
+| `topBarLabel` fontSize | 12sp | **13sp** |
+| `topBarBalance` fontSize/weight | 20sp Bold | **18sp Normal** |
+| `SharedMonthPill` right chevron | `MonthRed` | **`Color(0xFF111111)`** |
+| `CategoryScreenTokens` all `circleBg` | original | **+20% lightened** |
+
+**Rules:**
+- Do not hardcode `chipW/chipH/circleSize` in `CategoriesGridContent` — always compute via `BoxWithConstraints`.
+- `CategoryChip`'s `overrideWidth/Height/Circle` params must be passed from the grid — do not rely on token defaults for the categories grid layout.
+- Donut inner white fill must be drawn before arc strokes, not after.
+
+## ADR-062: Global Visual Lightening — White Background + Reduced Typography (2026-06-01)
+
+**Problem:** The app background was `#E1DEE2` (grey-pink), font sizes were too large, and the bottom nav was heavy. The reference design uses a white background with lighter typography.
+
+**Decision:** Several global tokens updated in `Theme.kt`:
+
+| Token | Was | Now |
+|-------|-----|-----|
+| `md_light_background` | #E1DEE2 | **#FFFFFF** |
+| `MonthRed` | #C81A19 | **#D7261E** |
+| `MonthRedLight` | #F6D3CF | **#F8D9D5** |
+| `BottomNavBg` | #DFDCDF | **#FFFFFF** |
+| `BottomNavActivePill` | #D8D7E7 | **#E7E7F2** (updated again in ADR-064) |
+
+`MainScreen.kt` — `SharedTopBar`:
+- "Всі рахунки": 16sp → **14sp Medium**, color `#2F3442`
+- Balance: 26sp → **20sp Normal**, color `#2F3442`
+- Bottom nav label: 13sp → **11sp** (Medium active, Normal inactive)
+- Nav colors: selected **#2F3442**, unselected **#444857**
+
+`SharedMonthPill.kt`:
+- Badge border: 1.5dp → **1dp**
+- Badge text: 15sp → **14sp**
+- Month text: 17sp → **14sp**
+- Right chevron: `#292F3F` → `MonthRed`
+
+**Rule:** Do not revert `md_light_background` to grey — the reference design is white. If a specific screen needs a non-white background, apply it locally with `Modifier.background(...)`, not by changing the global Material token.
+
+## ADR-061: Categories Screen Design Token System (2026-06-01)
+
+**Problem:** `CategoriesWidgets.kt` contained ~40 hardcoded `Color(0x...)`, dozens of hardcoded `.dp`/`.sp`/`FontWeight` values, and a local `categoryVisualOverride` map inside composable functions. Visual changes required hunting through composable bodies.
+
+**Decision:** Centralise all visual constants into three new files in `ui/theme/`:
+
+| File | Contents |
+|------|----------|
+| `OneMoneyTokens.kt` | `OneMoneyColors`, `OneMoneyTypography`, `OneMoneyDimens` data classes + `OneMoneyLightTokens` object with all values |
+| `CategoryScreenTokens.kt` | `CategoryVisualStyle(circleBg, iconTint)` + `CategoryScreenTokens.byName` map (9 root categories) + `resolve(name, type, fallback, hasBudget)` |
+| `OneMoneyTheme.kt` | `LocalOneMoneyColors/Typography/Dimens` CompositionLocals, `OneMoneyTheme` accessor object, `OneMoneyThemeProvider` |
+
+`OneMoneyThemeProvider` wraps the app root inside `onemoneyTheme {}` in `MainActivity`.
+
+`CategoriesWidgets.kt` was rewritten to use `OneMoneyTheme.*` and `CategoryScreenTokens.resolve()` instead of all hardcoded values.
+
+**Token values (as of 2026-06-01):**
+- `categoryTitle`: Medium 12sp — `categoryTopAmount`/`categoryBottomAmount`: Normal 11sp
+- `centerTitle`: Medium 16sp — `centerAmount`: Normal 16sp
+- `subcategoryTitle`: Normal 10sp — `subcategoryAmount`: Normal 9sp
+- `addButtonStroke` #D8D8D8 — `addButtonIcon` #B6B6B6 — `centerRing` #DEDEE3
+- Donut stroke: `minDim * 0.055f` (was 0.09f)
+
+**Rules:**
+- Do not add hardcoded `Color(0x...)`, `.sp`, or `FontWeight` directly inside `CategoriesWidgets.kt` — add a named token in `OneMoneyTokens.kt` first.
+- `CategoryScreenTokens.byName` is the single source for per-category circle/icon colours. Do not add a second local map anywhere.
+- `FontWeight.Bold` and `FontWeight.SemiBold` are banned on the categories screen. Only `Normal` and `Medium` are permitted (budget over-run uses `Medium`).
+
 ## ADR-060: ModalNavigationDrawer — gesturesEnabled = drawerState.isOpen (2026-06-01)
 
 **Problem:** `gesturesEnabled = false` on `ModalNavigationDrawer` disabled not only swipe gestures but also scrim tap (click-outside-to-dismiss) in certain Material3 versions. Users could only close the drawer via the explicit ✕ button.
@@ -1141,6 +1292,64 @@ UPDATE categories SET icon='wifi',  colorHex='#00BCD4' WHERE LOWER(TRIM(name)) =
 - Open → gestures on → scrim tap and swipe-to-close both work normally.
 - Added `BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }` as the highest-priority back handler so the Android back button also closes the drawer.
 
-Open paths: left-edge swipe via `edgeSwipe` modifier, or avatar tap in `SharedTopBar`.
+## ADR-063: App-Wide Design Token System — No Magic Numbers in UI Files (2026-06-01)
 
-**Rule:** Do not revert to `gesturesEnabled = false` — it breaks scrim-dismiss. Accidental open prevention is already handled by `edgeSwipe` restricting left-edge only.
+**Problem:** ~50 UI files contained `Color(0xFF…)` literals, bare `8.dp/16.dp/24.dp` values, and hardcoded `sp` values. Visual or spacing changes required grep-and-replace across dozens of files, with high regression risk.
+
+**Decision:** Extended `OneMoneyTokens.kt` with three token classes (`OneMoneyColors`, `OneMoneyTypography`, `OneMoneyDimens`) covering the full app, not just the category screen. Applied `Spacing.*` (from `Spacing.kt`) and `OneMoneyTheme.{colors,dimens,typography}` across all UI composables.
+
+**Token files (ui/theme/):**
+- `OneMoneyTokens.kt` — data classes + `OneMoneyLightTokens` object with all values
+- `OneMoneyTheme.kt` — `CompositionLocal` provider; access via `OneMoneyTheme.colors/dimens/typography`
+- `Spacing.kt` — `xs=4dp sm=8dp md=12dp lg=16dp xl=20dp xxl=24dp`
+- `CategoryScreenTokens.kt` — category-specific color mappings (per-name overrides)
+
+**Spacing rule:** Replace `4.dp/8.dp/12.dp/16.dp/20.dp/24.dp` with `Spacing.xs/sm/md/lg/xl/xxl`. Values outside this set (6dp, 10dp, 14dp, etc.) stay as raw dp — they are layout-specific.
+
+**Color rule:** No bare `Color(0xFF…)` in UI composable files except:
+- Fallback colors for user-supplied hex (e.g., `Color(0xFFFF5722)` as default category color)
+- Screen-specific palette constants declared as `private val : Color` at file top (see pattern below)
+
+**`private val` pattern for screen-specific colors:**
+When a file has palette colors that are not in the global token system (action button tints, account type colors, filter chip colors, etc.), declare them as typed private vals at the top of the file, immediately after imports:
+```kotlin
+private val FallbackAccountColor: Color = Color(0xFF4361EE)
+private val ActionAmberColor:     Color = Color(0xFFFFAB00)
+private val AccountTypeDebtColor: Color = Color(0xFF2E7D60)
+```
+Always add `: Color` explicitly — Kotlin type inference fails with a "recursive problem" error on top-level Color vals in some Compose contexts. Applied in: `AccountsScreen.kt`, `AccountSheets.kt`, `AccountPickerSheets.kt`, `IconColorPickerScreen.kt`, `TransactionsListScreen.kt`, `MainScreen.kt`, `BudgetScreen.kt`, `BudgetSheets.kt`, `CategoriesScreen.kt`, `CategoriesWidgets.kt`, `CategorySheets.kt`, `CategoryFormSheets.kt`, `CalcKeypad.kt` (`CalcConfirmColor=#4CAF50`), `CalcDateSheet.kt` (`FallbackAccountColor=#3949AB`, `DarkOnLightColor=#1C1B1F`).
+
+**Dimension rule:** Component sizes (`44.dp` avatar, `24.dp` standard icon, etc.) use `OneMoneyTheme.dimens.*`. Do not hardcode these in composable bodies.
+
+**Rule:** All new UI composables must use `OneMoneyTheme.{colors,dimens,typography}` and `Spacing.*` from the first line. Never add a new local constant for a value already in the token system.
+
+## ADR-067: Root Category Sort Order — One-Time Migration, User-Controlled After (2026-06-01)
+
+**Problem:** Users who had the app installed before `sortOrder` was correctly seeded, or who restored a backup, could have root expense categories in the wrong display order (DB row insertion order instead of the intended grid order).
+
+**Decision:** DB migration 29→30 sets the canonical `sortOrder` for the 9 root expense categories exactly once. After the migration runs, `sortOrder` is fully user-controlled — never reset on startup.
+
+**Canonical order:**
+| sortOrder | Category |
+|---|---|
+| 1 | Продукти |
+| 2 | Ресторація |
+| 3 | Дозвілля |
+| 4 | Транспорт |
+| 5 | Здоров'я |
+| 6 | Подарунки |
+| 7 | Сім'я |
+| 8 | Покупки |
+| 9 | Робота |
+
+**Migration SQL** (uses `LIKE 'Здоров%'` / `LIKE 'Сім%'` for apostrophe-agnostic matching; `AND parentId IS NULL AND type = 'EXPENSE'` guard):
+```sql
+UPDATE categories SET sortOrder = 1 WHERE name = 'Продукти'   AND parentId IS NULL AND type = 'EXPENSE'
+-- ... (one UPDATE per category)
+UPDATE categories SET sortOrder = 5 WHERE name LIKE 'Здоров%' AND parentId IS NULL AND type = 'EXPENSE'
+UPDATE categories SET sortOrder = 7 WHERE name LIKE 'Сім%'    AND parentId IS NULL AND type = 'EXPENSE'
+```
+
+**Rejected alternative:** `repairDefaultOrder()` called on every startup — this would reset any user reordering (drag-and-drop in `EditCategoriesScreen`) on the next app launch, defeating the purpose of user control.
+
+**Rule:** Do NOT add a `repairDefaultOrder()` startup function. The sort order for default categories is fixed by migration 29→30 and is user-controlled thereafter. If the canonical order needs to change, add a new migration — do not reset on every startup.

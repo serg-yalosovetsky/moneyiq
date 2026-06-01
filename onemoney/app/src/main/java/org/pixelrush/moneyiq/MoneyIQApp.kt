@@ -48,7 +48,6 @@ class onemoneyApp : Application() {
         // Починяем ключи иконок для существующих категорий
         categoryRepository.repairIconKeys()
         categoryRepository.repairDefaultColors()
-        categoryRepository.repairDefaultOrder()
 
         // Счёт по умолчанию — только при первом запуске
         if (accountDao.count() == 0) {
