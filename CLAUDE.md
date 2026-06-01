@@ -1,7 +1,7 @@
-# MoneyIQ — Project Instructions
+# onemoney — Project Instructions
 
 This is a native Android personal finance app (Kotlin + Jetpack Compose + Room + Hilt).
-App source lives under `moneyiq/app/src/main/java/org/pixelrush/moneyiq/`.
+App source lives under `onemoney/app/src/main/java/org/syalosovetskyi/onemoney/`.
 
 ## Before starting any task
 
@@ -33,13 +33,13 @@ Read the relevant `.context/` files first. They contain authoritative architectu
 
 ```powershell
 # Compile check (fast)
-cd moneyiq; .\gradlew :app:compileDebugKotlin
+cd onemoney; .\gradlew :app:compileDebugKotlin
 
 # Unit tests
-cd moneyiq; .\gradlew :app:testDebugUnitTest
+cd onemoney; .\gradlew :app:testDebugUnitTest
 
 # Full debug build
-cd moneyiq; .\gradlew :app:assembleDebug
+cd onemoney; .\gradlew :app:assembleDebug
 ```
 
 If compile fails with a cache error, add `--rerun-tasks`.

@@ -7,7 +7,7 @@
              {
               "type": "command",
               "shell": "powershell",
-              "command": "$json = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $json.tool_input.file_path; if ($f -like '*.kt') { Set-Location 'G:\\code\\one-money-clone\\moneyiq'; .\\gradlew:app:compileDebugKotlin 2>&1 | Select-Object -Last 6 }",
+              "command": "$json = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $json.tool_input.file_path; if ($f -like '*.kt') { Set-Location 'G:\\code\\one-money-clone\\onemoney'; .\\gradlew:app:compileDebugKotlin 2>&1 | Select-Object -Last 6 }",
               "timeout": 120,
               "statusMessage": "Компіляція Kotlin..."
             }

@@ -1,12 +1,12 @@
 # System Overview
 
-MoneyIQ is a native Android personal finance app built to recreate a 1Money-style experience with accounts, categories, transactions, budgets, reports, overview screens, and widgets.
+onemoney is a native Android personal finance app built to recreate a 1Money-style experience with accounts, categories, transactions, budgets, reports, overview screens, and widgets.
 
 ## Runtime Boundary
 
-- Runtime app source lives under `moneyiq/app`.
+- Runtime app source lives under `onemoney/app`.
 - Reverse-engineered/reference APK artifacts live at the repository root and extraction folders. They are not runtime source.
-- The Android app is package `org.pixelrush.moneyiq`.
+- The Android app is package `org.syalosovetskyi.onemoney`.
 - There is one app module: `:app`.
 
 ## Main Modules
@@ -19,7 +19,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 - `ui/categories` - `CategoriesScreen` (donut + chip grid), `CategoriesViewModel`. Companion files: `CategoriesWidgets.kt` (`CategoryChip`, `SideSubcategoryPanel`, `ExpandedCategoryStrip`, `AddCategoryChip`, `DonutChart`, `dashedCircleBorder`), `CategorySheets.kt` (`CategoryActionSheet`, `QuickExpenseSheet`), `CategoryFormSheets.kt` (`CategoryFormSheet`, `ColorIconPickerSheet`), `EditCategoriesScreen.kt` (`EditCategoriesScreen` — full-screen edit overlay, reuses `CategoriesGridContent`), `CategoryIcons.kt` (icon/color lists, `categoryIconFor()`).
 - `ui/components/calculator` - shared cross-screen components: `CalcState.kt` (`CalcStateHolder`, `rememberCalcState`), `CalcKeypad.kt` (`SharedCalcKeypad`, `AmountCalculatorSheet`), `CalcDateSheet.kt` (`CalcDateSheet`, `FullDatePickerDialog`, `AccountPickerSheet`, repeat/reminder dialogs).
 - `ui/components/dialogs` - generic reusable AlertDialog composables: `TextInputDialog.kt` (single-line text input with optional enforce-fill mode), `ConfirmationDialog.kt` (destructive/neutral confirmation with optional icon). Both `internal`.
-- `ui/components/currency` - `CurrencyPicker.kt`: `CurrencyPickerSheet` — full-screen `Dialog` with tabs (Main / Other / Crypto). Moved here from `ui/accounts/AccountPickerSheets.kt`. Import: `org.pixelrush.moneyiq.ui.components.currency.CurrencyPickerSheet`.
+- `ui/components/currency` - `CurrencyPicker.kt`: `CurrencyPickerSheet` — full-screen `Dialog` with tabs (Main / Other / Crypto). Moved here from `ui/accounts/AccountPickerSheets.kt`. Import: `org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPickerSheet`.
 - `ui/components/form` - `FormComponents.kt`: `FormSectionHeader` (labeled divider row), `FormNavRow` (icon + label + value + clickable). Both `internal`.
 - `ui/components/icons` - `IconBox.kt`: `CircleIconBox`, `RoundedIconBox`. Both `internal`. Replaces ad-hoc `Box + clip + Icon` patterns.
 - `ui/transactions` - `TransactionsListScreen` (`initialAccountFilter` for deep-link from Accounts tab), `AddTransactionScreen` (currency picker, category/transfer via `CategoryPickerSheet`), `TransactionViewModel`, `TransactionsListViewModel`. Sheet/dialog composables in dedicated files: `TxSearchScreen.kt`, `CategoryPickerSheet.kt` (`CategoryPickerSheet` — supports `currentType` simplified mode + `initialTab`), `TransferQuickSheet.kt`, `TransactionDetailSheet.kt`.
@@ -30,7 +30,7 @@ MoneyIQ is a native Android personal finance app built to recreate a 1Money-styl
 - `ui/data` - `DataScreen` (main screen only), `DataWidgets.kt` (`MonoFlowSyncCard`, `DataSectionHeader`, `DataActionItem`, `DriveBackupItem`, `LocalBackupItem`, `pluralUk`, `ResetDataDialog`), `DataViewModel` (JSON import/export, backup; injects DAOs directly — TODO: migrate to repositories).
 - `ui/theme` - `Theme.kt` (colors incl. `BudgetExpenseColor`, `BudgetIncomeColor`), `Spacing.kt` (design tokens xs–xxl).
 - `ui/widget` - `BalanceWidget`, `ExpenseWidget` (Glance).
-- `workers` - `NotificationWorker` (daily notification, self-reschedules), `DriveBackupWorker`, `MonoFlowSyncWorker`, `RepeatTransactionWorker` (nightly at 00:01 — creates due repeat transactions, fires reminder notifications, reschedules itself; also triggered once on app start via `MoneyIQApp`).
+- `workers` - `NotificationWorker` (daily notification, self-reschedules), `DriveBackupWorker`, `MonoFlowSyncWorker`, `RepeatTransactionWorker` (nightly at 00:01 — creates due repeat transactions, fires reminder notifications, reschedules itself; also triggered once on app start via `onemoneyApp`).
 - `util` - `BackupSerializer` (JSON import/export; fields: all account/category/transaction columns incl. `creditLimit`, `repeatMode`, `reminderMode`, `nextRepeatDate`; uses `has()+isNull()` guard for nullable longs for backward compat with old backups), `CsvExporter`, `CategoryStyleUtil` (keyword→icon/color auto-suggest), `RepeatUtil.kt` (`calculateNextRepeatDate`, `startOfDay`, `reminderOffsetDays`).
 
 ## Main Flows

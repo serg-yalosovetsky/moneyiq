@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: moneyiq
+        working-directory: onemoney
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: moneyiq/app/build/reports/tests/
+          path: onemoney/app/build/reports/tests/
 
   # ── Release APK + GitHub Release (only on version tags v*.*.*) ───────────────
   release:
@@ -51,7 +51,7 @@ jobs:
       contents: write
     defaults:
       run:
-        working-directory: moneyiq
+        working-directory: onemoney
     steps:
       - uses: actions/checkout@v4
 
@@ -76,7 +76,7 @@ jobs:
             exit 1
           fi
           printf '%s' "$KEYSTORE_B64" | base64 -d > app/release.keystore
-          echo "SIGNING_STORE_FILE=${{ github.workspace }}/moneyiq/app/release.keystore" >> $GITHUB_ENV
+          echo "SIGNING_STORE_FILE=${{ github.workspace }}/onemoney/app/release.keystore" >> $GITHUB_ENV
           echo "SIGNING_STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
           echo "SIGNING_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           echo "SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
@@ -92,18 +92,18 @@ jobs:
       - name: Rename APK
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}-signed.apk
+             app/build/outputs/apk/release/onemoney-${{ github.ref_name }}-signed.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: MoneyIQ ${{ github.ref_name }}
+          name: onemoney ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           make_latest: true
           generate_release_notes: true
-          files: moneyiq/app/build/outputs/apk/release/moneyiq-${{ github.ref_name }}-signed.apk
+          files: onemoney/app/build/outputs/apk/release/onemoney-${{ github.ref_name }}-signed.apk
           body: |
-            ## MoneyIQ ${{ github.ref_name }}
+            ## onemoney ${{ github.ref_name }}
 
             ### Установка
             Скачайте APK-файл и установите на устройство Android 8.0+.

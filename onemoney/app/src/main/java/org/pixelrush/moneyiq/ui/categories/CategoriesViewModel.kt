@@ -1,0 +1,168 @@
+package org.syalosovetskyi.onemoney.ui.categories
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
+import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
+import org.syalosovetskyi.onemoney.data.db.entities.TransactionEntity
+import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+import org.syalosovetskyi.onemoney.data.repository.AccountRepository
+import org.syalosovetskyi.onemoney.data.repository.AppMonth
+import org.syalosovetskyi.onemoney.data.repository.CategoryRepository
+import org.syalosovetskyi.onemoney.data.repository.SelectedMonthRepository
+import org.syalosovetskyi.onemoney.data.repository.TransactionRepository
+import org.syalosovetskyi.onemoney.util.calculateNextRepeatDate
+import java.util.*
+import javax.inject.Inject
+
+data class SelectedMonth(val year: Int, val month: Int) // month 0-based
+
+data class CategoriesUiState(
+    val expenseCategories: List<CategoryEntity> = emptyList(),
+    val incomeCategories:  List<CategoryEntity> = emptyList(),
+    val monthSpending:     Map<Long, Double>     = emptyMap(),
+    val monthIncome:       Map<Long, Double>     = emptyMap(),
+    val monthTxCounts:     Map<Long, Int>        = emptyMap(),
+    val selectedMonth:     SelectedMonth = SelectedMonth(
+        Calendar.getInstance().get(Calendar.YEAR),
+        Calendar.getInstance().get(Calendar.MONTH)
+    ),
+    val appMonth:           AppMonth             = AppMonth(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH)),
+    val daysInMonth:        Int                  = 31,
+    val pillLabel:          String               = "",
+    val pillBadge:          String               = "31",
+    val totalExpense:       Double               = 0.0,
+    val totalIncome:        Double               = 0.0,
+    val accounts:           List<AccountEntity>  = emptyList(),
+    val showSubcategories:  Boolean              = false
+)
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class CategoriesViewModel @Inject constructor(
+    private val repo:        CategoryRepository,
+    private val txRepo:      TransactionRepository,
+    private val monthRepo:   SelectedMonthRepository,
+    private val accountRepo: AccountRepository
+) : ViewModel() {
+
+    /** Месячные данные по категориям */
+    private val monthlyState: StateFlow<CategoriesUiState> =
+        monthRepo.month.flatMapLatest { am ->
+            val sel        = SelectedMonth(am.year, am.month)
+            val (from, to) = monthRepo.computeRange(am)
+            combine(
+                repo.getByType(TransactionType.EXPENSE),
+                repo.getByType(TransactionType.INCOME),
+                txRepo.getCategorySpending(TransactionType.EXPENSE, from, to),
+                txRepo.getCategorySpending(TransactionType.INCOME,  from, to)
+            ) { expense, income, expSpending, incSpending ->
+                CategoriesUiState(
+                    expenseCategories = expense,
+                    incomeCategories  = income,
+                    monthSpending     = expSpending.associate { it.categoryId to it.total },
+                    monthIncome       = incSpending.associate { it.categoryId to it.total },
+                    monthTxCounts     = (expSpending + incSpending).associate { it.categoryId to it.count },
+                    selectedMonth     = sel,
+                    appMonth          = am,
+                    daysInMonth       = monthRepo.daysInPeriod(am),
+                    pillLabel         = monthRepo.pillLabel(am),
+                    pillBadge         = monthRepo.pillBadge(am),
+                    totalExpense      = expSpending.sumOf { it.total },
+                    totalIncome       = incSpending.sumOf { it.total }
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
+
+    private val _showSubcategories = MutableStateFlow(false)
+
+    /** Полный state = месячные данные + список счетов + флаг разворачивания */
+    val state: StateFlow<CategoriesUiState> = combine(
+        monthlyState,
+        accountRepo.getAllAccounts(),
+        _showSubcategories
+    ) { catState, accounts, showSub ->
+        catState.copy(accounts = accounts, showSubcategories = showSub)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CategoriesUiState())
+
+    fun prevMonth()                          = monthRepo.prevMonth()
+    fun nextMonth()                          = monthRepo.nextMonth()
+    fun goToMonth(year: Int, month: Int)     = monthRepo.goToMonth(year, month)
+    fun setPeriod(appMonth: AppMonth)        = monthRepo.setPeriod(appMonth)
+    fun toggleSubcategories()               { _showSubcategories.value = !_showSubcategories.value }
+
+    fun add(
+        name:         String,
+        type:         TransactionType,
+        color:        String,
+        icon:         String = "category",
+        budget:       Double = 0.0,
+        period:       String = "MONTHLY",
+        currencyCode: String = "UAH",
+        parentId:     Long?  = null
+    ) {
+        viewModelScope.launch {
+            repo.save(
+                CategoryEntity(
+                    name         = name,
+                    type         = type,
+                    colorHex     = color,
+                    icon         = icon,
+                    budgetAmount = budget,
+                    budgetPeriod = period,
+                    currencyCode = currencyCode,
+                    parentId     = parentId
+                )
+            )
+        }
+    }
+
+    fun update(category: CategoryEntity) {
+        viewModelScope.launch { repo.update(category) }
+    }
+
+    fun delete(category: CategoryEntity) {
+        viewModelScope.launch { repo.delete(category) }
+    }
+
+    fun reorderCategories(ordered: List<CategoryEntity>) {
+        viewModelScope.launch {
+            repo.updateAll(ordered.mapIndexed { idx, cat -> cat.copy(sortOrder = idx) })
+        }
+    }
+
+    /** Записывает транзакцию (расход или доход) с балансовым обновлением счёта */
+    fun recordTransaction(
+        accountId:    Long,
+        category:     CategoryEntity,
+        amount:       Double,
+        note:         String,
+        date:         Long   = System.currentTimeMillis(),
+        repeatMode:   String = "NEVER",
+        reminderMode: String = "NEVER"
+    ) {
+        viewModelScope.launch {
+            val nextRepeatDate = if (repeatMode != "NEVER")
+                calculateNextRepeatDate(date, repeatMode) else null
+            txRepo.addTransaction(
+                TransactionEntity(
+                    type           = category.type,
+                    amount         = amount,
+                    accountId      = accountId,
+                    categoryId     = category.id,
+                    note           = note,
+                    date           = date,
+                    repeatMode     = repeatMode,
+                    reminderMode   = reminderMode,
+                    nextRepeatDate = nextRepeatDate
+                )
+            )
+        }
+    }
+
+}

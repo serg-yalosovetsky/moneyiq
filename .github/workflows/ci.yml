@@ -39,18 +39,18 @@ jobs:
 
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
-        working-directory: moneyiq
+        working-directory: onemoney
 
       - name: Generate coverage report
         run: gradle :app:createDebugUnitTestCoverageReport --no-daemon
-        working-directory: moneyiq
+        working-directory: onemoney
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-report
-          path: moneyiq/app/build/reports/tests/testDebugUnitTest/
+          path: onemoney/app/build/reports/tests/testDebugUnitTest/
           retention-days: 14
 
       - name: Upload coverage report
@@ -58,7 +58,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           name: coverage-report
-          path: moneyiq/app/build/reports/coverage/test/debug/
+          path: onemoney/app/build/reports/coverage/test/debug/
           retention-days: 30
 
   # ── Build APK ─────────────────────────────────────────────────────────────────
@@ -91,11 +91,11 @@ jobs:
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
-        working-directory: moneyiq
+        working-directory: onemoney
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-${{ github.sha }}
-          path: moneyiq/app/build/outputs/apk/debug/app-debug.apk
+          path: onemoney/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30

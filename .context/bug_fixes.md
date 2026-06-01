@@ -73,7 +73,7 @@
 
 **Root cause:** A parallel session used the non-existent name `iconVectorFor` instead of the correct `categoryIconFor` from `ui/categories/CategoryIcons.kt`, and omitted the required import.
 
-**Fix:** Replaced `iconVectorFor(cat.icon)` with `categoryIconFor(cat.icon)` and added `import org.pixelrush.moneyiq.ui.categories.categoryIconFor`.
+**Fix:** Replaced `iconVectorFor(cat.icon)` with `categoryIconFor(cat.icon)` and added `import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor`.
 
 **Regression rule:** The only function for resolving icon keys to `ImageVector` is `categoryIconFor(iconName: String)` in `CategoryIcons.kt`. There is no `iconVectorFor`, `iconFor`, or similar alias. Always import it explicitly — wildcard imports from `ui.categories` do not expose `internal` members.
 
@@ -149,9 +149,9 @@
 
 **Symptom:** App crashes immediately on startup with `java.lang.IllegalArgumentException: DSN is required. Use empty string or set enabled to false in SentryOptions to disable SDK` from `SentryInitProvider.onCreate`.
 
-**Root cause:** Sentry SDK ships a `SentryInitProvider` ContentProvider that fires **before** `Application.onCreate()` and reads DSN from `AndroidManifest.xml` meta-data. The DSN was only configured in `MoneyIQApp.onCreate()` via `SentryAndroid.init()` — not in the manifest — so the ContentProvider crashed before reaching Application init.
+**Root cause:** Sentry SDK ships a `SentryInitProvider` ContentProvider that fires **before** `Application.onCreate()` and reads DSN from `AndroidManifest.xml` meta-data. The DSN was only configured in `onemoneyApp.onCreate()` via `SentryAndroid.init()` — not in the manifest — so the ContentProvider crashed before reaching Application init.
 
-**Fix:** Added `<meta-data android:name="io.sentry.auto-init" android:value="false" />` to `AndroidManifest.xml`. This disables `SentryInitProvider`; Sentry is initialized entirely by `SentryAndroid.init()` in `MoneyIQApp.onCreate()`.
+**Fix:** Added `<meta-data android:name="io.sentry.auto-init" android:value="false" />` to `AndroidManifest.xml`. This disables `SentryInitProvider`; Sentry is initialized entirely by `SentryAndroid.init()` in `onemoneyApp.onCreate()`.
 
 **Regression rule:** Do not remove `io.sentry.auto-init=false` from the manifest unless the DSN is also added as `io.sentry.dsn` meta-data and the manual `SentryAndroid.init()` call is removed. Double-init causes unpredictable SDK behaviour.
 

@@ -2,7 +2,7 @@
 setlocal
 
 set "JAVA_HOME=C:\Program Files\Android\Android Studio2\jbr"
-set "PROJECT_DIR=%~dp0moneyiq"
+set "PROJECT_DIR=%~dp0onemoney"
 set "APK_OUT=%PROJECT_DIR%\app\build\outputs\apk\debug\app-debug.apk"
 
 echo Building debug APK...

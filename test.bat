@@ -2,7 +2,7 @@
 setlocal
 
 set "JAVA_HOME=C:\Program Files\Android\Android Studio2\jbr"
-set "PROJECT_DIR=%~dp0moneyiq"
+set "PROJECT_DIR=%~dp0onemoney"
 
 echo Running unit tests...
 echo.

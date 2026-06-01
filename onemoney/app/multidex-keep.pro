@@ -1,0 +1,4 @@
+-keep class org.syalosovetskyi.onemoney.onemoneyApp { *; }
+-keep class org.syalosovetskyi.onemoney.Hilt_onemoneyApp { *; }
+-keep class org.syalosovetskyi.onemoney.MainActivity { *; }
+-keep class org.syalosovetskyi.onemoney.Hilt_MainActivity { *; }

@@ -1,0 +1,68 @@
+package org.syalosovetskyi.onemoney.ui.accounts
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
+import org.syalosovetskyi.onemoney.data.db.entities.AccountType
+import org.syalosovetskyi.onemoney.data.repository.AccountRepository
+import javax.inject.Inject
+
+data class AccountsUiState(
+    val accounts: List<AccountEntity> = emptyList(),
+    val totalBalance: Double = 0.0
+)
+
+@HiltViewModel
+class AccountsViewModel @Inject constructor(
+    private val repo: AccountRepository
+) : ViewModel() {
+
+    val state: StateFlow<AccountsUiState> = combine(
+        repo.getAllAccounts(),
+        repo.getTotalBalance().map { it ?: 0.0 }
+    ) { accounts, total ->
+        AccountsUiState(accounts = accounts, totalBalance = total)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AccountsUiState())
+
+    fun add(
+        name: String,
+        type: AccountType,
+        balance: Double,
+        color: String,
+        currency: String = "UAH",
+        description: String = "",
+        includeInTotal: Boolean = true,
+        icon: String = "account_balance_wallet",
+        creditLimit: Double = 0.0
+    ) {
+        viewModelScope.launch {
+            val isFirst = repo.getAllAccounts().first().isEmpty()
+            repo.save(
+                AccountEntity(
+                    name = name, type = type, balance = balance,
+                    colorHex = color, currency = currency,
+                    isDefault = isFirst,
+                    description = description,
+                    includeInTotal = includeInTotal,
+                    icon = icon,
+                    creditLimit = creditLimit
+                )
+            )
+        }
+    }
+
+    fun update(account: AccountEntity) {
+        viewModelScope.launch { repo.update(account) }
+    }
+
+    fun delete(account: AccountEntity) {
+        viewModelScope.launch { repo.delete(account) }
+    }
+
+    fun setDefault(account: AccountEntity) {
+        viewModelScope.launch { repo.setDefault(account.id) }
+    }
+}

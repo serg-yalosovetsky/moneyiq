@@ -1,6 +1,6 @@
-# MoneyIQ
+# onemoney
 
-MoneyIQ is a native Android personal finance app inspired by the 1Money experience. It is built with Kotlin and Jetpack Compose and focuses on fast daily expense tracking, category-first analytics, budgets, reports, local persistence, and home-screen widgets.
+onemoney is a native Android personal finance app inspired by the 1Money experience. It is built with Kotlin and Jetpack Compose and focuses on fast daily expense tracking, category-first analytics, budgets, reports, local persistence, and home-screen widgets.
 
 ![Platform](https://img.shields.io/badge/platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
@@ -37,9 +37,9 @@ MoneyIQ is a native Android personal finance app inspired by the 1Money experien
 
 ```text
 .
-├── moneyiq/                  # Main Android project
+├── onemoney/                  # Main Android project
 │   ├── app/                  # Application module
-│   │   └── src/main/java/org/pixelrush/moneyiq/
+│   │   └── src/main/java/org/syalosovetskyi/onemoney/
 │   │       ├── data/         # Room entities, DAOs, repositories
 │   │       ├── di/           # Hilt modules
 │   │       ├── ui/           # Compose screens and widgets
@@ -58,14 +58,14 @@ MoneyIQ is a native Android personal finance app inspired by the 1Money experien
 - Android SDK with compile SDK 36.
 - Gradle 8.9 or compatible local Gradle installation.
 
-The repository currently contains Gradle wrapper metadata but no `gradlew` launcher script. Open `moneyiq/` in Android Studio, or run Gradle with an installed/wrapper Gradle binary available on your machine.
+The repository currently contains Gradle wrapper metadata but no `gradlew` launcher script. Open `onemoney/` in Android Studio, or run Gradle with an installed/wrapper Gradle binary available on your machine.
 
 ## Build
 
 From the Android project directory:
 
 ```powershell
-cd moneyiq
+cd onemoney
 gradle app:compileDebugKotlin
 ```
 
@@ -79,7 +79,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio2\jbr'
 For a debug APK:
 
 ```powershell
-cd moneyiq
+cd onemoney
 gradle app:assembleDebug
 ```
 
@@ -89,10 +89,10 @@ The project has 166 unit tests and a set of instrumented DAO tests. The test sui
 
 ### Running with gradlew (recommended)
 
-`gradlew` and `gradlew.bat` are present in `moneyiq/`. They require `gradle/wrapper/gradle-wrapper.jar` which is not committed. Generate it once:
+`gradlew` and `gradlew.bat` are present in `onemoney/`. They require `gradle/wrapper/gradle-wrapper.jar` which is not committed. Generate it once:
 
 ```bash
-# inside moneyiq/
+# inside onemoney/
 gradle wrapper --gradle-version 8.11.1
 ```
 
@@ -101,14 +101,14 @@ After that, use `./gradlew` (Linux/macOS) or `gradlew.bat` (Windows) for all com
 ### Unit tests
 
 ```bash
-cd moneyiq
+cd onemoney
 ./gradlew :app:testDebugUnitTest
 ```
 
 HTML report:
 
 ```
-moneyiq/app/build/reports/tests/testDebugUnitTest/index.html
+onemoney/app/build/reports/tests/testDebugUnitTest/index.html
 ```
 
 ### Instrumented tests (requires emulator or device)
@@ -128,7 +128,7 @@ Coverage is collected via JaCoCo (built into AGP). The `debug` build type has `e
 HTML report:
 
 ```
-moneyiq/app/build/reports/coverage/test/debug/index.html
+onemoney/app/build/reports/coverage/test/debug/index.html
 ```
 
 Open `index.html` in a browser to see line and branch coverage per class and package.
@@ -167,7 +167,7 @@ The build completes successfully. Existing warnings are mostly deprecations and 
 
 ## Notes
 
-This repository includes extracted APK/reference folders used while recreating the app experience. The source app lives in `moneyiq/`; treat the root APK artifacts and extraction folders as supporting material, not production source.
+This repository includes extracted APK/reference folders used while recreating the app experience. The source app lives in `onemoney/`; treat the root APK artifacts and extraction folders as supporting material, not production source.
 
 ## License
 

@@ -80,17 +80,17 @@ All composables use `internal` visibility (same module, same package). They must
 - **`TextInputDialog`** — `title`, `label`, `initialValue`, `allowDismiss` (when `false`: OK enabled only after typing, Cancel hidden, back press blocked), `confirmText`, `dismissText`, `onConfirm(value)`, `onDismiss`. State lives inside the composable.
 - **`ConfirmationDialog`** — `title`, `message`, `icon?` (drawn in error tint), `confirmText`, `dismissText`, `destructive` (error-colored TextButton when `true`), `onConfirm`, `onDismiss`.
 
-Both are `internal` (module-visible). Import from `org.pixelrush.moneyiq.ui.components.dialogs`. Do not re-inline new copies of these patterns.
+Both are `internal` (module-visible). Import from `org.syalosovetskyi.onemoney.ui.components.dialogs`. Do not re-inline new copies of these patterns.
 
 ## ADR-019: Sentry For Crash Reporting
 
-Sentry Android SDK (`sentry-android 7.20.0`) is initialized in `MoneyIQApp.onCreate` before any coroutine work starts. The Sentry Gradle plugin (`io.sentry.android.gradle 4.14.1`) uploads ProGuard mappings and source context automatically on release builds.
+Sentry Android SDK (`sentry-android 7.20.0`) is initialized in `onemoneyApp.onCreate` before any coroutine work starts. The Sentry Gradle plugin (`io.sentry.android.gradle 4.14.1`) uploads ProGuard mappings and source context automatically on release builds.
 
-- DSN is hardcoded in `MoneyIQApp.kt` (not a secret — it is the public ingest endpoint).
+- DSN is hardcoded in `onemoneyApp.kt` (not a secret — it is the public ingest endpoint).
 - Auth token for the Gradle plugin lives in `local.properties` (gitignored) and is never committed. CI uses the `SENTRY_AUTH_TOKEN` env var.
 - `buildConfig = true` is enabled in `app/build.gradle.kts` so `BuildConfig.DEBUG` and `BuildConfig.VERSION_NAME` are available.
 - `environment` is set to `"debug"` or `"production"` based on `BuildConfig.DEBUG`.
-- `release` is set to `"moneyiq@${BuildConfig.VERSION_NAME}"`.
+- `release` is set to `"onemoney@${BuildConfig.VERSION_NAME}"`.
 - Screenshots, view hierarchy, and user interaction tracing are enabled (`isAttachScreenshot`, `isAttachViewHierarchy`, `isEnableUserInteractionTracing`).
 - `tracesSampleRate = 1.0` during development — reduce to `0.2` or lower before high-traffic release.
 
@@ -266,12 +266,12 @@ Previously this was filtered to `expRows.filter { it.category.budgetAmount > 0 }
 
 ## ADR-027: MonoFlow Sync Uses BackupSerializer JSON, Not CSV
 
-`MonoFlowSyncWorker` calls `GET $url/api/sync?since=$lastSyncMs` (Bearer token auth) and deserializes the response with `BackupSerializer.deserialize(json)`. The `/export/flow.csv` endpoint is a separate export for the Flow app and is not consumed by MoneyIQ.
+`MonoFlowSyncWorker` calls `GET $url/api/sync?since=$lastSyncMs` (Bearer token auth) and deserializes the response with `BackupSerializer.deserialize(json)`. The `/export/flow.csv` endpoint is a separate export for the Flow app and is not consumed by onemoney.
 
 The JSON format is the same as the manual backup:
 ```json
 {
-  "version": 1, "exportDate": ..., "app": "MoneyIQ",
+  "version": 1, "exportDate": ..., "app": "onemoney",
   "accounts":     [ { "id", "name", "type", "balance", "currency", ... } ],
   "categories":   [ { "id", "name", "type", "colorHex", "icon", "budgetAmount", "parentId", ... } ],
   "transactions": [ { "id", "type", "amount", "accountId", "toAccountId", "categoryId", "note", "date" } ]
@@ -486,7 +486,7 @@ onAddTransfer = { onAddTransaction() }
 
 `OverviewScreen.kt` previously had its own local `iconVectorFor()` function with only 13 icon mappings. Any icon name not in that list fell back to `Icons.Default.Category` — causing wrong icons for "Переказ" (transfer), "Доставка" (delivery), "AliExpress" (aliexpress), "Електроніка" (devices), and others.
 
-**Fix:** Removed `iconVectorFor()` from `OverviewScreen.kt`. Now calls `categoryIconFor(iconName)` from `org.pixelrush.moneyiq.ui.categories.CategoryIcons`, which covers all 48 icon keys. `categoryIconFor` was changed from `internal` to `public` to allow cross-package access.
+**Fix:** Removed `iconVectorFor()` from `OverviewScreen.kt`. Now calls `categoryIconFor(iconName)` from `org.syalosovetskyi.onemoney.ui.categories.CategoryIcons`, which covers all 48 icon keys. `categoryIconFor` was changed from `internal` to `public` to allow cross-package access.
 
 **Rule:** Do not add a new local icon mapper in any screen file. Always call `categoryIconFor()` from `CategoryIcons.kt`. If a new icon key is added to the app, add it to `CATEGORY_ICONS_LIST` in `CategoryIcons.kt` — that is the single source of truth for all icon name → vector mappings.
 
@@ -557,7 +557,7 @@ DB: `CategoryEntity.currencyCode TEXT NOT NULL DEFAULT 'UAH'` added via migratio
 
 **Why:** Many user-created and MonoFlow-imported categories had icon keys not in `CATEGORY_ICONS_LIST`, so the UI showed a generic icon. Some seeder categories also had wrong keys (e.g., "взуття" → "clothes" hanger, "краса" → "shopping" cart).
 
-**`repairIconKeys()` in `CategoryRepository`:** Called in `MoneyIQApp.seedInitialData()` on every app start (idempotent). It applies fixes in priority order:
+**`repairIconKeys()` in `CategoryRepository`:** Called in `onemoneyApp.seedInitialData()` on every app start (idempotent). It applies fixes in priority order:
 1. **Name overrides** — explicit `nameOverrides` list (e.g., "взуття" → "shoes", "ebay" → "store", "комунал" → "home", "язок" → "phone", "інтернет" → "wifi") applied regardless of current stored key.
 2. **Generic icon fix** — for any category whose icon is `"category"` or `"family"` (valid but generic), runs `suggestCategoryStyle(name, type)`; applies the result if it's more specific than `"category"`. This catches categories imported from MonoFlow or backups that had a generic icon after prior migrations ran.
 3. **Invalid key fix** — for any remaining category whose icon key is not in `validKeys`, re-runs `suggestCategoryStyle(name, type)`.
@@ -676,7 +676,7 @@ transactions.nextRepeatDate: INTEGER (nullable Long)
 4. `RepeatTransactionWorker` (ежесуточно в 00:01 + при каждом старте приложения):
    - Находит `nextRepeatDate <= today` → создаёт копию транзакции с `date = nextRepeatDate`, `nextRepeatDate = следующее`, обновляет баланс счёта (`AccountDao.updateBalance`), сбрасывает `nextRepeatDate = NULL` у «использованного» шаблона.
    - Повторяет пока не закончатся просроченные вхождения (catch-up за несколько дней без запуска).
-   - Для транзакций с `reminderMode != 'NEVER'`: если `startOfDay(nextRepeatDate - offset_days) == today` → отправляет уведомление в канале `moneyiq_repeat_reminder`.
+   - Для транзакций с `reminderMode != 'NEVER'`: если `startOfDay(nextRepeatDate - offset_days) == today` → отправляет уведомление в канале `onemoney_repeat_reminder`.
 
 ### Ключевые артефакты
 
@@ -981,7 +981,7 @@ Largest segment at the bottom; smaller segments stack upward. Income mode / empt
 
 Sentry captures events in both `debug` and `production` builds. Environment label distinguishes them in the dashboard.
 
-**Configuration (`MoneyIQApp.kt`):**
+**Configuration (`onemoneyApp.kt`):**
 ```kotlin
 options.isEnabled   = true          // explicit — not just default
 options.environment = if (BuildConfig.DEBUG) "debug" else "production"
@@ -996,7 +996,7 @@ options.isDebug     = BuildConfig.DEBUG  // verbose SDK logs in debug only
 
 ## ADR-056: repairDefaultColors() — Canonical Root Category Colors On Startup (2026-06-01)
 
-`CategoryRepository.repairDefaultColors()` enforces canonical `colorHex` values for the 9 default root expense categories on every app start. Called from `MoneyIQApp.seedInitialData()` alongside `repairIconKeys()`.
+`CategoryRepository.repairDefaultColors()` enforces canonical `colorHex` values for the 9 default root expense categories on every app start. Called from `onemoneyApp.seedInitialData()` alongside `repairIconKeys()`.
 
 **Why:** `seedDefaults()` runs only when the category table is empty. Users who imported data from a backup or ran the app before seed colors were locked end up with different colors. `repairDefaultColors()` fixes this idempotently.
 

@@ -4,19 +4,19 @@
 apktool_out/*
 1money_apktool/*
 jadx_out/*
-moneyiq/app/build/*
-moneyiq/import/__pycache__/*
-moneyiq/.gradle/*
-moneyiq/local.properties
+onemoney/app/build/*
+onemoney/import/__pycache__/*
+onemoney/.gradle/*
+onemoney/local.properties
 
 # Signing keys — never commit
 *.keystore
 *.jks
 
 # Release outputs
-moneyiq/app/release/
-moneyiq/build/
+onemoney/app/release/
+onemoney/build/
 
 # Gradle caches / probes
-moneyiq/.gradle/
-moneyiq/.gradle/8.11.1/checksums/checksums.lock
+onemoney/.gradle/
+onemoney/.gradle/8.11.1/checksums/checksums.lock

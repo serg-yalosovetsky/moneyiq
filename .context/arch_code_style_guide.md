@@ -82,7 +82,7 @@ When adding new ViewModels or repositories, add corresponding tests following pa
 
 Multiple Claude sessions may run against this repo simultaneously. Before editing a file:
 
-1. Check `git status` from the repo root (`G:\code\one-money-clone`) — NOT from `moneyiq/`.
+1. Check `git status` from the repo root (`G:\code\one-money-clone`) — NOT from `onemoney/`.
 2. If a file has uncommitted changes, read the full diff before overwriting.
 3. Scope each session's changes to clearly separated files to avoid merge conflicts.
 4. Commit completed work promptly so other sessions see it via `git log`.

@@ -5,27 +5,27 @@
 Open or build from:
 
 ```text
-moneyiq/
+onemoney/
 ```
 
 Gradle root:
 
 ```text
-moneyiq/settings.gradle.kts
+onemoney/settings.gradle.kts
 ```
 
 App module:
 
 ```text
-moneyiq/app
+onemoney/app
 ```
 
 ## Android Config
 
 From `app/build.gradle.kts`:
 
-- namespace: `org.pixelrush.moneyiq`
-- applicationId: `org.pixelrush.moneyiq`
+- namespace: `org.syalosovetskyi.onemoney`
+- applicationId: `org.syalosovetskyi.onemoney`
 - minSdk: `26`
 - targetSdk: `36`
 - compileSdk: `36`
@@ -43,11 +43,11 @@ Declared in `AndroidManifest.xml`:
 
 ## Local Build Notes
 
-`moneyiq/gradlew.bat` exists and works. Set `JAVA_HOME` before invoking it:
+`onemoney/gradlew.bat` exists and works. Set `JAVA_HOME` before invoking it:
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio2\jbr'
-Set-Location 'G:\code\one-money-clone\moneyiq'
+Set-Location 'G:\code\one-money-clone\onemoney'
 & '.\gradlew.bat' ':app:compileDebugKotlin'          # compile check
 & '.\gradlew.bat' ':app:testDebugUnitTest' '--no-daemon'   # unit tests
 & '.\gradlew.bat' ':app:assembleDebug' '--no-daemon'       # build APK
@@ -57,7 +57,7 @@ Convenience scripts at the repo root: `build-apk.bat`, `test.bat` — both set `
 
 ## local.properties Keys
 
-`moneyiq/local.properties` is gitignored and holds all local secrets:
+`onemoney/local.properties` is gitignored and holds all local secrets:
 
 ```properties
 sentry.auth.token=<token from sentry.io Settings → Auth Tokens>
@@ -87,7 +87,7 @@ https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4
 ```
 Org: `serg-yalosovetsky`, project: `one_money`.
 
-**Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `MoneyIQApp.onCreate()`.
+**Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `onemoneyApp.onCreate()`.
 
 ## Claude Code Integration
 
@@ -101,7 +101,7 @@ The hook reads the tool input JSON from stdin to get `file_path`, checks for `.k
 $json = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $f = $json.tool_input.file_path
 if ($f -like '*.kt') {
-    Set-Location 'G:\code\one-money-clone\moneyiq'
+    Set-Location 'G:\code\one-money-clone\onemoney'
     .\gradlew :app:compileDebugKotlin 2>&1 | Select-Object -Last 6
 }
 ```

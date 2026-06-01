@@ -1,0 +1,301 @@
+package org.syalosovetskyi.onemoney.util
+
+import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+
+/**
+ * Returns (iconKey, colorHex) for a category by matching name keywords.
+ * Icon keys correspond to CATEGORY_ICONS_LIST in CategorySheets.kt.
+ * Colors are from CATEGORY_FORM_COLORS.
+ */
+fun suggestCategoryStyle(name: String, type: TransactionType): Pair<String, String> {
+    val n = name.lowercase().trim()
+
+    // Rules checked top-to-bottom; more specific rules must come first.
+    val rules: List<Pair<String, List<String>>> = listOf(
+        // AI services
+        "ai"         to listOf("ai ", " ai", "chatgpt", "openai", "claude", "gemini",
+                               "midjourney", "copilot", "gpt", "штучн", "нейромереж",
+                               "artificial intelligence", "llm"),
+
+        // Aliexpress / Asian marketplaces
+        "aliexpress" to listOf("aliexpress", "ali ", "алиекспресс", "аліекспрес",
+                               "temu", "shein", "wish", "banggood", "gearbest"),
+
+        // Hosting / VPS / servers (more specific than generic cloud)
+        "server"     to listOf("хостинг", "хостінг", "hosting", "vps", "сервер", "server"),
+
+        // Cloud storage / subscriptions
+        "cloud"      to listOf("cloud", "хмар", "icloud", "google drive", "dropbox",
+                               "onedrive", "mega ", "backblaze"),
+
+        // Refund / cashback / compensation (before transfer — more specific)
+        "refund"     to listOf("повернення", "повернен", "повернул", "refund",
+                               "cashback", "кешбек", "компенсац", "компенсація"),
+
+        // Transfers & money moves
+        "transfer"   to listOf("переказ", "перевод", "перевід", "transfer", "відправк", "розрахун"),
+
+        // Courier / delivery
+        "delivery"   to listOf("кур'єр", "курьер", "доставк", "delivery", "courier",
+                               "посилк", "нова пошта", "укрпошта", "meest", "justin"),
+
+        // Electronics / gadgets
+        "devices"    to listOf("електрон", "электрон", "техніка", "техника", "гаджет",
+                               "devices", "laptop", "ноутбук", "телевізор", "телевизор",
+                               "пристрій", "hardware", "software"),
+
+        // Internet (before phone to avoid overlap on "інтернет")
+        "wifi"       to listOf("інтернет", "інтернету", "internet", "wifi", "wi-fi",
+                               "broadband", "оптик", "провайдер"),
+
+        // Phone / mobile
+        "phone"      to listOf("зв'язок", "зв'язку", "связь", "мобільн",
+                               "phone", "mobile", "sim", "телефон", "поповнення",
+                               "lifecell", "kyivstar", "vodafone", "укртелеком"),
+
+        // Beauty / spa
+        "beauty"     to listOf("краса", "beauty", "салон", "перукарн", "косметик",
+                               "манікюр", "педикюр", "спа", "spa", "spa-"),
+
+        // Shoes / footwear (before clothes — more specific)
+        "shoes"      to listOf("взуття", "взутт", "shoes", "boots", "взуттєв", "footwear"),
+
+        // Clothing (before shopping to avoid overlap)
+        "clothes"    to listOf("одяг", "fashion", "одежд"),
+
+        // Toys (before family — more specific than general family spending)
+        "toys"       to listOf("іграшк", "toys", "toy ", "ляльк", "конструктор", "lego",
+                               "плюшев", "настільна гра"),
+
+        // Family
+        "family"     to listOf("сім'я", "сімей", "family", "дітям", "дитяч",
+                               "дитин", "дитяча"),
+
+        // Bills / utilities (before home to be more specific)
+        "receipt"    to listOf("рахунки", "рахунок", "bills", "utilities",
+                               "счет", "оплат", "платіж"),
+
+        // Cafe (more specific than restaurant — must be before it)
+        "coffee"     to listOf("кафе", "кав'ярн", "кофе", "кава", "coffee", "cafe",
+                               "tea", "чай", "снэк", "снек", "snack"),
+
+        // Restaurants (includes "ресторація" — One Money's broad category name)
+        "restaurant" to listOf("ресторан", "ресторацій", "ресторація", "їдальн",
+                               "обід", "ужин", "завтрак", "food", "піца", "pizza",
+                               "суші", "sushi", "питан", "харч", "кухн", "restaurant"),
+
+        // Groceries (before general shopping)
+        "grocery"    to listOf("продукти", "продукт", "продовольч",
+                               "атб", "сільпо", "фора", "новус"),
+
+        // Flowers / florists
+        "flower"     to listOf("квіти", "квіт", "цвіти", "цвіт", "flower", "флорист",
+                               "bouquet", "букет"),
+
+        // Souvenirs (distinct from gifts)
+        "souvenir"   to listOf("сувенір", "souvenir"),
+
+        // Parties / celebrations (more specific than theater — must come before it)
+        "celebration" to listOf("розваг", "свят", "party", "праздн", "вечірк", "банкет"),
+
+        // Broad leisure/entertainment (дозвілля, театр)
+        "theater"    to listOf("дозвілл", "театр", "концерт", "шоу",
+                               "entertainment", "festival", "відпочин"),
+
+        // Books / libraries
+        "book"       to listOf("книги", "книга", "книжк", "book", "бібліотек",
+                               "bookshop", "читанн", "літератур"),
+
+        // Cinema / movies specifically
+        "movie"      to listOf("кіно", "cinema", "фільм", "кінотеатр", "netflix"),
+
+        // Video games
+        "gaming"     to listOf("gaming", "гейм", "ігри", "відеоігр",
+                               "playstation", "xbox", "nintendo", "steam"),
+
+        // Messaging apps
+        "telegram"   to listOf("telegram", "телеграм", "viber", "вайбер", "messenger"),
+
+        // Dating apps
+        "dating"     to listOf("dating", "тіндер", "tinder", "bumble", "hinge", "знайомств"),
+
+        // Event tickets
+        "ticket"     to listOf("квиток", "квитки", "concert ticket"),
+
+        // Music specifically
+        "music"      to listOf("музик", "music", "spotify"),
+
+        // Specific online marketplaces / stores (before general shopping)
+        "store"      to listOf("rozetka", "розетка", "ebay", "prom.ua", "hotline",
+                               "маркетплейс", "marketplace", "OLX", "olx"),
+
+        // Sports goods stores (before generic sports activity)
+        "fitness"    to listOf("спортивні товари", "спорттовар", "спортмастер",
+                               "спортивн магаз", "sport shop", "decathlon"),
+
+        // Shopping (general)
+        "shopping"   to listOf("покупки", "магазин", "market", "shopping", "ринок"),
+
+        // Taxi (before car — more specific)
+        "taxi"        to listOf("таксі", "taxi", "uklon", "bolt", "uber"),
+
+        // Gas station (before car — more specific)
+        "gas_station" to listOf("азс", "азц", "заправк", "wog", "okko", "socar", "brsm", "нафтан"),
+
+        // Railway (before general bus/transport)
+        "train"      to listOf("залізниця", "залізн", "потяг", "поїзд", "train",
+                               "укрзалізниц", "intercity", "інтерсіті", "railway"),
+
+        // Transport (general — bus/metro/public)
+        "bus"        to listOf("транспорт", "громадськ", "автобус", "метро", "маршрутк",
+                               "bus", "transit", "електричк", "трамвай", "тролейбус"),
+
+        // Car parts / auto service (before generic car)
+        "auto_parts" to listOf("запчастин", "автозапч", "car parts", "автосерв",
+                               "шиномонтаж", "ремонт авто", "мийк", "car repair"),
+
+        // Car / auto (personal vehicle)
+        "car"        to listOf("авто", "машин", "автомоб", "car",
+                               "паркінг", "бензин", "пальне"),
+
+        // Power tools / instruments (before building materials)
+        "tools"      to listOf("інструмент", "tool", "дриль", "пилк", "верстат",
+                               "молоток", "шуруповерт", "болгарк", "зварювальн"),
+
+        // Building materials / construction supplies (before generic home)
+        "hardware"   to listOf("будматеріал", "будівельн", "будівель", "стройматер",
+                               "будмат", "цегла", "плитк", "ламінат", "паркет"),
+
+        // Home / utilities
+        "home"       to listOf("комунальн", "комунал", "квартир", "аренд", "оренд",
+                               "home", "rent", "house", "ремонт", "будинок",
+                               "електроенергія", "газ ", "вода ", "опален"),
+
+        // Work / income
+        "work"       to listOf("зарплат", "заробіт", "офіс", "бізнес", "фриланс",
+                               "work", "salary", "доход від", "дохід"),
+
+        // Education
+        "school"     to listOf("освіт", "навчан", "школ", "курс", "study",
+                               "education", "університет", "репетитор"),
+
+        // Wellbeing (includes "здоров'я" — One Money's broad category name)
+        "volunteer"  to listOf("здоров", "самопочутт"),
+
+        // Pharmacy / drugs — more specific, must come before doctor
+        "pharmacy"   to listOf("аптек", "ліки", "ліків", "pharmacy", "medication",
+                               "таблетк", "пігулк", "препарат"),
+
+        // Dental (before general doctor)
+        "dental"     to listOf("стоматолог", "стоматологі", "дантист", "dental",
+                               "зубн", "ортодонт"),
+
+        // Medical / hospital / clinic
+        "doctor"     to listOf("медицин", "лікар", "клінік",
+                               "health", "doctor", "лікарн", "hospital"),
+
+        // Hotel / accommodation (more specific than generic travel)
+        "hotel"      to listOf("готель", "hotel", "hostel", "хостел", "airbnb",
+                               "апартамент"),
+
+        // Travel / flights
+        "flight"     to listOf("відпочин", "туризм", "відпустк", "перельот",
+                               "flight", "travel", "booking"),
+
+        // Finance / savings
+        "money"      to listOf("фінанс", "інвестиц", "інвестицій", "банк", "крипто",
+                               "invest", "crypto", "накопич", "депозит", "вклад"),
+
+        // Pets
+        "pets"       to listOf("тварин", "домашн", "кіт", "собак", "pet", "ветеринар"),
+
+        // Gifts
+        "gift"       to listOf("подарун", "подарок", "gift", "present",
+                               "свят", "день народ", "birthday"),
+
+        // Sports
+        "sports"     to listOf("спорт", "фітнес", "спортзал", "gym", "тренув", "йога", "yoga"),
+
+        // Fines / penalties
+        "gavel"      to listOf("штраф", "пеня", "санкц", "fine", "penalty", "стягнен"),
+
+        // Interest / taxes / percentages
+        "percent"    to listOf("процент", "відсоток", "податок", "податки", "пдв", "акциз",
+                               "interest", "tax", "taxes", "ндфл")
+    )
+
+    val iconColorMap = mapOf(
+        "ai"         to "#6200EA",  // deep-purple   — AI сервіси
+        "aliexpress" to "#FF6D00",  // orange        — Aliexpress
+        "cloud"      to "#0288D1",  // sky-blue      — Cloud/хостинг
+        "transfer"   to "#00897B",  // teal          — Переказ
+        "delivery"   to "#FF6F00",  // amber         — Кур'єр
+        "devices"    to "#607D8B",  // blue-grey     — Електроніка
+        "wifi"       to "#00BCD4",  // cyan          — Інтернет
+        "phone"      to "#3F51B5",  // indigo        — Зв'язок
+        "coffee"     to "#795548",  // brown         — Кафе
+        "restaurant" to "#4659BE",  // blue          — Ресторація
+        "shopping"   to "#7B5947",  // brown         — Покупки
+        "taxi"        to "#FDD835",  // yellow        — Таксі
+        "gas_station" to "#FF8F00",  // amber         — АЗС
+        "theater"    to "#F73579",  // pink          — Дозвілля
+        "celebration" to "#FF6D00", // orange        — Свято
+        "spa"        to "#26A69A",  // teal-green    — Спа/Велнес
+        "bus"        to "#FFA834",  // orange        — Транспорт (публічний)
+        "car"        to "#FF7043",  // deep-orange   — Авто (особисте)
+        "home"       to "#546E7A",  // blue-grey     — Комунальні
+        "work"       to "#1565C0",  // dark-blue     — Зарплата/Робота
+        "school"     to "#FF9800",  // orange        — Освіта
+        "volunteer"  to "#48B456",  // green         — Здоров'я (серце)
+        "pharmacy"   to "#43A047",  // green-dark    — Аптека (таблетки)
+        "doctor"     to "#D81B60",  // pink-red      — Лікар/Медицина
+        "health"     to "#C62828",  // red           — (legacy key)
+        "parking"    to "#78909C",  // blue-grey     — Паркінг
+        "key"        to "#9C27B0",  // purple        — Оренда
+        "laptop"     to "#26A69A",  // teal-green    — Фриланс
+        "percent"    to "#F9A825",  // amber         — Проценти/Податки
+        "gavel"      to "#BF360C",  // deep-orange   — Штрафи
+        "flight"     to "#03A9F4",  // light-blue    — Подорожі
+        "movie"      to "#9C27B0",  // purple        — Кіно
+        "gaming"     to "#607D8B",  // blue-grey     — Gaming
+        "telegram"   to "#2196F3",  // blue          — Telegram
+        "dating"     to "#E91E63",  // pink          — Dating
+        "ticket"     to "#AD1457",  // dark-pink     — Концерт/театр
+        "music"      to "#AB47BC",  // purple        — Музика
+        "grocery"    to "#4AAFE8",  // light-blue    — Продукти
+        "money"      to "#F9A825",  // amber-dark    — Інвестиції
+        "pets"       to "#8D6E63",  // brown-light   — Тварини
+        "gift"       to "#F34B4D",  // red           — Подарунки
+        "sports"     to "#F44336",  // red           — Спорт
+        "beauty"     to "#AD1457",  // dark-pink     — Краса
+        "clothes"    to "#00838F",  // dark-cyan     — Одяг
+        "family"     to "#7A48F2",  // purple        — Сім'я
+        "receipt"    to "#546E7A",  // blue-grey     — Рахунки
+        // Extended
+        "server"     to "#37474F",  // dark-grey     — Хостінг/Сервер
+        "flower"     to "#E91E63",  // pink          — Квіти
+        "souvenir"   to "#7B1FA2",  // purple        — Сувеніри
+        "store"      to "#1E88E5",  // blue          — Rozetka/eBay/Маркетплейс
+        "shoes"      to "#5D4037",  // dark-brown    — Взуття
+        "tools"      to "#546E7A",  // blue-grey     — Інструменти
+        "hardware"   to "#BF360C",  // deep-orange   — Будматеріали
+        "toys"       to "#FF6D00",  // orange        — Іграшки
+        "fitness"    to "#D32F2F",  // dark-red      — Спортивні товари
+        "dental"     to "#0097A7",  // teal          — Стоматолог
+        "train"      to "#1565C0",  // dark-blue     — Залізниця
+        "hotel"      to "#4527A0",  // deep-purple   — Готель
+        "book"       to "#5E35B1",  // purple        — Книги
+        "auto_parts" to "#E64A19",  // deep-orange   — Автозапчастини
+        "refund"     to "#00897B"   // teal          — Повернення/Cashback
+    )
+
+    for ((icon, keywords) in rules) {
+        if (keywords.any { n.contains(it) }) {
+            return icon to (iconColorMap[icon] ?: "#FF5722")
+        }
+    }
+
+    // Unrecognised / "Інше" — neutral grey
+    val fallbackColor = if (type == TransactionType.INCOME) "#4CAF50" else "#78909C"
+    return "category" to fallbackColor
+}
