@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.currency
+﻿package org.syalosovetskyi.onemoney.ui.components.currency
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +25,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_CRYPTO
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 // ── CurrencyPickerSheet ───────────────────────────────────────────────────────
 // Full-screen Dialog with tabs: Main / Other / Crypto currencies.
@@ -54,7 +56,7 @@ internal fun CurrencyPickerSheet(
                         modifier          = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                            .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
@@ -64,7 +66,7 @@ internal fun CurrencyPickerSheet(
                             title,
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier   = Modifier.padding(start = 4.dp)
+                            modifier   = Modifier.padding(start = Spacing.xs)
                         )
                     }
                 }
@@ -160,7 +162,7 @@ internal fun CurrencyBottomSheet(
             text     = title,
             style    = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
         )
 
         TabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.surface) {
@@ -227,13 +229,13 @@ internal fun CurrencyPageContent(
             modifier          = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.Close, contentDescription = "Закрити")
             }
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp))
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = Spacing.xs))
         }
 
         TabRow(selectedTabIndex = tabIndex) {

@@ -2,61 +2,33 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.drawBehind
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.PathEffect
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.Dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
@@ -64,6 +36,12 @@ import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+
+private val FallbackAccountColor: Color = Color(0xFF4361EE)
+private val StarGoldColor:        Color = Color(0xFFFFD700)
+private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -216,16 +194,17 @@ private fun AccountsTopBar(
     totalBalance: Double,
     onAddClick:   () -> Unit
 ) {
+    val dimens = OneMoneyTheme.dimens
     Row(
         modifier          = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.sm, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier         = Modifier
-                .size(44.dp)
+                .size(dimens.topBarAvatarSize)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -233,10 +212,10 @@ private fun AccountsTopBar(
             Icon(
                 Icons.Outlined.Person, null,
                 tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(dimens.topBarAvatarIconSize)
             )
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.md))
         Column(
             modifier            = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -253,12 +232,12 @@ private fun AccountsTopBar(
                 color      = MaterialTheme.colorScheme.onSurface
             )
         }
-        Spacer(Modifier.width(12.dp))
-        IconButton(onClick = onAddClick, modifier = Modifier.size(44.dp)) {
+        Spacer(Modifier.width(Spacing.md))
+        IconButton(onClick = onAddClick, modifier = Modifier.size(dimens.topBarAvatarSize)) {
             Icon(
                 Icons.Default.Add, "Додати рахунок",
                 tint     = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(dimens.standardIconSize)
             )
         }
     }
@@ -277,8 +256,8 @@ private fun AccountsListTab(
 ) {
     LazyColumn(
         contentPadding      = PaddingValues(
-            start  = 16.dp, end = 16.dp,
-            top    = 8.dp,  bottom = bottomPadding + 16.dp
+            start  = Spacing.lg, end = Spacing.lg,
+            top    = Spacing.sm, bottom = bottomPadding + Spacing.lg
         ),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
@@ -334,21 +313,22 @@ private fun AccountListItem(
 ) {
     val accentColor = remember(account.colorHex) {
         try { Color(account.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF4361EE) }
+        catch (_: Exception) { FallbackAccountColor }
     }
     var showMenu by remember { mutableStateOf(false) }
 
+    val dimens = OneMoneyTheme.dimens
     Row(
         modifier          = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(dimens.largeRadius))
             .clickable { onTap() }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AccountIconBox(account = account, accentColor = accentColor)
 
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(Spacing.lg))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -384,7 +364,7 @@ private fun AccountListItem(
                 if (!account.isDefault) {
                     DropdownMenuItem(
                         text        = { Text("Зробити основним") },
-                        leadingIcon = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
+                        leadingIcon = { Icon(Icons.Default.Star, null, tint = StarGoldColor) },
                         onClick     = { onSetDefault(); showMenu = false }
                     )
                 }
@@ -408,8 +388,8 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
         CURRENCIES_ALL.find { it.code == account.currency }?.symbol?.take(2) ?: account.currency.take(2)
     }
     val isLightBg  = accentColor.luminance() > 0.5f
-    val iconTint   = if (isLightBg) Color(0xFF1C1B1F) else Color.White
-    val badgeColor = if (isLightBg) Color(0xFF1C1B1F) else accentColor
+    val iconTint   = if (isLightBg) DarkOnLightColor else Color.White
+    val badgeColor = if (isLightBg) DarkOnLightColor else accentColor
 
     Box(modifier = Modifier.size(64.dp)) {
         Box(
@@ -455,7 +435,7 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
             ) {
                 Icon(
                     Icons.Filled.Star, "Основний",
-                    tint     = Color(0xFFFFD700),
+                    tint     = StarGoldColor,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -495,7 +475,7 @@ private fun AddAccountItem(onClick: () -> Unit) {
                 )
             }
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(Spacing.lg))
         Text(
             "Додати рахунок",
             style      = MaterialTheme.typography.bodyLarge,
@@ -538,12 +518,12 @@ private fun MyFinancesTab(
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color      = MaterialTheme.colorScheme.primary,
-                modifier   = Modifier.padding(bottom = 12.dp)
+                modifier   = Modifier.padding(bottom = Spacing.md)
             )
 
             // ── Таблиця активи / борги ──────────────────────────────────────
             Card(
-                shape  = RoundedCornerShape(12.dp),
+                shape  = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -572,7 +552,7 @@ private fun MyFinancesTab(
                         Box(
                             modifier         = Modifier
                                 .weight(0.18f)
-                                .padding(vertical = 16.dp),
+                                .padding(vertical = Spacing.lg),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -613,7 +593,7 @@ private fun MyFinancesTab(
 @Composable
 private fun FinanceHeaderCell(text: String, modifier: Modifier) {
     Box(
-        modifier         = modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+        modifier         = modifier.padding(vertical = 10.dp, horizontal = Spacing.sm),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -628,7 +608,7 @@ private fun FinanceHeaderCell(text: String, modifier: Modifier) {
 @Composable
 private fun FinanceValueCell(amount: Double, modifier: Modifier, isDebt: Boolean = false) {
     Box(
-        modifier         = modifier.padding(vertical = 16.dp, horizontal = 8.dp),
+        modifier         = modifier.padding(vertical = Spacing.lg, horizontal = Spacing.sm),
         contentAlignment = Alignment.Center
     ) {
         Text(

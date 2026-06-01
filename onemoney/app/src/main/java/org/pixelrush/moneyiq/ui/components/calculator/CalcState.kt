@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.calculator
+﻿package org.syalosovetskyi.onemoney.ui.components.calculator
 
 import androidx.compose.runtime.*
 import java.text.NumberFormat

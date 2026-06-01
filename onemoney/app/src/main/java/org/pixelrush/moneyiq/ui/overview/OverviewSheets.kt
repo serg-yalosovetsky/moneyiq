@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment

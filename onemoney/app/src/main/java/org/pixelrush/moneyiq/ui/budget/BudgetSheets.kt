@@ -2,49 +2,27 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.ui.components.calculator.SharedCalcKeypad
 import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
@@ -52,6 +30,10 @@ import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
 import org.syalosovetskyi.onemoney.ui.components.icons.CircleIconBox
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+
+private val DarkOnLightColor: Color = Color(0xFF1C1B1F)
 
 // ── Діалог введення бюджету категорії ────────────────────────────────────────
 
@@ -71,8 +53,8 @@ internal fun BudgetInputSheet(
         catch (_: Exception) { accentColor }
     }
     val isLightBg    = catColor.luminance() > 0.5f
-    val onCatColor   = if (isLightBg) Color(0xFF1C1B1F) else Color.White
-    val displayColor = if (isLightBg) Color(0xFF1C1B1F) else catColor
+    val onCatColor   = if (isLightBg) DarkOnLightColor else Color.White
+    val displayColor = if (isLightBg) DarkOnLightColor else catColor
 
     var pickedCurrency     by remember { mutableStateOf(catRow.category.currencyCode) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
@@ -110,7 +92,7 @@ internal fun BudgetInputSheet(
 
                 Text(
                     catRow.category.name,
-                    modifier   = Modifier.padding(horizontal = 20.dp),
+                    modifier   = Modifier.padding(horizontal = Spacing.xl),
                     style      = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color      = onCatColor
@@ -118,7 +100,7 @@ internal fun BudgetInputSheet(
                 Spacer(Modifier.height(10.dp))
 
                 Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    modifier          = Modifier.fillMaxWidth().padding(horizontal = Spacing.xl),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -136,7 +118,7 @@ internal fun BudgetInputSheet(
                         ) {
                             Text(
                                 "${formatMoney(catRow.amount)} ₴",
-                                modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                modifier   = Modifier.padding(horizontal = 10.dp, vertical = Spacing.xs),
                                 style      = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color      = onCatColor
@@ -149,32 +131,32 @@ internal fun BudgetInputSheet(
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(Spacing.md))
 
                 LinearProgressIndicator(
                     progress   = { budgetProgress },
                     modifier   = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
+                        .padding(horizontal = Spacing.xl)
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color      = onCatColor,
                     trackColor = onCatColor.copy(alpha = 0.25f)
                 )
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(Spacing.lg))
 
                 Column(
                     modifier            = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(Spacing.lg))
                     Text(
                         "Бюджет на місяць",
                         style = MaterialTheme.typography.labelLarge,
                         color = displayColor
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(Spacing.xs))
                     Text(
                         text       = displayText,
                         style      = MaterialTheme.typography.headlineLarge,
@@ -183,7 +165,7 @@ internal fun BudgetInputSheet(
                         maxLines   = 1,
                         overflow   = TextOverflow.Ellipsis
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.sm))
                     SharedCalcKeypad(
                         calc            = calc,
                         modifier        = Modifier.fillMaxWidth().height(252.dp),
@@ -192,14 +174,14 @@ internal fun BudgetInputSheet(
                         onCurrencyClick = { showCurrencyPicker = true },
                         onConfirm       = { onConfirm(calc.result(), pickedCurrency) }
                     )
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(Spacing.xxl))
                 }
             }
 
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = 20.dp)
+                    .padding(end = Spacing.xl)
                     .offset(y = (-18).dp)
                     .size(72.dp)
                     .clip(CircleShape)
@@ -250,13 +232,13 @@ internal fun IncomeCategoryPickerSheet(
     ) {
         Text(
             "Бюджет доходів",
-            modifier   = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            modifier   = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.lg),
             style      = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             monthLabel,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+            modifier = Modifier.padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.md),
             style    = MaterialTheme.typography.bodySmall,
             color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
         )
@@ -337,7 +319,7 @@ internal fun BudgetSettingsSheet(
             Row(
                 modifier          = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                    .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onDismiss) {
@@ -353,7 +335,7 @@ internal fun BudgetSettingsSheet(
 
             Text(
                 "Операції",
-                modifier   = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                modifier   = Modifier.padding(start = Spacing.lg, top = Spacing.md, bottom = Spacing.xs),
                 style      = MaterialTheme.typography.labelLarge,
                 color      = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
@@ -377,7 +359,7 @@ internal fun BudgetSettingsSheet(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.sm))
 
             ListItem(
                 modifier       = Modifier.clickable(onClick = onDeleteBudget),

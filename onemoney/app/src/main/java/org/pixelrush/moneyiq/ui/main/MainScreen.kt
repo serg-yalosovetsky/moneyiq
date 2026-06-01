@@ -3,62 +3,34 @@
 import androidx.activity.compose.BackHandler
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Brush
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionWithDetails
@@ -81,10 +53,8 @@ import org.syalosovetskyi.onemoney.ui.data.DataScreen
 import org.syalosovetskyi.onemoney.ui.overview.OverviewScreen
 import org.syalosovetskyi.onemoney.ui.settings.SettingsScreen
 import org.syalosovetskyi.onemoney.ui.settings.SettingsViewModel
-import org.syalosovetskyi.onemoney.ui.theme.DebtOrange
-import org.syalosovetskyi.onemoney.ui.theme.ExpenseRed
-import org.syalosovetskyi.onemoney.ui.theme.IncomeGreen
-import org.syalosovetskyi.onemoney.ui.theme.TransferBlue
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.transactions.TransactionsListScreen
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -190,10 +160,12 @@ fun MainScreen(
         }
     ) {
     Scaffold(
+        containerColor = Color.White,
         bottomBar = {
+            val navColors = OneMoneyTheme.colors
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 0.dp
             ) {
                 activeTabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
@@ -205,13 +177,20 @@ fun MainScreen(
                                 contentDescription = tab.label
                             )
                         },
-                        label  = { Text(tab.label, maxLines = 1) },
+                        label  = {
+                            Text(
+                                tab.label, maxLines = 1,
+                                fontSize   = 10.sp,
+                                fontWeight = if (currentPage == index) FontWeight.Medium else FontWeight.Light,
+                                letterSpacing = 0.sp
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor   = MaterialTheme.colorScheme.primary,
-                            selectedTextColor   = MaterialTheme.colorScheme.primary,
-                            indicatorColor      = MaterialTheme.colorScheme.primaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedIconColor   = navColors.primaryText,
+                            selectedTextColor   = navColors.primaryText,
+                            indicatorColor      = navColors.bottomNavPill,
+                            unselectedIconColor = navColors.primaryText,
+                            unselectedTextColor = navColors.primaryText,
                         )
                     )
                 }
@@ -501,23 +480,26 @@ fun SharedTopBar(
     Row(
         modifier          = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val topBarDimens  = OneMoneyTheme.dimens
+        val topBarColors  = OneMoneyTheme.colors
+        val topBarTypo    = OneMoneyTheme.typography
         IconButton(
             onClick = onAvatarClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(topBarDimens.topBarAvatarSize)
         ) {
             Icon(
                 ToolbarProfileIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(34.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.md))
 
         // Центр: «Всі рахунки» + баланс
         Column(
@@ -526,22 +508,19 @@ fun SharedTopBar(
         ) {
             Text(
                 "Всі рахунки",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface
+                style      = topBarTypo.topBarLabel.copy(letterSpacing = 0.sp),
+                color      = topBarColors.primaryText
             )
             Text(
-                formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color      = if (totalBalance < 0) Color(0xFFE53935)
-                             else MaterialTheme.colorScheme.onSurface,
+                formatMoney(totalBalance) + " ₴",
+                style      = topBarTypo.topBarBalance.copy(letterSpacing = 0.sp),
+                color      = topBarColors.primaryText,
                 maxLines   = 1,
                 overflow   = TextOverflow.Ellipsis
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.md))
 
         // Права кнопка
         val (icon, description, action) = when (currentPage) {
@@ -554,13 +533,13 @@ fun SharedTopBar(
 
         IconButton(
             onClick  = action,
-            modifier = Modifier.size(44.dp).clip(CircleShape)
+            modifier = Modifier.size(topBarDimens.topBarAvatarSize).clip(CircleShape)
         ) {
             Icon(
                 icon,
                 contentDescription = description,
                 tint               = MaterialTheme.colorScheme.onSurface,
-                modifier           = Modifier.size(if (currentPage == 2) 22.dp else 34.dp)
+                modifier           = Modifier.size(if (currentPage == 2) topBarDimens.topBarAvatarIconSize else 28.dp)
             )
         }
     }
@@ -568,15 +547,19 @@ fun SharedTopBar(
 
 // ── Reusable UI blocks ────────────────────────────────────────────────────────
 
+private val RepayPurple = Color(0xFF9C27B0)
+
 @Composable
 fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
+    val appColors = OneMoneyTheme.colors
+    val appDimens = OneMoneyTheme.dimens
     val (amountColor, amountPrefix, typeIcon) = when (tx.type) {
-        TransactionType.INCOME   -> Triple(IncomeGreen,                "+", Icons.Default.ArrowDownward)
-        TransactionType.EXPENSE  -> Triple(ExpenseRed,                 "−", Icons.Default.ArrowUpward)
-        TransactionType.TRANSFER -> Triple(TransferBlue,               "⇄", Icons.Default.SwapHoriz)
-        TransactionType.BORROW   -> Triple(DebtOrange,                 "+", Icons.Default.MoveToInbox)
-        TransactionType.LEND     -> Triple(DebtOrange,                 "−", Icons.Default.Outbox)
-        TransactionType.REPAY    -> Triple(Color(0xFF9C27B0),          "−", Icons.AutoMirrored.Filled.AssignmentReturn)
+        TransactionType.INCOME   -> Triple(appColors.incomeGreen,  "+", Icons.Default.ArrowDownward)
+        TransactionType.EXPENSE  -> Triple(appColors.expenseRed,   "−", Icons.Default.ArrowUpward)
+        TransactionType.TRANSFER -> Triple(appColors.transferBlue, "⇄", Icons.Default.SwapHoriz)
+        TransactionType.BORROW   -> Triple(appColors.debtOrange,   "+", Icons.Default.MoveToInbox)
+        TransactionType.LEND     -> Triple(appColors.debtOrange,   "−", Icons.Default.Outbox)
+        TransactionType.REPAY    -> Triple(RepayPurple,            "−", Icons.AutoMirrored.Filled.AssignmentReturn)
     }
     val fallbackColor = MaterialTheme.colorScheme.secondaryContainer
     val catColor = tx.categoryColor?.let {
@@ -655,9 +638,10 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier) {
 // ── Formatting ────────────────────────────────────────────────────────────────
 
 fun formatMoney(amount: Double, currency: String = ""): String {
+    val isWhole = amount == kotlin.math.floor(amount) && !amount.isInfinite()
     val nf = NumberFormat.getNumberInstance(Locale.getDefault())
-    nf.minimumFractionDigits = 2
-    nf.maximumFractionDigits = 2
+    nf.minimumFractionDigits = if (isWhole) 0 else 2
+    nf.maximumFractionDigits = if (isWhole) 0 else 2
     return if (currency.isNotBlank()) "${nf.format(amount)} $currency" else nf.format(amount)
 }
 

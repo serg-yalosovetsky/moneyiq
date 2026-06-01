@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.theme
+﻿package org.syalosovetskyi.onemoney.ui.theme
 
 import androidx.compose.ui.unit.dp
 

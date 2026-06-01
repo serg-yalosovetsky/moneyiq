@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.dialogs
+﻿package org.syalosovetskyi.onemoney.ui.components.dialogs
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*

@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.data.repository.AppMonth
@@ -33,10 +34,11 @@ import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.data.repository.PeriodMode
 import org.syalosovetskyi.onemoney.ui.components.icons.DoubleChevronLeft
 import org.syalosovetskyi.onemoney.ui.components.icons.DoubleChevronRight
+import org.syalosovetskyi.onemoney.ui.theme.MonthRed
+import org.syalosovetskyi.onemoney.ui.theme.MonthRedLight
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import java.util.*
-
-private val PILL_ACCENT   = Color(0xFFD81B60)
-private val PILL_CURRENT  = Color(0xFF4B6BEF)  // current-month blue
 
 private class Ref<T>(var value: T)
 
@@ -105,11 +107,13 @@ fun SharedMonthNavPill(
     val pillLabel = pillLabelFor(appMonth)
     val pillBadge = pillBadgeFor(appMonth, daysInPeriod)
 
-    val today = remember { Calendar.getInstance() }
+    val today = Calendar.getInstance()
     val isCurrentMonth = appMonth.mode == PeriodMode.MONTH &&
-                         appMonth.month == today.get(Calendar.MONTH) &&
-                         appMonth.year  == today.get(Calendar.YEAR)
-    val pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
+        appMonth.month == today.get(Calendar.MONTH) &&
+        appMonth.year  == today.get(Calendar.YEAR)
+    val pillColor = if (isCurrentMonth) Color(0xFF111111) else MonthRed
+    val pillBg    = Color(0xFFD5D6EC)
+    val dimens    = OneMoneyTheme.dimens
 
     // Track swipe direction without extra recompositions (plain Ref, not MutableState)
     val prevRef    = remember { Ref(appMonth) }
@@ -136,26 +140,28 @@ fun SharedMonthNavPill(
         )
     }
 
+    val headerBg = MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier              = Modifier
             .fillMaxWidth()
+            .background(headerBg)
             .padding(start = 24.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Icon(
             DoubleChevronLeft, "Попередній період",
-            tint     = MaterialTheme.colorScheme.onSurface,
+            tint     = Color(0xFF111111),
             modifier = Modifier
-                .size(35.dp)
+                .size(dimens.pillArrowSize)
                 .testTag("month_pill_prev")
                 .clickable(onClick = onPrev)
                 .padding(2.dp)
         )
 
         Surface(
-            shape    = RoundedCornerShape(50.dp),
-            color    = pillColor.copy(alpha = 0.12f),
+            shape    = RoundedCornerShape(dimens.pillRadius),
+            color    = pillBg,
             modifier = Modifier
                 .testTag("month_pill")
                 .clickable { showSheet = true }
@@ -176,34 +182,33 @@ fun SharedMonthNavPill(
             ) { (label, badge) ->
                 Row(
                     verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Surface(
-                        shape  = RoundedCornerShape(6.dp),
+                        shape  = RoundedCornerShape(dimens.pillBadgeRadius),
                         color  = Color.Transparent,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.25.dp,
-                            Color.Black
-                        )
+                        border = androidx.compose.foundation.BorderStroke(dimens.thinStroke, pillColor)
                     ) {
                         Text(
                             badge,
                             modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style      = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color      = Color.Black
+                            style      = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 12.sp, letterSpacing = 0.sp),
+                            fontWeight = FontWeight.Light,
+                            color      = pillColor
                         )
                     }
                     Text(
                         label,
-                        style      = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color      = MaterialTheme.colorScheme.onSurface
+                        style      = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 11.sp, letterSpacing = 0.sp),
+                        fontWeight = FontWeight.Light,
+                        color      = pillColor
                     )
                     Icon(
                         Icons.Default.KeyboardArrowDown, null,
-                        tint     = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(26.dp)
+                        tint     = pillColor,
+                        modifier = Modifier.size(dimens.pillDropArrowSize)
                     )
                 }
             }
@@ -211,9 +216,9 @@ fun SharedMonthNavPill(
 
         Icon(
             DoubleChevronRight, "Наступний період",
-            tint     = MaterialTheme.colorScheme.onSurface,
+            tint     = if (isCurrentMonth) Color(0xFF111111) else MonthRed,
             modifier = Modifier
-                .size(35.dp)
+                .size(dimens.pillArrowSize)
                 .testTag("month_pill_next")
                 .clickable(onClick = onNext)
                 .padding(2.dp)
@@ -229,7 +234,7 @@ private data class PeriodOption(
     val subLabel: String,
     val badge:    String?,          // null → icon
     val icon:     ImageVector?,
-    val color:    Color = PILL_ACCENT
+    val color:    Color = MonthRed
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -264,7 +269,7 @@ fun PeriodSelectorSheet(
         PeriodOption("year",  "Рік",           "$todayYear",
                      "$yearDays", null, Color(0xFFEF6C00)),
         PeriodOption("month", "Місяць",        "${MONTH_NAMES_UA_FULL[appMonth.month]} ${appMonth.year}",
-                     "$daysInPeriod", null, PILL_ACCENT),
+                     "$daysInPeriod", null, MonthRed),
     )
 
     val selectedId = when (appMonth.mode) {
@@ -342,23 +347,23 @@ fun PeriodSelectorSheet(
 
             Surface(
                 onClick  = { showRangePicker = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
                 shape    = RoundedCornerShape(16.dp),
-                color    = if (selectedId == "range") PILL_ACCENT.copy(alpha = 0.10f)
+                color    = if (selectedId == "range") MonthRed.copy(alpha = 0.10f)
                            else MaterialTheme.colorScheme.surfaceVariant,
                 border   = if (selectedId == "range")
-                               androidx.compose.foundation.BorderStroke(2.dp, PILL_ACCENT) else null
+                               androidx.compose.foundation.BorderStroke(2.dp, MonthRed) else null
             ) {
                 Row(
-                    modifier          = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier          = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier.size(40.dp).clip(CircleShape)
-                            .background(PILL_ACCENT.copy(alpha = 0.12f)),
+                            .background(MonthRed.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("···", color = PILL_ACCENT, fontWeight = FontWeight.Bold,
+                        Text("···", color = MonthRed, fontWeight = FontWeight.Bold,
                              style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.width(14.dp))
@@ -382,7 +387,7 @@ fun PeriodSelectorSheet(
             options.chunked(2).forEach { pair ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     pair.forEach { opt ->
                         PeriodOptionCard(
@@ -421,32 +426,33 @@ private fun PeriodOptionCard(
     val bg = if (isSelected) option.color.copy(alpha = 0.10f)
              else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
 
+    val cardDimens = OneMoneyTheme.dimens
     Card(
         modifier = modifier
             .height(90.dp)
             .clickable(onClick = onClick),
-        shape  = RoundedCornerShape(16.dp),
+        shape  = RoundedCornerShape(cardDimens.largeRadius),
         colors = CardDefaults.cardColors(containerColor = bg),
         border = if (isSelected)
-            androidx.compose.foundation.BorderStroke(2.dp, option.color)
+            androidx.compose.foundation.BorderStroke(cardDimens.thickStroke, option.color)
         else null
     ) {
         Column(
             modifier            = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = Spacing.md, vertical = 10.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Верх: бейдж або іконка
             if (option.badge != null) {
                 // Закруглений прямокутник (як в оригіналі)
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(cardDimens.smallRadius),
                     color = if (isSelected) option.color else option.color.copy(alpha = 0.15f)
                 ) {
                     Text(
                         option.badge,
-                        modifier   = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier   = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color      = if (isSelected) Color.White else option.color
@@ -456,14 +462,14 @@ private fun PeriodOptionCard(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(cardDimens.smallRadius))
                         .background(option.color.copy(alpha = if (isSelected) 1f else 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         option.icon, null,
                         tint     = if (isSelected) Color.White else option.color,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(cardDimens.listItemSmallIcon)
                     )
                 }
             }
@@ -524,7 +530,7 @@ private fun DateRangePickerFullScreen(
                             Text(
                                 "Зберегти",
                                 fontWeight = FontWeight.SemiBold,
-                                color      = if (canSave) PILL_ACCENT
+                                color      = if (canSave) MonthRed
                                              else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                             )
                         }

@@ -43,6 +43,38 @@
 
 ---
 
+### Categories Screen — "Транспорт" Truncated in Top Row (2026-06-01)
+
+**Symptom:** 4th chip in top row ("Транспорт" or any 9-10 char name) shows "Т…" because Inter font at 11sp in 116dp chips overflows the screen (4×116+3×6+2×4 = 490dp > 360dp).
+
+**Root cause:** `CHIP_WIDTH = 116.dp` × 4 chips doesn't fit on a 360dp screen. Also Inter is wider than Roboto at equivalent sp.
+
+**Fix:** Reduced `CHIP_WIDTH` 116→80dp, `CHIP_HEIGHT` 136→120dp, `CHIP_CIRCLE_SIZE` 60→50dp (in `CategoriesScreen.kt`). Switched font from Inter (`InterTypography`) to system Roboto (`AppTypography`, `FontFamily.Default`) in `Typography.kt`. Category names raised to 16sp which fits in Roboto at 80dp.
+
+**Regression rule:** Do not increase `CHIP_WIDTH` above 82dp — 4 chips + spacedBy(6dp) + padding(4dp×2) must stay ≤ 360dp. Do not reintroduce Inter font (wider, causes truncation).
+
+---
+
+### Month Pill — Blue Color on Current Month (2026-06-01)
+
+**Symptom:** When viewing the current calendar month, the pill (background, text, arrows) turned blue (`PILL_CURRENT = #4B6BEF`) instead of the design-specified red.
+
+**Fix:** Removed `PILL_CURRENT` constant and `isCurrentMonth` check from `SharedMonthPill.kt`. `val pillColor = MonthRed` always. Pill background changed from `pillColor.copy(alpha=0.12f)` to solid `MonthRedLight`.
+
+**Regression rule:** Do not reintroduce `PILL_CURRENT` or `isCurrentMonth` in `SharedMonthPill.kt`. Month pill is always red (`MonthRed = #D7261E`), regardless of month.
+
+---
+
+### Categories Screen — Category Circle Colors Not Matching Design (2026-06-01)
+
+**Symptom:** Category circle backgrounds and icon tints were derived from a single `colorHex` stored in the DB (bg = colorHex at alpha 0.13f, icon = colorHex). Design requires separate per-category bg/icon color pairs (e.g., Продукти: bg=#D3DCE8, icon=#49B7F5).
+
+**Fix:** Added `categoryVisualOverride` map in `CategoriesWidgets.kt` (UI layer only, does not touch DB). When a category name matches, `circleBg` and `iconTint` use override colors; otherwise fall back to DB-derived colors.
+
+**Regression rule:** Do not remove `categoryVisualOverride` without replacing with a DB-backed solution. The map lives in `CategoriesWidgets.kt` — it is presentation-only.
+
+---
+
 ### CI Release — `validateSigningRelease` Fails When `KEYSTORE_BASE64` Secret Not Set (2026-06-01)
 
 **Symptom:** Release CI job failed with `Keystore file '.../app/release.keystore' not found for signing config 'release'`.

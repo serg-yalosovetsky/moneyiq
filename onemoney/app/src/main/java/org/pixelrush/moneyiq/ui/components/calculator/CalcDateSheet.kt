@@ -2,49 +2,36 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import java.text.SimpleDateFormat
 import java.util.*
+
+private val FallbackAccountColor: Color = Color(0xFF3949AB)
+private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
 
 // ── Date label helpers ────────────────────────────────────────────────────────
 
@@ -137,7 +124,7 @@ fun CalcDateSheet(
         containerColor   = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier            = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            modifier            = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg).padding(bottom = Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Дата", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -149,12 +136,12 @@ fun CalcDateSheet(
                 modifier  = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier              = Modifier.padding(16.dp),
+                    modifier              = Modifier.padding(Spacing.lg),
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(Spacing.md))
                     Text("Виберіть день", style = MaterialTheme.typography.bodyLarge)
                 }
             }
@@ -168,11 +155,11 @@ fun CalcDateSheet(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(
-                        modifier            = Modifier.padding(16.dp),
+                        modifier            = Modifier.padding(Spacing.lg),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Outlined.DarkMode, null, modifier = Modifier.size(26.dp))
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.xs))
                         Text("Вчора", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Text(dFmt.format(Date(yesterdayMs)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
@@ -186,11 +173,11 @@ fun CalcDateSheet(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(
-                        modifier            = Modifier.padding(16.dp),
+                        modifier            = Modifier.padding(Spacing.lg),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Outlined.WbSunny, null, modifier = Modifier.size(26.dp))
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.xs))
                         Text("Сьогодні", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Text(dFmt.format(Date(todayMs)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
@@ -210,7 +197,7 @@ fun CalcDateSheet(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Default.Repeat, null, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.xs))
                         Text("Повторення", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Text(repeatLabelFor(repeatMode), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
@@ -227,7 +214,7 @@ fun CalcDateSheet(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Outlined.Notifications, null, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.xs))
                         Text("Нагадування", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Text(reminderLabelFor(reminderMode), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
@@ -354,8 +341,9 @@ fun AccountPickerSheet(
     val selected = accounts.firstOrNull { it.id == selectedId } ?: accounts.firstOrNull()
     val selColor = selected?.let {
         try { Color(it.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF3949AB) }
-    } ?: Color(0xFF3949AB)
+        catch (_: Exception) { FallbackAccountColor }
+    } ?: FallbackAccountColor
+    val contentColor = if (selColor.luminance() > 0.5f) DarkOnLightColor else Color.White
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -372,31 +360,31 @@ fun AccountPickerSheet(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp)
+                        .padding(Spacing.md)
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(contentColor.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.CreditCard, null, tint = contentColor, modifier = Modifier.size(20.dp))
                 }
                 Column(
-                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 10.dp)
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = 10.dp)
                 ) {
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                    Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
+                    Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                     Text(
                         "Баланс: ${formatMoney(selected?.balance ?: 0.0)} ₴",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = contentColor.copy(alpha = 0.8f)
                     )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.sm))
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.xs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
@@ -412,14 +400,15 @@ fun AccountPickerSheet(
 
             accounts.forEach { acc ->
                 val accColor = try { Color(acc.colorHex.toColorInt()) }
-                               catch (_: Exception) { Color(0xFF3949AB) }
+                               catch (_: Exception) { FallbackAccountColor }
+                val itemContentColor = if (accColor.luminance() > 0.5f) DarkOnLightColor else Color.White
                 val isSelected = acc.id == selectedId
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent)
                         .clickable { onSelect(acc) }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = Spacing.lg, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
@@ -428,7 +417,7 @@ fun AccountPickerSheet(
                             modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(accColor),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.CreditCard, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                            Icon(Icons.Outlined.CreditCard, null, tint = itemContentColor, modifier = Modifier.size(22.dp))
                         }
                         val sym = remember(acc.currency) {
                             CURRENCIES_ALL.find { it.code == acc.currency }?.symbol?.take(2) ?: acc.currency.take(2)
@@ -456,7 +445,7 @@ fun AccountPickerSheet(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.xxl))
         }
     }
 }

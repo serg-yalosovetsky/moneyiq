@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.widget
+﻿package org.syalosovetskyi.onemoney.ui.widget
 
 import android.content.Context
 import android.content.Intent
@@ -21,6 +21,8 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import org.syalosovetskyi.onemoney.MainActivity
 import org.syalosovetskyi.onemoney.R
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 /**
  * 1×1 виджет — нажатие открывает экран добавления транзакции.

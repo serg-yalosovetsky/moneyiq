@@ -40,6 +40,13 @@ import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyBottomSheet
 import org.syalosovetskyi.onemoney.ui.components.calculator.*
 import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+
+private val FallbackCategoryColor: Color = Color(0xFFFF5722)
+private val FallbackIconColor:     Color = Color(0xFF757575)
+private val DarkOnLightColor:      Color = Color(0xFF1C1B1F)
+private val CategoryDisplayColor:  Color = Color(0xFF37474F)
 
 // ── Category Action Sheet ─────────────────────────────────────────────────────
 
@@ -64,10 +71,10 @@ fun CategoryActionSheet(
 ) {
     val catColor = remember(category.colorHex) {
         try { Color(category.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF4361EE) }
+        catch (_: Exception) { FallbackCategoryColor }
     }
     val isLightBg  = catColor.luminance() > 0.5f
-    val onCatColor = if (isLightBg) Color(0xFF1C1B1F) else Color.White
+    val onCatColor = if (isLightBg) DarkOnLightColor else Color.White
     val percent  = if (totalInPeriod > 0.0) (spending / totalInPeriod * 100).toInt() else 0
     val progress = if (totalInPeriod > 0.0) (spending / totalInPeriod).coerceIn(0.0, 1.0).toFloat() else 0f
     val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -105,14 +112,14 @@ fun CategoryActionSheet(
                         .background(catColor)
                         .padding(start = 20.dp, top = 20.dp, bottom = 20.dp, end = 20.dp)
                 ) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(Spacing.lg))
                     Text(
                         category.name,
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color      = onCatColor
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.sm))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             txCountLabel(txCount),
@@ -261,11 +268,11 @@ fun QuickExpenseSheet(
 
     val catColor = remember(selectedCategory.colorHex) {
         try { Color(selectedCategory.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFFFF5722) }
+        catch (_: Exception) { FallbackCategoryColor }
     }
     val isCatLight   = catColor.luminance() > 0.5f
-    val onCatColor   = if (isCatLight) Color(0xFF1C1B1F) else Color.White
-    val displayColor = if (isCatLight) Color(0xFF37474F) else catColor
+    val onCatColor   = if (isCatLight) DarkOnLightColor else Color.White
+    val displayColor = if (isCatLight) CategoryDisplayColor else catColor
     val isIncome     = selectedCategory.type == TransactionType.INCOME
 
     // ── Стан калькулятора ──────────────────────────────────────────────────
@@ -351,7 +358,7 @@ fun QuickExpenseSheet(
                                 .fillMaxHeight()
                                 .background(MaterialTheme.colorScheme.surface)
                                 .clickable { if (accounts.size > 1) showAccSheet = true }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                         ) {
                             Column(modifier = Modifier.align(Alignment.BottomStart)) {
                                 Text(
@@ -544,7 +551,7 @@ fun QuickExpenseSheet(
                     items(expCats) { cat ->
                         val color = remember(cat.colorHex) {
                             try { Color(cat.colorHex.toColorInt()) }
-                            catch (_: Exception) { Color(0xFF757575) }
+                            catch (_: Exception) { FallbackIconColor }
                         }
                         ListItem(
                             modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
@@ -571,7 +578,7 @@ fun QuickExpenseSheet(
                     items(incCats) { cat ->
                         val color = remember(cat.colorHex) {
                             try { Color(cat.colorHex.toColorInt()) }
-                            catch (_: Exception) { Color(0xFF757575) }
+                            catch (_: Exception) { FallbackIconColor }
                         }
                         ListItem(
                             modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },

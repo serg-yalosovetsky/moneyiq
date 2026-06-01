@@ -1132,6 +1132,33 @@ UPDATE categories SET icon='wifi',  colorHex='#00BCD4' WHERE LOWER(TRIM(name)) =
 
 **Rule:** The three normalization points (MonoFlowSyncWorker, normalizeImportedCategory, repairIconKeys) must handle the same `genericIcons` set. If a new generic icon is identified, update all three.
 
+## ADR-067: Move "+" to Grid, Center Donut Text, Font Refinements (2026-06-01)
+
+**Problem:** Multiple visual follow-up issues after ADR-066:
+1. `AddCategoryChip` floated inside `DonutChart` at `BottomCenter` — felt disconnected from the grid.
+2. Donut center text had `offset(y = -16.dp)` to make room for the "+" → text was not centered in the donut ring.
+3. Category chip text (title 10sp, amounts 9sp) was too small.
+4. Month pill text (badge + label 13sp) was too large.
+5. Pill bg `#E7E7F2` appeared too grey — user preferred `#D5D6EC` (more saturated lavender).
+
+**Decisions:**
+
+**Move "+" to grid** (`CategoriesScreen.kt`, `CategoriesWidgets.kt`):
+- Removed `onAdd: (() -> Unit)?` param from `DonutChart`.
+- Added `item(key = "add_row")` in `CategoriesGridContent` after `extCats` loop — `AddCategoryChip` in leftmost slot of a Row with same `chipW`/`chipHeight`/`rowPad`/`chipGap` as all other rows.
+
+**Rule:** `AddCategoryChip` must always live in the grid, never inside `DonutChart`. `DonutChart` has no `onAdd` parameter.
+
+**Center donut text** (`CategoriesWidgets.kt`): removed `.offset(y = (-16).dp)` from center `Column`.
+
+**Font refinements** (`OneMoneyTokens.kt`, `SharedMonthPill.kt`):
+- `categoryTitle`: 10sp → 11sp / lineHeight 12→13sp
+- `categoryTopAmount` / `categoryBottomAmount`: 9sp → 10sp / lineHeight 11→12sp
+- Pill badge + label: 13sp → 11sp (`FontWeight.Light`)
+- Pill bg for current month: `#E7E7F2` → `#D5D6EC`
+
+**Rule:** Do not go below 11sp for category names or below 10sp for category amounts.
+
 ## ADR-066: Grid Alignment, Blue Current-Month Pill, Lighter Nav/Pill Text (2026-06-01)
 
 **Problem:** Four visual issues after ADR-065:
@@ -1353,3 +1380,38 @@ UPDATE categories SET sortOrder = 7 WHERE name LIKE 'Сім%'    AND parentId IS
 **Rejected alternative:** `repairDefaultOrder()` called on every startup — this would reset any user reordering (drag-and-drop in `EditCategoriesScreen`) on the next app launch, defeating the purpose of user control.
 
 **Rule:** Do NOT add a `repairDefaultOrder()` startup function. The sort order for default categories is fixed by migration 29→30 and is user-controlled thereafter. If the canonical order needs to change, add a new migration — do not reset on every startup.
+
+## ADR-068: DonutChart Center Text — All Light (300) Weight (2026-06-01)
+
+**Problem:** "Витрати"/"Доходи" label and the expense/income amounts in the DonutChart center appeared too heavy visually. Label was already `FontWeight.Light` (300); amounts were `FontWeight.Normal` (400), creating weight inconsistency between the label and the numbers below it.
+
+**Decision:** Change `centerAmount` in `OneMoneyTokens.kt` from `FontWeight.Normal` to `FontWeight.Light`. All three text elements in the donut center (label, expense total, income total) now use Light (300).
+
+**Token values:**
+| Token | fontSize | lineHeight | Weight |
+|---|---|---|---|
+| `centerTitle` | 15sp | 18sp | Light 300 |
+| `centerAmount` | 15sp | 18sp | Light 300 |
+
+**Rule:** Both `typo.centerTitle` and `typo.centerAmount` must stay at `FontWeight.Light` (300). Do not raise to Normal or Medium — the center of the ring is a small, decorative area where heavy weight reads as cluttered.
+
+## ADR-069: SharedMonthNavPill Arrow Colors — Left Always Dark, Right Follows pillColor (2026-06-01)
+
+**Problem:** When viewing a past month (e.g. May while current month is June), the LEFT `<<` arrow was red and the RIGHT `>>` arrow was black. Semantically the right arrow is the "return to current month" direction, so it should be highlighted, not the left arrow.
+
+**Root cause (before this ADR):**
+- Left arrow used `tint = pillColor` — red for past months
+- Right arrow used `tint = Color(0xFF111111)` — always black
+
+**Decision:**
+- Left arrow: `tint = Color(0xFF111111)` always (neutral, no semantic meaning for direction)
+- Right arrow: `tint = if (isCurrentMonth) Color(0xFF111111) else MonthRed` (matches `pillColor`)
+
+```kotlin
+Icon(DoubleChevronLeft,  tint = Color(0xFF111111), ...)             // always dark
+Icon(DoubleChevronRight, tint = if (isCurrentMonth) Color(0xFF111111) else MonthRed, ...)
+```
+
+**Rule:** Left navigation arrow is always `Color(0xFF111111)`. Right arrow uses `pillColor` logic — red when not on current month, dark when on current month. This makes the right arrow a visual "return to current" cue.
+
+**Rule:** Do not make both arrows follow `pillColor` — a red left arrow has no semantic purpose and clutters the UI when in a past month.

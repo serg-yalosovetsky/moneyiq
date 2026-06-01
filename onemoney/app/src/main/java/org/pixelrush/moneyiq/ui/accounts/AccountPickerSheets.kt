@@ -2,47 +2,39 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorSheet
 import org.syalosovetskyi.onemoney.ui.components.icons.RoundedIconBox
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+
+private val FallbackAccountColor: Color = Color(0xFF4361EE)
+private val StarGoldColor:        Color = Color(0xFFFFD700)
+private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
+private val ActionAmberColor:     Color = Color(0xFFFFAB00)
+private val ActionGrayColor:      Color = Color(0xFF9E9E9E)
+private val ActionIndigoColor:    Color = Color(0xFF5C6BC0)
+private val ActionTealColor:      Color = Color(0xFF00897B)
+private val ActionPinkColor:      Color = Color(0xFFE91E63)
 
 // ── TypePickerSheet ───────────────────────────────────────────────────────────
 
@@ -64,7 +56,7 @@ fun TypePickerSheet(
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = Spacing.sm)
             )
             AccountType.entries.forEach { t ->
                 ListItem(
@@ -103,12 +95,12 @@ fun ColorPickerSheet(
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp).padding(bottom = 32.dp)) {
+        Column(Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.sm).padding(bottom = 32.dp)) {
             Text(
                 "Колір рахунку",
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier   = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp)
+                modifier   = Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.lg)
             )
             // Grid: 4 per row
             colors.chunked(4).forEach { row ->
@@ -133,7 +125,7 @@ fun ColorPickerSheet(
                                 Icon(
                                     Icons.Default.Check, null,
                                     tint     = Color.White,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(OneMoneyTheme.dimens.standardIconSize)
                                 )
                             }
                         }
@@ -230,10 +222,10 @@ fun AccountActionSheet(
 ) {
     val accentColor = remember(account.colorHex) {
         try { Color(account.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF4361EE) }
+        catch (_: Exception) { FallbackAccountColor }
     }
     val isLightCard = accentColor.luminance() > 0.5f
-    val onCard      = if (isLightCard) Color(0xFF1C1B1F) else Color.White
+    val onCard      = if (isLightCard) DarkOnLightColor else Color.White
     val sym = currencySymbol(account.currency)
 
     ModalBottomSheet(
@@ -251,10 +243,10 @@ fun AccountActionSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = Spacing.lg)
                     .clip(RoundedCornerShape(20.dp))
                     .background(accentColor)
-                    .padding(20.dp)
+                    .padding(Spacing.xl)
             ) {
                 // Іконка + назва зліва
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -286,7 +278,7 @@ fun AccountActionSheet(
                     Icon(
                         Icons.Default.Star,
                         contentDescription = "Основний рахунок",
-                        tint     = if (account.isDefault) Color(0xFFFFD700) else onCard,
+                        tint     = if (account.isDefault) StarGoldColor else onCard,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -316,21 +308,21 @@ fun AccountActionSheet(
 
             // ── Рядки кнопок ─────────────────────────────────────────────
             Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                AccountActionButton(Icons.Default.Edit,                 "Редагувати", Color(0xFFFFAB00)) { onEdit(); onDismiss() }
-                AccountActionButton(Icons.Default.SwapVert,             "Баланс",     Color(0xFF9E9E9E)) { onAdjustBalance(); onDismiss() }
-                AccountActionButton(Icons.AutoMirrored.Filled.ReceiptLong, "Операції", Color(0xFF5C6BC0)) { onTransactions(); onDismiss() }
+                AccountActionButton(Icons.Default.Edit,                 "Редагувати", ActionAmberColor) { onEdit(); onDismiss() }
+                AccountActionButton(Icons.Default.SwapVert,             "Баланс",     ActionGrayColor) { onAdjustBalance(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ReceiptLong, "Операції", ActionIndigoColor) { onTransactions(); onDismiss() }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.sm))
             Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                AccountActionButton(Icons.Default.ArrowUpward,              "Поповнення", Color(0xFF00897B)) { onIncome(); onDismiss() }
-                AccountActionButton(Icons.Default.ArrowDownward,            "Списати",    Color(0xFFE91E63)) { onExpense(); onDismiss() }
-                AccountActionButton(Icons.AutoMirrored.Filled.ArrowForward, "Переказ",   Color(0xFF9E9E9E)) { onTransfer(); onDismiss() }
+                AccountActionButton(Icons.Default.ArrowUpward,              "Поповнення", ActionTealColor) { onIncome(); onDismiss() }
+                AccountActionButton(Icons.Default.ArrowDownward,            "Списати",    ActionPinkColor) { onExpense(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ArrowForward, "Переказ",   ActionGrayColor) { onTransfer(); onDismiss() }
             }
         }
     }

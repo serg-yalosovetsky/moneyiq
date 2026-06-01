@@ -2,61 +2,33 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Offset
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.PathEffect
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
@@ -64,6 +36,8 @@ import org.syalosovetskyi.onemoney.ui.main.TransactionListItem
 import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -78,8 +52,9 @@ fun OverviewScreen(
     val state by viewModel.state.collectAsState()
     var selectedCat by remember { mutableStateOf<OverviewCatRow?>(null) }
 
-    val expenseColor = Color(0xFFD81B60)   // pink-crimson
-    val incomeColor  = Color(0xFF26A69A)   // teal
+    val appColors    = OneMoneyTheme.colors
+    val expenseColor = appColors.budgetExpense
+    val incomeColor  = appColors.budgetIncome
     val accentColor  = if (state.mode == OverviewMode.EXPENSE) expenseColor else incomeColor
 
     // ── Category detail bottom sheet ──────────────────────────────────────────
@@ -693,16 +668,17 @@ private fun BudgetSummarySection(
     totalExpenseBudget: Double,
     totalIncomeBudget:  Double
 ) {
-    val expenseColor = Color(0xFFD81B60)
-    val savingsColor = Color(0xFF26A69A)
-    val incomeColor  = Color(0xFF66BB6A)
+    val overviewColors = OneMoneyTheme.colors
+    val expenseColor   = overviewColors.budgetExpense
+    val savingsColor   = overviewColors.budgetIncome
+    val incomeColor    = Color(0xFF66BB6A)
 
     Spacer(Modifier.height(8.dp))
     Card(
         modifier  = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
-        shape     = RoundedCornerShape(16.dp),
+        shape     = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {

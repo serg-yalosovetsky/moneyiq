@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.icons
+﻿package org.syalosovetskyi.onemoney.ui.components.icons
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.categories
+﻿package org.syalosovetskyi.onemoney.ui.categories
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

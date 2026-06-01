@@ -23,6 +23,7 @@ import org.syalosovetskyi.onemoney.data.repository.SettingsRepository
 import org.syalosovetskyi.onemoney.data.repository.ThemeMode
 import org.syalosovetskyi.onemoney.ui.navigation.onemoneyNavGraph
 import org.syalosovetskyi.onemoney.ui.settings.SettingsViewModel
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyThemeProvider
 import org.syalosovetskyi.onemoney.ui.theme.onemoneyTheme
 import javax.inject.Inject
 
@@ -50,11 +51,13 @@ class MainActivity : FragmentActivity() {
             val accentColor = Color(settings.accentColorArgb)
 
             onemoneyTheme(darkTheme = darkTheme, accentColor = accentColor) {
-                val unlocked by isUnlocked
-                if (!unlocked) {
-                    LockScreen(onUnlock = { triggerBiometric() })
-                } else {
-                    onemoneyNavGraph()
+                OneMoneyThemeProvider {
+                    val unlocked by isUnlocked
+                    if (!unlocked) {
+                        LockScreen(onUnlock = { triggerBiometric() })
+                    } else {
+                        onemoneyNavGraph()
+                    }
                 }
             }
         }

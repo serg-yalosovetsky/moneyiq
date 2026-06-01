@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.widget
+﻿package org.syalosovetskyi.onemoney.ui.widget
 
 import android.content.Context
 import android.content.Intent
@@ -25,6 +25,8 @@ import org.syalosovetskyi.onemoney.MainActivity
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.AppDatabase
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import androidx.room.Room
 import java.text.NumberFormat
 import java.util.*

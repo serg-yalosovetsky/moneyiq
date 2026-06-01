@@ -9,7 +9,7 @@ SharedCalcKeypad(
     calc:            CalcStateHolder,
     modifier:        Modifier = Modifier,
     currencySymbol:  String   = "₴",
-    confirmColor:    Color    = Color(0xFF4CAF50),
+    confirmColor:    Color    = CalcConfirmColor,  // private val CalcConfirmColor = Color(0xFF4CAF50)
     onConfirm:       () -> Unit,
     onCurrencyClick: (() -> Unit)? = null,
     row2ExtraKey:    (@Composable RowScope.() -> Unit)? = null

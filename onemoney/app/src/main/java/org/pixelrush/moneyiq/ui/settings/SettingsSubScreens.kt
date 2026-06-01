@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.settings
+﻿package org.syalosovetskyi.onemoney.ui.settings
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,6 +30,8 @@ import org.syalosovetskyi.onemoney.BuildConfig
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.repository.*
 import org.syalosovetskyi.onemoney.ui.settings.data.*
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 // ── Сторінка Теми ─────────────────────────────────────────────────────────────
 

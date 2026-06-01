@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.form
+﻿package org.syalosovetskyi.onemoney.ui.components.form
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
@@ -8,12 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
 
 @Composable
 internal fun FormSectionHeader(title: String) {
     Text(
         title,
-        modifier   = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp),
+        modifier   = Modifier.padding(start = Spacing.lg, top = Spacing.xl, bottom = Spacing.xs),
         style      = MaterialTheme.typography.labelLarge,
         color      = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.SemiBold
@@ -44,7 +45,7 @@ internal fun FormNavRow(
         }} else null
     )
     HorizontalDivider(
-        modifier  = Modifier.padding(start = if (icon != null) 56.dp else 16.dp),
+        modifier  = Modifier.padding(start = if (icon != null) 56.dp else Spacing.lg),
         thickness = 0.5.dp,
         color     = MaterialTheme.colorScheme.outlineVariant
     )
@@ -68,7 +69,7 @@ internal fun FormValueRow(
         }
     )
     HorizontalDivider(
-        modifier  = Modifier.padding(start = 16.dp),
+        modifier  = Modifier.padding(start = Spacing.lg),
         thickness = 0.5.dp,
         color     = MaterialTheme.colorScheme.outlineVariant
     )

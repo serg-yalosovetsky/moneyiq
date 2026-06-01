@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.calculator
+﻿package org.syalosovetskyi.onemoney.ui.components.calculator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+
+private val CalcConfirmColor: Color = Color(0xFF4CAF50)
 
 @Composable
 private fun QKey(
@@ -55,7 +58,7 @@ fun SharedCalcKeypad(
     calc:            CalcStateHolder,
     modifier:        Modifier = Modifier,
     currencySymbol:  String   = "₴",
-    confirmColor:    Color    = Color(0xFF4CAF50),
+    confirmColor:    Color    = CalcConfirmColor,
     onConfirm:       () -> Unit,
     onCurrencyClick: (() -> Unit)? = null,
     row2ExtraKey:    (@Composable RowScope.() -> Unit)? = null
@@ -71,7 +74,7 @@ fun SharedCalcKeypad(
 
     Column(
         modifier = modifier
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = Spacing.sm)
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent { event ->
@@ -217,10 +220,10 @@ fun AmountCalculatorSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.58f)) {
             Column(
-                modifier            = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier            = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(title, style = MaterialTheme.typography.labelMedium, color = Color(0xFF4CAF50))
+                Text(title, style = MaterialTheme.typography.labelMedium, color = CalcConfirmColor)
                 Text(
                     text       = calc.displayExpr(currencySymbol),
                     fontSize   = 34.sp,
@@ -237,7 +240,7 @@ fun AmountCalculatorSheet(
                 currencySymbol = currencySymbol,
                 onConfirm      = { onResult(calc.result()) }
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.sm))
         }
     }
 }

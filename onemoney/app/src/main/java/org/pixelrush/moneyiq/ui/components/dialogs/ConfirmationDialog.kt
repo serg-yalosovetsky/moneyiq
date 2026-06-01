@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.components.dialogs
+﻿package org.syalosovetskyi.onemoney.ui.components.dialogs
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable

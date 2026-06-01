@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.navigation
+﻿package org.syalosovetskyi.onemoney.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController

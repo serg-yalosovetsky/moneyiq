@@ -2,49 +2,27 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.drawBehind
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.geometry.Size
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontStyle
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
@@ -54,6 +32,8 @@ import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
 import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -68,8 +48,9 @@ fun BudgetScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    val expenseColor        = Color(0xFFD81B60)
-    val incomeColor         = Color(0xFF26A69A)
+    val appColors           = OneMoneyTheme.colors
+    val expenseColor        = appColors.budgetExpense
+    val incomeColor         = appColors.budgetIncome
     val monthLabel          = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
     var showSettingsSheet      by remember { mutableStateOf(false) }
     var currentExpensesMode   by remember { mutableStateOf(false) }
@@ -105,7 +86,7 @@ fun BudgetScreen(
 
         LazyColumn(
             modifier       = Modifier.weight(1f),
-            contentPadding = PaddingValues(bottom = 8.dp)
+            contentPadding = PaddingValues(bottom = Spacing.sm)
         ) {
             item {
                 BudgetSectionCard(
@@ -118,7 +99,7 @@ fun BudgetScreen(
                     onUpdateBudget      = viewModel::updateCategoryBudget
                 )
             }
-            item { Spacer(Modifier.height(4.dp)) }
+            item { Spacer(Modifier.height(Spacing.xs)) }
             item {
                 SavingsSectionCard(
                     expenseTotal  = state.expenseSection.totalAmount,
@@ -129,7 +110,7 @@ fun BudgetScreen(
                     daysPassed    = state.daysPassed
                 )
             }
-            item { Spacer(Modifier.height(4.dp)) }
+            item { Spacer(Modifier.height(Spacing.xs)) }
             item {
                 BudgetSectionCard(
                     data                = state.incomeSection,
@@ -138,6 +119,7 @@ fun BudgetScreen(
                     accentColor         = incomeColor,
                     monthLabel          = monthLabel,
                     currentExpensesMode = currentExpensesMode,
+                    incomeMode          = true,
                     onUpdateBudget      = viewModel::updateCategoryBudget
                 )
             }
@@ -198,16 +180,17 @@ fun BudgetScreen(
 
 @Composable
 private fun BudgetTopBar(totalBalance: Double, onSettingsClick: () -> Unit = {}) {
+    val dimens = OneMoneyTheme.dimens
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.sm, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(dimens.topBarAvatarSize)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -215,11 +198,11 @@ private fun BudgetTopBar(totalBalance: Double, onSettingsClick: () -> Unit = {})
             Icon(
                 Icons.Outlined.Person, null,
                 tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(dimens.topBarAvatarIconSize)
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.md))
 
         Column(
             modifier            = Modifier.weight(1f),
@@ -240,16 +223,16 @@ private fun BudgetTopBar(totalBalance: Double, onSettingsClick: () -> Unit = {})
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.md))
 
         IconButton(
             onClick  = onSettingsClick,
-            modifier = Modifier.size(44.dp).clip(CircleShape)
+            modifier = Modifier.size(dimens.topBarAvatarSize).clip(CircleShape)
         ) {
             Icon(
                 Icons.Outlined.Speed, "Настройки бюджета",
                 tint     = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(dimens.topBarAvatarIconSize)
             )
         }
     }
@@ -273,16 +256,20 @@ private fun BudgetSectionCard(
     accentColor:         Color,
     monthLabel:          String,
     currentExpensesMode: Boolean = false,
+    incomeMode:          Boolean = false,
     onUpdateBudget:      (CategoryEntity, Double, String) -> Unit
 ) {
     var expanded    by remember { mutableStateOf(false) }
     var editingRow  by remember { mutableStateOf<BudgetCatRow?>(null) }
 
     val budgetedRows = when {
+        incomeMode          -> emptyList()
         currentExpensesMode -> emptyList()
         else                -> data.rows.filter { it.category.budgetAmount > 0 }
     }
     val chipRows = when {
+        incomeMode          -> data.rows.filter { it.amount > 0 || it.category.budgetAmount > 0 }
+                                  .sortedByDescending { it.amount }
         currentExpensesMode -> data.rows.filter { it.amount > 0 }.sortedByDescending { it.amount }
         else                -> data.rows.filter { it.category.budgetAmount == 0.0 && it.amount > 0 }
     }
@@ -330,7 +317,7 @@ private fun BudgetSectionCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = 14.dp, vertical = Spacing.md)
             ) {
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -454,43 +441,45 @@ private fun BudgetCatFullRow(
                 }
             }
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.md, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon circle
-        Box(
-            modifier         = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(color),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
-                tint     = Color.White,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        // Middle: name + spent amount
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                row.category.name,
-                style      = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface,
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(2.dp))
+        // Icon circle + spending below
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier         = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(color),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    resolvedCatIcon(row.category.icon, row.category.name, row.category.type), null,
+                    tint     = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+            Spacer(Modifier.height(3.dp))
             Text(
                 "${formatMoney(row.amount)} ₴",
-                style  = MaterialTheme.typography.labelSmall,
-                color  = accentColor
+                style      = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color      = color
             )
         }
+
+        Spacer(Modifier.width(Spacing.md))
+
+        // Category name
+        Text(
+            row.category.name,
+            modifier   = Modifier.weight(1f),
+            style      = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color      = MaterialTheme.colorScheme.onSurface,
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis
+        )
 
         // Right: remaining/badge + budget (bold number)
         Column(horizontalAlignment = Alignment.End) {
@@ -501,7 +490,7 @@ private fun BudgetCatFullRow(
                 ) {
                     Text(
                         "${formatMoney(-remaining)} ₴",
-                        modifier   = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier   = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
                         style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color      = Color.White
@@ -550,7 +539,7 @@ private fun BudgetCatChip(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 4.dp),
+            .padding(vertical = Spacing.xs, horizontal = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -578,7 +567,7 @@ private fun BudgetCatChip(
                 modifier = Modifier.size(26.dp)
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             "${formatMoney(row.amount)} ₴",
             style      = MaterialTheme.typography.labelSmall,
@@ -602,7 +591,7 @@ private fun MoreLessChip(expanded: Boolean, hiddenTotal: Double = 0.0, onClick: 
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp),
+            .padding(vertical = Spacing.xs, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -628,7 +617,7 @@ private fun MoreLessChip(expanded: Boolean, hiddenTotal: Double = 0.0, onClick: 
                 modifier = Modifier.size(26.dp)
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             if (!expanded && hiddenTotal > 0.0) "${formatMoney(hiddenTotal)} ₴" else " ",
             style      = MaterialTheme.typography.labelSmall,
@@ -651,8 +640,9 @@ private fun SavingsSectionCard(
     daysInMonth:   Int,
     daysPassed:    Int
 ) {
-    val savingsColor = Color(0xFF26A69A)
-    val negColor     = Color(0xFFD81B60)
+    val appColors    = OneMoneyTheme.colors
+    val savingsColor = appColors.budgetIncome
+    val negColor     = appColors.budgetExpense
 
     // Реальні заощадження = отримано - витрачено (для підпису «збережено»)
     val realSavings = incomeTotal - expenseTotal
@@ -684,7 +674,7 @@ private fun SavingsSectionCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = 14.dp, vertical = Spacing.md)
             ) {
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -723,7 +713,7 @@ private fun SavingsSectionCard(
                     }
                 }
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.xs))
 
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -774,7 +764,7 @@ private fun IncomeBudgetBar(
 ) {
     val hasBudget      = effectiveIncomeBudget > 0.0
     val overspend      = expenseTotal - effectiveIncomeBudget
-    val overspendColor = Color(0xFFD81B60)
+    val overspendColor = OneMoneyTheme.colors.budgetExpense
 
     Surface(
         modifier = modifier
@@ -787,7 +777,7 @@ private fun IncomeBudgetBar(
         Box(
             modifier         = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = Spacing.xl, vertical = Spacing.lg),
             contentAlignment = Alignment.Center
         ) {
             when {

@@ -46,23 +46,18 @@ Bottom tabs: `Рахунки`, `Категорії`, `Операції`, `Бюд
 
 `SharedMonthNavPill` (`SharedMonthPill.kt`) — Row with left/right arrows + center pill.
 
-**Arrows:** `Icons.Default.KeyboardDoubleArrowLeft/Right` (54dp), tint = `onSurface`. Row horizontal padding = 10dp.
+**Arrows:** custom `DoubleChevronLeft/Right` from `ui/components/icons/NavIcons.kt` (36dp via `dimens.pillArrowSize`). Left = always `Color(0xFF111111)`. Right = `MonthRed` when viewing a past/future month; `Color(0xFF111111)` when on the current month.
 
-**Pill colors:**
-```kotlin
-PILL_ACCENT  = Color(0xFFD81B60)   // crimson — past/future months
-PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
-pillColor = if (isCurrentMonth) PILL_CURRENT else PILL_ACCENT
-```
+**Pill colour:** `val pillColor = if (isCurrentMonth) Color(0xFF111111) else MonthRed`. Dark when on current month, red (`MonthRed = Color(0xFFD7261E)`) for past/future months.
 
-**Pill surface:** `RoundedCornerShape(50dp)`, `color = pillColor.copy(alpha = 0.12f)`. Padding: `start=10dp, end=14dp, top=6dp, bottom=6dp`.
+**Pill surface:** `RoundedCornerShape(dimens.pillRadius)`, `color = Color(0xFFD5D6EC)` (fixed lavender — does not change with month). Padding: `start=10dp, end=14dp, top=6dp, bottom=6dp`.
 
 **Pill content:**
-- Badge: `Surface(RoundedCornerShape(6dp), border=1.5dp pillColor)`, text `labelSmall + Bold`, `color = onSurface`, padding `horizontal=6dp, vertical=2dp`
-- Label: `bodyMedium + SemiBold`, `color = onSurface`
-- Dropdown arrow: `Icons.Default.KeyboardArrowDown` (26dp), `onSurface.copy(alpha=0.7f)`
+- Badge: `Surface(RoundedCornerShape(dimens.pillBadgeRadius), border=dimens.thinStroke pillColor)`, text 12sp Light `pillColor`
+- Label: 11sp Light letterSpacing 0sp, `color = pillColor`
+- Dropdown arrow: `KeyboardArrowDown` (22dp), tint = `pillColor`
 
-**Rule:** Only the badge border uses `pillColor` for accent. All text and icons use `onSurface`. Do not tint any icon or label with `pillColor`.
+**Rule:** Left arrow is always `Color(0xFF111111)`. Right arrow and all pill elements (badge, label, dropdown) use `pillColor` — `MonthRed` for past months, `Color(0xFF111111)` for current month. The right arrow acts as a visual "return to current month" cue when in a past month.
 
 **Month text:** `MONTH_NAMES_UA_FULL[month].uppercase()` for `PeriodMode.MONTH` → "ЧЕРВЕНЬ 2026". Other modes use Title Case from `MONTH_NAMES_UA_FULL` unchanged.
 
@@ -128,18 +123,20 @@ Fires only when `|deltaX| > |deltaY| * 1.7` (predominantly horizontal).
 
 ## SharedMonthNavPill — Current Month Color
 
-Two pill accent colors are defined in `SharedMonthPill.kt`:
+`isCurrentMonth = appMonth.mode == PeriodMode.MONTH && appMonth.month == today.get(Calendar.MONTH) && appMonth.year == today.get(Calendar.YEAR)`
 
 ```kotlin
-private val PILL_ACCENT  = Color(0xFFD81B60)   // crimson — past/future months
-private val PILL_CURRENT = Color(0xFF4B6BEF)   // indigo-blue — current calendar month
+val pillColor = if (isCurrentMonth) Color(0xFF111111) else MonthRed
 ```
 
-`isCurrentMonth = appMonth.mode == PeriodMode.MONTH && appMonth.month == today.month && appMonth.year == today.year`
+- **Current month** → `pillColor = Color(0xFF111111)` (dark). Pill badge, label, dropdown, and right arrow are all dark. Left arrow is also dark (always `Color(0xFF111111)`).
+- **Past / future month** → `pillColor = MonthRed`. Pill badge, label, dropdown, and right arrow are red. Left arrow stays dark (`Color(0xFF111111)`).
 
-When `isCurrentMonth` is true, `pillColor = PILL_CURRENT`; otherwise `pillColor = PILL_ACCENT`. The pill background (`pillColor.copy(alpha=0.12f)`), badge border+text, label text, and dropdown arrow all use `pillColor` — no element uses a hardcoded accent. The badge is a border-only rounded rect (not a filled circle).
+The right arrow turns red for past months to serve as a visual "return to current month" indicator.
 
-**Rule:** Only `PeriodMode.MONTH` pointing at the current calendar month gets the blue color. All other modes (TODAY, WEEK, YEAR, ALL, DAY, RANGE) and past/future months keep the crimson `PILL_ACCENT`.
+**Rule:** No `PILL_CURRENT` (blue) constant exists. Do not reintroduce a blue pill for the current month. The distinction is dark (`#111111`) vs red (`MonthRed`) only.
+
+**Rule:** Only `PeriodMode.MONTH` pointing at the current calendar month gets the dark treatment. All other modes (TODAY, WEEK, YEAR, ALL, DAY, RANGE) and past/future months keep `MonthRed`.
 
 ## Text And Locale
 

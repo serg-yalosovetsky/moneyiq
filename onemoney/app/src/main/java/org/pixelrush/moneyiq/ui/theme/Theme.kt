@@ -1,4 +1,4 @@
-package org.syalosovetskyi.onemoney.ui.theme
+﻿package org.syalosovetskyi.onemoney.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -21,6 +21,18 @@ val DebtOrange       = Color(0xFFFF9800)
 val BudgetExpenseColor = Color(0xFFD81B60)
 val BudgetIncomeColor  = Color(0xFF26A69A)
 
+// ── Category screen colour tokens ─────────────────────────────────────────────
+val MonthRed                  = Color(0xFFD7261E)
+val MonthRedLight             = Color(0xFFF8D9D5)
+val ExpensePink               = Color(0xFFFF5A8A)
+val IncomeTeal                = Color(0xFF4DD4C8)
+val CenterRingColor           = Color(0xFFD3D0D6)
+val BottomNavBg               = Color(0xFFFFFFFF)
+val BottomNavActivePill       = Color(0xFFE7E7F2)
+val SecondaryIconColor        = Color(0xFF373941)
+val CategoryTopAmountColor    = Color(0xFFC1C1C1)
+val CategoryBottomAmountColor = Color(0xFFACACAC)
+
 // ── 1Money colour palette (Material 3) ───────────────────────────────────────
 // Light
 private val md_light_primary             = Color(0xFF4D5C92)
@@ -40,9 +52,9 @@ private val md_light_onError            = Color(0xFFFFFFFF)
 private val md_light_errorContainer     = Color(0xFFFFDAD6)
 private val md_light_onErrorContainer   = Color(0xFF410002)
 private val md_light_background         = Color(0xFFFFFFFF)
-private val md_light_onBackground       = Color(0xFF1A1B21)
+private val md_light_onBackground       = Color(0xFF292F3F)
 private val md_light_surface            = Color(0xFFFFFFFF)
-private val md_light_onSurface          = Color(0xFF1A1B21)
+private val md_light_onSurface          = Color(0xFF292F3F)
 private val md_light_surfaceVariant     = Color(0xFFF0EFF6)
 private val md_light_onSurfaceVariant   = Color(0xFF45464F)
 private val md_light_outline            = Color(0xFF767680)
@@ -183,5 +195,5 @@ fun onemoneyTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, typography = InterTypography, content = content)
+    MaterialTheme(colorScheme = colorScheme, typography = AppTypography, content = content)
 }

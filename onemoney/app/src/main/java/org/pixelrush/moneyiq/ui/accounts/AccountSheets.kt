@@ -2,57 +2,31 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.BasicTextField
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.luminance
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorSheet
@@ -61,6 +35,13 @@ import org.syalosovetskyi.onemoney.ui.components.form.FormNavRow
 import org.syalosovetskyi.onemoney.ui.components.form.FormSectionHeader
 import org.syalosovetskyi.onemoney.ui.components.form.FormValueRow
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+
+private val AccountTypeNormalColor:  Color = Color(0xFFB07040)
+private val AccountTypeDebtColor:    Color = Color(0xFF2E7D60)
+private val AccountTypeSavingsColor: Color = Color(0xFF3D3F8F)
+private val DarkOnLightColor:        Color = Color(0xFF1C1B1F)
 
 fun currencyDisplayName(code: String): String = CURRENCIES_ALL.find { it.code == code }?.name ?: code
 fun currencySymbol(code: String): String      = CURRENCIES_ALL.find { it.code == code }?.symbol ?: code
@@ -102,25 +83,25 @@ fun NewAccountTypeSheet(
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = Spacing.sm)
             )
 
             AccountTypeOption(
-                color    = Color(0xFFB07040),
+                color    = AccountTypeNormalColor,
                 icon     = Icons.Outlined.Wallet,
                 title    = "Звичайний",
                 subtitle = "Готівка, карта, ...",
                 onClick  = { onSelect(AccountType.CASH) }
             )
             AccountTypeOption(
-                color    = Color(0xFF2E7D60),
+                color    = AccountTypeDebtColor,
                 icon     = Icons.Outlined.MoneyOff,
                 title    = "Борговий",
                 subtitle = "Кредит, іпотека, ...",
                 onClick  = { onSelect(AccountType.DEBT) }
             )
             AccountTypeOption(
-                color    = Color(0xFF3D3F8F),
+                color    = AccountTypeSavingsColor,
                 icon     = Icons.Outlined.Savings,
                 title    = "Накопичувальний",
                 subtitle = "Заощадження, мета, ...",
@@ -195,11 +176,12 @@ fun AccountFormSheet(
     var showBalanceInput     by remember { mutableStateOf(false) }
     var showCreditLimitInput by remember { mutableStateOf(false) }
 
+    val appColors   = OneMoneyTheme.colors
     val accentColor = remember(colorHex) {
         try { Color(colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFFD81B60) }
+        catch (_: Exception) { appColors.budgetExpense }
     }
-    val iconTint      = if (accentColor.luminance() > 0.5f) Color(0xFF1C1B1F) else Color.White
+    val iconTint      = if (accentColor.luminance() > 0.5f) DarkOnLightColor else Color.White
     val currencyLabel = "${currencyDisplayName(currency)} – ${currencySymbol(currency)}"
     val sym           = currencySymbol(currency)
 
@@ -213,7 +195,7 @@ fun AccountFormSheet(
                         modifier          = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
@@ -223,7 +205,7 @@ fun AccountFormSheet(
                             if (existing != null) "Редагувати рахунок" else "Новий рахунок",
                             modifier   = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = Spacing.sm),
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -251,7 +233,7 @@ fun AccountFormSheet(
                             Row(
                                 modifier          = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                    .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 BasicTextField(

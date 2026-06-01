@@ -2,54 +2,34 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.Close
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+
+private val FallbackAccountColor: Color = Color(0xFF4361EE)
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
 
@@ -290,7 +270,7 @@ fun IconColorPickerScreen(
 
     val previewColor = remember(selectedColor) {
         try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { Color(0xFF4361EE) }
+        catch (_: Exception) { FallbackAccountColor }
     }
 
     Dialog(
@@ -321,7 +301,7 @@ fun IconColorPickerScreen(
                         Button(
                             onClick        = { onResult(selectedIcon, selectedColor) },
                             shape          = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                            contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = 10.dp)
                         ) {
                             Text("Готово", fontWeight = FontWeight.SemiBold)
                         }
@@ -332,7 +312,7 @@ fun IconColorPickerScreen(
                 Box(
                     modifier         = Modifier
                         .fillMaxWidth()
-                        .padding(top = 20.dp, bottom = 12.dp),
+                        .padding(top = Spacing.xl, bottom = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -401,7 +381,7 @@ private fun IconGrid(selectedKey: String, onSelect: (String) -> Unit) {
     LazyVerticalGrid(
         columns             = GridCells.Fixed(5),
         modifier            = Modifier.fillMaxSize(),
-        contentPadding      = PaddingValues(12.dp),
+        contentPadding      = PaddingValues(Spacing.md),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
     ) {
@@ -422,7 +402,7 @@ private fun IconGrid(selectedKey: String, onSelect: (String) -> Unit) {
                     info.icon, null,
                     tint     = if (isSelected) Color.White
                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(OneMoneyTheme.dimens.standardIconSize)
                 )
             }
         }
@@ -434,7 +414,7 @@ private fun ColorGrid(selectedHex: String, onSelect: (String) -> Unit) {
     LazyVerticalGrid(
         columns             = GridCells.Fixed(5),
         modifier            = Modifier.fillMaxSize(),
-        contentPadding      = PaddingValues(12.dp),
+        contentPadding      = PaddingValues(Spacing.md),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
     ) {

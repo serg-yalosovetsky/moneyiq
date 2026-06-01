@@ -2,43 +2,24 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.components.calculator.AccountPickerSheet
@@ -47,6 +28,8 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.FullDatePickerDialog
 import org.syalosovetskyi.onemoney.ui.components.calculator.SharedCalcKeypad
 import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
 import org.syalosovetskyi.onemoney.ui.components.calculator.txDateLabelPublic
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
