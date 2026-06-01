@@ -80,11 +80,14 @@ internal fun CategoryChip(
     isCompact:      Boolean = false,
     isExpanded:     Boolean = false,
     budgetOverride: Double? = null,
-    flatBottom:     Boolean = false
+    flatBottom:     Boolean = false,
+    overrideWidth:  Dp? = null,
+    overrideHeight: Dp? = null,
+    overrideCircle: Dp? = null
 ) {
-    val chipW      = if (isCompact) CHIP_WIDTH_COMPACT   else CHIP_WIDTH
-    val chipH      = if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT
-    val circleSize = if (isCompact) CHIP_CIRCLE_COMPACT  else CHIP_CIRCLE_SIZE
+    val chipW      = overrideWidth  ?: (if (isCompact) CHIP_WIDTH_COMPACT   else CHIP_WIDTH)
+    val chipH      = overrideHeight ?: (if (isCompact) CHIP_HEIGHT_COMPACT  else CHIP_HEIGHT)
+    val circleSize = overrideCircle ?: (if (isCompact) CHIP_CIRCLE_COMPACT  else CHIP_CIRCLE_SIZE)
     val iconSize   = if (isCompact) 22.dp  else 26.dp
     val titleSize  = if (isCompact) 12.sp  else 13.sp
     val moneySize  = if (isCompact) 10.sp  else 11.sp
