@@ -2,81 +2,43 @@
 
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.border
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.lazy.grid.items
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.CircleShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.Icons
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.filled.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material.icons.outlined.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.material3.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.runtime.*
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Alignment
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.Modifier
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.draw.clip
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.FocusRequester
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.focusRequester
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.SolidColor
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.input.ImeAction
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextAlign
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.Dialog
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.BasicTextField
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.activity.compose.BackHandler
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
@@ -88,6 +50,11 @@ import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_CRYPTO
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
+import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+
+private val FallbackCategoryColor: Color = Color(0xFFFF5722)
+
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,7 +114,7 @@ fun CategoryFormSheet(
 
     val catColor by remember { derivedStateOf {
         try { Color(colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFFFF5722) }
+        catch (_: Exception) { FallbackCategoryColor }
     } }
 
     fun doSave() {
@@ -269,7 +236,7 @@ fun CategoryFormSheet(
 
                 // ── Налаштування ─────────────────────────────────────────────
                 item {
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(Spacing.md))
                     Text(
                         "Налаштування",
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -353,7 +320,7 @@ fun CategoryFormSheet(
                 // ── Підкатегорії (тільки для кореневих категорій) ────────────
                 if (existing != null && existing.parentId == null) {
                     item {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text(
                             "Підкатегорії",
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -525,7 +492,7 @@ internal fun ColorIconPickerSheet(
     var selectedIcon  by remember { mutableStateOf(currentIcon) }
     val color by remember { derivedStateOf {
         try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { Color(0xFFFF5722) }
+        catch (_: Exception) { FallbackCategoryColor }
     } }
     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -540,7 +507,7 @@ internal fun ColorIconPickerSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                        .padding(start = Spacing.xs, end = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
@@ -548,7 +515,7 @@ internal fun ColorIconPickerSheet(
                     }
                     Text(
                         "Значок категорії",
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        modifier = Modifier.weight(1f).padding(start = Spacing.sm),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -751,13 +718,13 @@ fun EditCategoriesScreen(
                         selected = selectedTab == 0,
                         onClick  = { selectedTab = 0 },
                         icon     = { Icon(Icons.Outlined.ArrowCircleDown, null, modifier = Modifier.size(20.dp)) },
-                        text     = { Text("Витрати", fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal) }
+                        text     = { Text("Витрати", fontWeight = if (selectedTab == 0) FontWeight.Normal else FontWeight.Normal) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick  = { selectedTab = 1 },
                         icon     = { Icon(Icons.Outlined.ArrowCircleUp, null, modifier = Modifier.size(20.dp)) },
-                        text     = { Text("Доходи", fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal) }
+                        text     = { Text("Доходи", fontWeight = if (selectedTab == 1) FontWeight.Normal else FontWeight.Normal) }
                     )
                 }
 
@@ -773,7 +740,8 @@ fun EditCategoriesScreen(
                     bottomPadding       = navBarPadding + 16.dp,
                     onChipClick         = { cat -> editCategory = cat },
                     onAdd               = { showAddSheet = true },
-                    showSubcategories   = showSubcategories
+                    showSubcategories   = showSubcategories,
+                    sortBySpending      = false
                 )
             }
         }
