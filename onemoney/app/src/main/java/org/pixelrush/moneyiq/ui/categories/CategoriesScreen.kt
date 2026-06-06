@@ -50,12 +50,13 @@ import org.syalosovetskyi.onemoney.ui.main.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
-import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.BudgetIncomeColor
+import org.syalosovetskyi.onemoney.ui.theme.BudgetExpenseColor
 
 // ── Розміри чипів ─────────────────────────────────────────────────────────────
 
 internal val CHIP_WIDTH           = 84.dp
-internal val CHIP_HEIGHT          = 104.dp
+internal val CHIP_HEIGHT          = 136.dp
 internal val CHIP_CIRCLE_SIZE     = 50.dp
 internal val CHIP_WIDTH_COMPACT   = 82.dp
 internal val CHIP_HEIGHT_COMPACT  = 112.dp
@@ -184,7 +185,7 @@ fun CategoriesScreen(
         BudgetInputSheet(
             catRow      = BudgetCatRow(cat, catAmount),
             monthLabel  = monthLabel,
-            accentColor = if (cat.type == TransactionType.INCOME) OneMoneyTheme.colors.budgetIncome else OneMoneyTheme.colors.budgetExpense,
+            accentColor = if (cat.type == TransactionType.INCOME) BudgetIncomeColor else BudgetExpenseColor,
             amountLabel = if (cat.type == TransactionType.INCOME) "отримано" else "витрачено",
             onDismiss   = { budgetCategory = null },
             onConfirm   = { newBudget, _ ->
@@ -630,9 +631,9 @@ internal fun CategoriesGridContent(
             else              -> 54.dp
         }
         val chipHeight  = when {
-            maxHeight < 700.dp -> 100.dp
-            maxHeight < 800.dp -> 108.dp
-            else               -> 116.dp
+            maxHeight < 700.dp -> 136.dp
+            maxHeight < 800.dp -> 142.dp
+            else               -> 148.dp
         }
     LazyColumn(
         modifier              = Modifier.fillMaxSize(),
