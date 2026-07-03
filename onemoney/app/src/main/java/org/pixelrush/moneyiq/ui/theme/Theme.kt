@@ -203,7 +203,15 @@ fun onemoneyTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // Transparent system bars so app content draws edge-to-edge; icon/handle
+            // brightness follows the APP theme (not the system one). Fixes the light
+            // navigation-bar strip that appeared at the bottom when the app is in dark
+            // mode on a light-mode system.
+            window.statusBarColor     = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars     = !darkTheme
+            controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
