@@ -292,6 +292,10 @@ private fun BudgetSectionCard(
         )
     }
 
+    // Трек прогресу секції: у світлій темі — білий (як в оригіналі),
+    // у темній — тёмна поверхня. Захоплюємо тут, бо DrawScope не бачить MaterialTheme.
+    val trackColor = MaterialTheme.colorScheme.surface
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -306,7 +310,7 @@ private fun BudgetSectionCard(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
                 .drawBehind {
-                    drawRect(Color.White)
+                    drawRect(trackColor)
                     drawRect(
                         color = accentColor.copy(alpha = 0.20f),
                         size  = Size(size.width * headerProgress, size.height)
@@ -364,7 +368,7 @@ private fun BudgetSectionCard(
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             val rowBg = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(trackColor)
             if (!expanded) {
                 Row(modifier = rowBg) {
                     visibleChips.forEach { row ->
@@ -425,6 +429,7 @@ private fun BudgetCatFullRow(
     val progress  = if (row.category.budgetAmount > 0.0)
         (row.amount / row.category.budgetAmount).coerceIn(0.0, 1.0).toFloat()
     else 0f
+    val trackColor = MaterialTheme.colorScheme.surface
 
     Row(
         modifier          = Modifier
@@ -433,7 +438,7 @@ private fun BudgetCatFullRow(
                 if (isOver) {
                     drawRect(color = color.copy(alpha = 0.12f))
                 } else {
-                    drawRect(color = Color.White)
+                    drawRect(color = trackColor)
                     drawRect(
                         color = color.copy(alpha = 0.18f),
                         size  = Size(size.width * progress, size.height)
