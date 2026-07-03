@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.workers.DriveBackupEntry
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
@@ -103,7 +105,7 @@ fun DataScreen(
     // Реакція на підготовлений CSV
     LaunchedEffect(pendingCsvIntent) {
         pendingCsvIntent?.let { intent ->
-            context.startActivity(Intent.createChooser(intent, "Поділитися CSV"))
+            context.startActivity(Intent.createChooser(intent, context.getString(R.string.data_share_csv)))
             pendingCsvIntent = null
         }
     }
@@ -113,10 +115,10 @@ fun DataScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Дані") },
+                title = { Text(stringResource(R.string.settings_data)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -138,20 +140,20 @@ fun DataScreen(
                             tint = MaterialTheme.colorScheme.error)
                     },
                     headlineContent = {
-                        Text("Скинути дані", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.data_reset), color = MaterialTheme.colorScheme.error)
                     }
                 )
                 HorizontalDivider()
             }
 
             // ── Імпорт / Експорт ──────────────────────────────────────────────
-            item { DataSectionHeader("Імпорт / Експорт") }
+            item { DataSectionHeader(stringResource(R.string.data_section_import_export)) }
 
             item {
                 DataActionItem(
                     icon  = Icons.Default.FileUpload,
-                    title = "Експорт даних (JSON)",
-                    sub   = "Зберегти всі рахунки, категорії та операції",
+                    title = stringResource(R.string.data_export_json),
+                    sub   = stringResource(R.string.data_export_json_sub),
                     loading = state.isExporting,
                     onClick = {
                         if (!state.isExporting) {
@@ -168,8 +170,8 @@ fun DataScreen(
             item {
                 DataActionItem(
                     icon  = Icons.Default.FileDownload,
-                    title = "Імпорт даних (JSON)",
-                    sub   = "Відновити з файлу резервної копії",
+                    title = stringResource(R.string.data_import_json),
+                    sub   = stringResource(R.string.data_import_json_sub),
                     loading = state.isImporting,
                     onClick = {
                         if (!state.isImporting) {
@@ -181,13 +183,13 @@ fun DataScreen(
             item {
                 DataActionItem(
                     icon    = Icons.Default.TableChart,
-                    title   = "Експорт у CSV",
-                    sub     = "Операції у форматі Excel/Google Sheets",
+                    title   = stringResource(R.string.data_export_csv),
+                    sub     = stringResource(R.string.data_export_csv_sub),
                     onClick = {
                         scope.launch {
                             val intent = viewModel.buildCsvShareIntentSuspend(context)
                             if (intent != null) pendingCsvIntent = intent
-                            else Toast.makeText(context, "Немає операцій для експорту", Toast.LENGTH_SHORT).show()
+                            else Toast.makeText(context, context.getString(R.string.data_no_operations_export), Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
@@ -195,7 +197,7 @@ fun DataScreen(
             }
 
             // ── Google Drive автобекап ─────────────────────────────────────────
-            item { DataSectionHeader("Google Drive — автобекап") }
+            item { DataSectionHeader(stringResource(R.string.data_section_drive)) }
 
             if (state.driveFolderUri.isBlank()) {
                 // Папка не вибрана
@@ -222,13 +224,13 @@ fun DataScreen(
                             )
                             Spacer(Modifier.height(12.dp))
                             Text(
-                                "Автоматично зберігайте бекапи у Google Drive",
+                                stringResource(R.string.data_drive_promo_title),
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Щодня о 2:00 нова резервна копія буде\nдодаватись до вибраної папки",
+                                stringResource(R.string.data_drive_promo_sub),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -241,7 +243,7 @@ fun DataScreen(
                                 Icon(Icons.Default.FolderOpen, null,
                                     modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("Вибрати папку в Google Drive")
+                                Text(stringResource(R.string.data_drive_pick_folder))
                             }
                         }
                     }
@@ -273,7 +275,7 @@ fun DataScreen(
                                     onClick = { viewModel.clearDriveFolder(context) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Close, "Від'єднати",
+                                    Icon(Icons.Default.Close, stringResource(R.string.data_disconnect),
                                         modifier = Modifier.size(18.dp))
                                 }
                             }
@@ -281,7 +283,7 @@ fun DataScreen(
                                 Spacer(Modifier.height(4.dp))
                                 val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
                                 Text(
-                                    "Останній бекап: ${fmt.format(Date(state.driveLastBackupMs))}",
+                                    stringResource(R.string.data_last_backup, fmt.format(Date(state.driveLastBackupMs))),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -295,8 +297,8 @@ fun DataScreen(
                             Icon(Icons.Default.Autorenew, null,
                                 tint = MaterialTheme.colorScheme.onSurface)
                         },
-                        headlineContent = { Text("Щоденний автобекап") },
-                        supportingContent = { Text("Щодня о 2:00, при наявності інтернету") },
+                        headlineContent = { Text(stringResource(R.string.data_drive_daily)) },
+                        supportingContent = { Text(stringResource(R.string.data_drive_daily_sub)) },
                         trailingContent = {
                             Switch(
                                 checked = state.driveBackupEnabled,
@@ -322,7 +324,7 @@ fun DataScreen(
                             }
                         },
                         headlineContent = {
-                            Text("Зробити бекап зараз",
+                            Text(stringResource(R.string.data_backup_now),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium)
                         }
@@ -335,7 +337,7 @@ fun DataScreen(
                             Icon(Icons.Default.FolderOpen, null,
                                 tint = MaterialTheme.colorScheme.onSurface)
                         },
-                        headlineContent = { Text("Змінити папку") }
+                        headlineContent = { Text(stringResource(R.string.data_change_folder)) }
                     )
                     HorizontalDivider()
                 }
@@ -344,7 +346,7 @@ fun DataScreen(
                 if (state.driveBackups.isNotEmpty()) {
                     item {
                         Text(
-                            "Збережені бекапи в Drive (${state.driveBackups.size})",
+                            stringResource(R.string.data_drive_backups_count, state.driveBackups.size),
                             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -361,7 +363,7 @@ fun DataScreen(
             }
 
             // ── MonoFlow синхронізація ─────────────────────────────────────────
-            item { DataSectionHeader("MonoFlow — авто-синхронізація") }
+            item { DataSectionHeader(stringResource(R.string.data_section_monoflow)) }
             item {
                 MonoFlowSyncCard(
                     state       = state,
@@ -372,7 +374,7 @@ fun DataScreen(
             }
 
             // ── Локальний бекап ────────────────────────────────────────────────
-            item { DataSectionHeader("Локальний бекап") }
+            item { DataSectionHeader(stringResource(R.string.data_local_backup)) }
 
             item {
                 Row(
@@ -386,8 +388,7 @@ fun DataScreen(
                         tint = NegativeAmountColor, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "Локальні копії зберігаються лише на пристрої. " +
-                        "Видалення або перевстановлення застосунку призведе до їхньої втрати.",
+                        stringResource(R.string.data_local_warning),
                         color = NegativeAmountColor,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -401,7 +402,7 @@ fun DataScreen(
                             tint = MaterialTheme.colorScheme.primary)
                     },
                     headlineContent = {
-                        Text("Створити резервну копію",
+                        Text(stringResource(R.string.data_create_backup),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium)
                     }
@@ -434,10 +435,9 @@ fun DataScreen(
             onDismissRequest = { showImportConfirm = null },
             icon = { Icon(Icons.Default.Warning, null,
                 tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Замінити всі дані?") },
+            title = { Text(stringResource(R.string.data_replace_title)) },
             text = {
-                Text("Поточні рахунки, категорії та операції будуть видалені " +
-                     "і замінені даними з файлу. Дію неможливо скасувати.")
+                Text(stringResource(R.string.data_replace_msg))
             },
             confirmButton = {
                 TextButton(
@@ -447,10 +447,10 @@ fun DataScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Замінити") }
+                ) { Text(stringResource(R.string.data_replace)) }
             },
             dismissButton = {
-                TextButton(onClick = { showImportConfirm = null }) { Text("Скасувати") }
+                TextButton(onClick = { showImportConfirm = null }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -460,12 +460,9 @@ fun DataScreen(
             onDismissRequest = { showRestoreFromDrive = null },
             icon = { Icon(Icons.Default.CloudDownload, null,
                 tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Відновити з Drive?") },
+            title = { Text(stringResource(R.string.data_restore_drive_title)) },
             text = {
-                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
-                Text("Відновити резервну копію:\n${entry.name}\n" +
-                     "(${fmt.format(Date(entry.modifiedMs))})\n\n" +
-                     "Поточні дані будуть замінені.")
+                Text(stringResource(R.string.data_restore_drive_msg, entry.name))
             },
             confirmButton = {
                 val uri = state.driveFolderUri
@@ -474,10 +471,10 @@ fun DataScreen(
                         viewModel.restoreFromDrive(context, Uri.parse(uri), entry)
                     }
                     showRestoreFromDrive = null
-                }) { Text("Відновити") }
+                }) { Text(stringResource(R.string.data_restore)) }
             },
             dismissButton = {
-                TextButton(onClick = { showRestoreFromDrive = null }) { Text("Скасувати") }
+                TextButton(onClick = { showRestoreFromDrive = null }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -497,7 +494,7 @@ fun DataScreen(
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(16.dp))
-                    Text("Імпорт даних…")
+                    Text(stringResource(R.string.data_importing))
                 }
             }
         }

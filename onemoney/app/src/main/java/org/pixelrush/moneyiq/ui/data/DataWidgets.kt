@@ -14,12 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.workers.DriveBackupEntry
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
@@ -67,7 +70,7 @@ internal fun MonoFlowSyncCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (isConfigured) "MonoFlow підключено" else "Підключити MonoFlow",
+                    if (isConfigured) stringResource(R.string.data_monoflow_connected) else stringResource(R.string.data_monoflow_connect),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -77,7 +80,7 @@ internal fun MonoFlowSyncCard(
                         onClick = { viewModel.clearMonoFlowConfig(context) },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Close, "Від'єднати",
+                        Icon(Icons.Default.Close, stringResource(R.string.data_disconnect),
                             modifier = Modifier.size(18.dp))
                     }
                 }
@@ -89,7 +92,7 @@ internal fun MonoFlowSyncCard(
             OutlinedTextField(
                 value = editUrl,
                 onValueChange = { editUrl = it },
-                label = { Text("URL сервісу") },
+                label = { Text(stringResource(R.string.data_monoflow_url_label)) },
                 placeholder = { Text("https://monoflow.ibotz.fun/api/sync") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -102,7 +105,7 @@ internal fun MonoFlowSyncCard(
             OutlinedTextField(
                 value = editToken,
                 onValueChange = { editToken = it },
-                label = { Text("Токен") },
+                label = { Text(stringResource(R.string.data_token)) },
                 placeholder = { Text("miq_xxxxxxxxxxxxxxxx") },
                 singleLine = true,
                 visualTransformation = if (showToken)
@@ -141,11 +144,11 @@ internal fun MonoFlowSyncCard(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Синхронізація…")
+                    Text(stringResource(R.string.data_syncing))
                 } else {
                     Icon(Icons.Default.Sync, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isConfigured) "Синхронізувати зараз" else "Підключити та синхронізувати")
+                    Text(if (isConfigured) stringResource(R.string.data_sync_now) else stringResource(R.string.data_connect_sync))
                 }
             }
 
@@ -161,9 +164,9 @@ internal fun MonoFlowSyncCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Автосинк кожні 2 год",
+                        Text(stringResource(R.string.data_autosync),
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("Тільки при наявності інтернету",
+                        Text(stringResource(R.string.data_autosync_sub),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -177,7 +180,7 @@ internal fun MonoFlowSyncCard(
                 if (state.monoflowLastSyncMs > 0L) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Останній синк: ${fmt.format(java.util.Date(state.monoflowLastSyncMs))}",
+                        stringResource(R.string.data_last_sync, fmt.format(java.util.Date(state.monoflowLastSyncMs))),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -243,7 +246,7 @@ internal fun DriveBackupItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         trailingContent = {
-            TextButton(onClick = onRestore) { Text("Відновити") }
+            TextButton(onClick = onRestore) { Text(stringResource(R.string.data_restore)) }
         }
     )
 }
@@ -251,38 +254,27 @@ internal fun DriveBackupItem(
 @Composable
 internal fun LocalBackupItem(backup: BackupEntry) {
     val fmt    = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale.forLanguageTag("uk")) }
-    val txLbl  = pluralUk(backup.txCount,      "операція",  "операції",  "операцій")
-    val accLbl = pluralUk(backup.accountCount,  "рахунок",   "рахунки",   "рахунків")
-    val catLbl = pluralUk(backup.categoryCount, "категорія", "категорії", "категорій")
+    val txLbl  = pluralStringResource(R.plurals.cat_operations_count, backup.txCount, backup.txCount)
+    val accLbl = pluralStringResource(R.plurals.data_plural_accounts, backup.accountCount, backup.accountCount)
+    val catLbl = pluralStringResource(R.plurals.data_plural_categories, backup.categoryCount, backup.categoryCount)
 
     ListItem(
         leadingContent = {
             Icon(Icons.Default.History, null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         },
-        headlineContent  = { Text("Локальний бекап", fontWeight = FontWeight.Medium) },
+        headlineContent  = { Text(stringResource(R.string.data_local_backup), fontWeight = FontWeight.Medium) },
         supportingContent = {
             Column {
                 Text(fmt.format(Date(backup.timestamp)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-                Text("${backup.txCount} $txLbl · ${backup.accountCount} $accLbl · ${backup.categoryCount} $catLbl",
+                Text("$txLbl · $accLbl · $catLbl",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
             }
         }
     )
-}
-
-internal fun pluralUk(n: Int, one: String, few: String, many: String): String {
-    val mod10 = n % 10
-    val mod100 = n % 100
-    return when {
-        mod100 in 11..14 -> many
-        mod10 == 1       -> one
-        mod10 in 2..4    -> few
-        else             -> many
-    }
 }
 
 @Composable
@@ -307,14 +299,12 @@ internal fun ResetDataDialog(
                     modifier = Modifier.size(40.dp),
                     tint = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(16.dp))
-                Text("Скинути дані",
+                Text(stringResource(R.string.data_reset),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Щоб видалити всі ваші дані (рахунки, категорії, операції та бюджети), " +
-                    "виберіть Видалити всі дані.\n\n" +
-                    "Щоб видалити лише операції, виберіть Видалити всі операції.",
+                    stringResource(R.string.data_reset_explain),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -327,12 +317,12 @@ internal fun ResetDataDialog(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor   = MaterialTheme.colorScheme.onErrorContainer
                     )
-                ) { Text("Видалити всі дані", fontWeight = FontWeight.SemiBold) }
+                ) { Text(stringResource(R.string.data_delete_all), fontWeight = FontWeight.SemiBold) }
                 Spacer(Modifier.height(4.dp))
                 TextButton(onClick = onDeleteTransactions) {
-                    Text("Видалити всі операції")
+                    Text(stringResource(R.string.data_delete_all_tx))
                 }
-                TextButton(onClick = onDismiss) { Text("Відмінити") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.data_dismiss)) }
             }
         }
     }

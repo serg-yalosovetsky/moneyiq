@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
@@ -116,9 +117,9 @@ class DataViewModel @Inject constructor(
                     os.write(json.toByteArray(Charsets.UTF_8))
                     os.flush()
                 }
-                showMessage("Експорт успішно збережено ✓")
+                showMessage(context.getString(R.string.data_export_saved))
             } catch (e: Exception) {
-                showMessage("Помилка запису: ${e.message}")
+                showMessage(context.getString(R.string.data_write_error, e.message ?: ""))
             }
         }
     }
@@ -130,17 +131,15 @@ class DataViewModel @Inject constructor(
                 val json = withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)
                         ?.bufferedReader(Charsets.UTF_8)?.readText()
-                } ?: throw Exception("Не вдалося прочитати файл")
+                } ?: throw Exception(context.getString(R.string.data_read_file_error))
 
                 val data = withContext(Dispatchers.IO) { BackupSerializer.deserialize(json) }
                 importBackupData(data)
-                showMessage("Імпорт успішно завершено: " +
-                        "${data.accounts.size} рахунків, " +
-                        "${data.categories.size} категорій, " +
-                        "${data.transactions.size} операцій ✓")
+                showMessage(context.getString(R.string.data_import_done,
+                        data.accounts.size, data.categories.size, data.transactions.size))
                 loadState(context)
             } catch (e: Exception) {
-                showMessage("Помилка імпорту: ${e.message}")
+                showMessage(context.getString(R.string.data_import_error, e.message ?: ""))
             } finally {
                 _state.value = _state.value.copy(isImporting = false)
             }
@@ -209,7 +208,7 @@ class DataViewModel @Inject constructor(
         if (_state.value.isBacking) return
         val folderUri = _state.value.driveFolderUri
         if (folderUri.isBlank()) {
-            showMessage("Спочатку виберіть папку в Google Drive")
+            showMessage(context.getString(R.string.data_select_folder_first))
             return
         }
         viewModelScope.launch {
@@ -243,13 +242,13 @@ class DataViewModel @Inject constructor(
                     settingsRepo.update {
                         this[SettingsRepository.KEY_DRIVE_BACKUP_LAST_DATE] = now
                     }
-                    showMessage("Резервну копію збережено в Google Drive ✓")
+                    showMessage(context.getString(R.string.data_drive_saved))
                     loadState(context)
                 } else {
-                    showMessage("Не вдалося записати в папку Drive")
+                    showMessage(context.getString(R.string.data_drive_write_error))
                 }
             } catch (e: Exception) {
-                showMessage("Помилка: ${e.message}")
+                showMessage(context.getString(R.string.data_error, e.message ?: ""))
             } finally {
                 _state.value = _state.value.copy(isBacking = false)
             }
@@ -262,13 +261,13 @@ class DataViewModel @Inject constructor(
             try {
                 val json = withContext(Dispatchers.IO) {
                     DriveBackupWorker.readBackupFile(context, treeUri, entry.documentId)
-                } ?: throw Exception("Не вдалося прочитати файл Drive")
+                } ?: throw Exception(context.getString(R.string.data_drive_read_error))
                 val data = withContext(Dispatchers.IO) { BackupSerializer.deserialize(json) }
                 importBackupData(data)
-                showMessage("Відновлено з Drive: ${entry.name} ✓")
+                showMessage(context.getString(R.string.data_restored_from_drive, entry.name))
                 loadState(context)
             } catch (e: Exception) {
-                showMessage("Помилка відновлення: ${e.message}")
+                showMessage(context.getString(R.string.data_restore_error, e.message ?: ""))
             } finally {
                 _state.value = _state.value.copy(isImporting = false)
             }
@@ -325,7 +324,7 @@ class DataViewModel @Inject constructor(
         val url   = _state.value.monoflowUrl
         val token = _state.value.monoflowToken
         if (url.isBlank() || token.isBlank()) {
-            showMessage("MonoFlow: налаштуйте URL та токен")
+            showMessage(context.getString(R.string.data_monoflow_configure))
             return
         }
         viewModelScope.launch {
@@ -351,13 +350,11 @@ class DataViewModel @Inject constructor(
                     this[SettingsRepository.KEY_MONOFLOW_LAST_SYNC] = now
                 }
                 _state.value = _state.value.copy(monoflowLastSyncMs = now)
-                showMessage(
-                    "MonoFlow синхронізовано ✓ " +
-                    "(${data.accounts.size} рахунків, ${data.transactions.size} операцій)"
-                )
+                showMessage(context.getString(R.string.data_monoflow_synced,
+                    data.accounts.size, data.transactions.size))
                 loadState(context)
             } catch (e: Exception) {
-                showMessage("MonoFlow: помилка — ${e.message}")
+                showMessage(context.getString(R.string.data_monoflow_error, e.message ?: ""))
             } finally {
                 _state.value = _state.value.copy(isSyncing = false)
             }
@@ -389,11 +386,11 @@ class DataViewModel @Inject constructor(
                 saveLocalBackups(prefs, current)
                 withContext(Dispatchers.Main) {
                     _state.value = _state.value.copy(localBackups = current)
-                    Toast.makeText(context, "Резервну копію створено ✓", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.data_backup_created), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Помилка: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.data_error, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -412,7 +409,7 @@ class DataViewModel @Inject constructor(
             txDao.deleteAllTransactions()
             accountDao.resetAllBalances()
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Всі операції видалено", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.data_all_tx_deleted), Toast.LENGTH_SHORT).show()
             }
         }
     }
