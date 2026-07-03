@@ -18,6 +18,15 @@ object LocaleWrapper {
     private const val KEY   = "app_lang"
     const val DEFAULT       = "default"
 
+    /**
+     * The real system locale, captured once when this object is first touched
+     * (inside the first attachBaseContext, before any setLocale mutates it).
+     * Used to restore Locale.getDefault() when the user picks "default", so
+     * date/number formatting that reads Locale.getDefault() stays in sync with
+     * the system language instead of sticking to a previously chosen one.
+     */
+    private val systemLocale: Locale = Locale.getDefault()
+
     fun getLang(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY, DEFAULT) ?: DEFAULT
@@ -30,7 +39,12 @@ object LocaleWrapper {
     /** Wraps [base] with the stored locale. Returns [base] unchanged for "default". */
     fun wrap(base: Context): Context {
         val lang = getLang(base)
-        if (lang == DEFAULT) return base
+        if (lang == DEFAULT) {
+            // Undo any Locale.setDefault() left over from a previously chosen
+            // language so getDefault()-based formatters follow the system again.
+            Locale.setDefault(systemLocale)
+            return base
+        }
         val locale = Locale.forLanguageTag(lang)
         Locale.setDefault(locale)
         val config = Configuration(base.resources.configuration)
