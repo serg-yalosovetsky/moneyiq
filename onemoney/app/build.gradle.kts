@@ -200,6 +200,15 @@ sentry {
     org = "serg-yalosovetsky"
     projectName = "one_money"
     authToken = sentryToken
+
+    // Sentry 4.14.1 ASM bytecode transform (transformDebugClassesWithAsm) drops some
+    // worker classes (DriveBackupWorker/MonoFlowSyncWorker/NotificationWorker) from the
+    // dex on a clean build → NoClassDefFoundError: DriveBackupEntryPoint on cold start.
+    // We don't use auto perf-tracing, so disable the transform. Error reporting via the
+    // Sentry SDK (SentryAndroid.init in MoneyIQApp) is unaffected.
+    tracingInstrumentation {
+        enabled.set(false)
+    }
 }
 
 tasks.register("printVersionName") {
