@@ -62,40 +62,40 @@ internal fun sameDay(a: Calendar, b: Calendar) =
 // ── Repeat options ────────────────────────────────────────────────────────────
 
 private val REPEAT_OPTIONS = listOf(
-    "NEVER"          to "Ніколи",
-    "DAILY"          to "Щодня",
-    "EVERY_2_DAYS"   to "Кожні 2 дні",
-    "WEEKDAYS"       to "Будні",
-    "WEEKENDS"       to "Вихідні дні",
-    "WEEKLY"         to "Щотижня",
-    "EVERY_2_WEEKS"  to "Кожні 2 тижні",
-    "EVERY_4_WEEKS"  to "Кожні 4 тижні",
-    "MONTHLY"        to "Щомісяця",
-    "EVERY_2_MONTHS" to "Кожні 2 місяці",
-    "EVERY_3_MONTHS" to "Кожні 3 місяці",
-    "EVERY_6_MONTHS" to "Кожні 6 місяців",
-    "YEARLY"         to "Щорічно"
+    "NEVER"          to R.string.rep_never,
+    "DAILY"          to R.string.rep_daily,
+    "EVERY_2_DAYS"   to R.string.rep_every_2_days,
+    "WEEKDAYS"       to R.string.rep_weekdays,
+    "WEEKENDS"       to R.string.rep_weekends,
+    "WEEKLY"         to R.string.rep_weekly,
+    "EVERY_2_WEEKS"  to R.string.rep_every_2_weeks,
+    "EVERY_4_WEEKS"  to R.string.rep_every_4_weeks,
+    "MONTHLY"        to R.string.rep_monthly,
+    "EVERY_2_MONTHS" to R.string.rep_every_2_months,
+    "EVERY_3_MONTHS" to R.string.rep_every_3_months,
+    "EVERY_6_MONTHS" to R.string.rep_every_6_months,
+    "YEARLY"         to R.string.rep_yearly
 )
 
-internal fun repeatLabelFor(mode: String) =
-    REPEAT_OPTIONS.firstOrNull { it.first == mode }?.second ?: "Ніколи"
+internal fun repeatLabelResFor(mode: String) =
+    REPEAT_OPTIONS.firstOrNull { it.first == mode }?.second ?: R.string.rep_never
 
 // ── Reminder options ──────────────────────────────────────────────────────────
 
 private val REMINDER_OPTIONS = listOf(
-    "NEVER"    to "Ніколи",
-    "SAME_DAY" to "Того ж дня",
-    "1_DAY"    to "за 1 день до",
-    "2_DAYS"   to "за 2 дні до",
-    "3_DAYS"   to "за 3 дні до",
-    "4_DAYS"   to "за 4 дні до",
-    "5_DAYS"   to "за 5 дні до",
-    "6_DAYS"   to "за 6 дні до",
-    "7_DAYS"   to "за 7 дні до"
+    "NEVER"    to R.string.rep_never,
+    "SAME_DAY" to R.string.rem_same_day,
+    "1_DAY"    to R.string.rem_1_day,
+    "2_DAYS"   to R.string.rem_2_days,
+    "3_DAYS"   to R.string.rem_3_days,
+    "4_DAYS"   to R.string.rem_4_days,
+    "5_DAYS"   to R.string.rem_5_days,
+    "6_DAYS"   to R.string.rem_6_days,
+    "7_DAYS"   to R.string.rem_7_days
 )
 
-internal fun reminderLabelFor(mode: String) =
-    REMINDER_OPTIONS.firstOrNull { it.first == mode }?.second ?: "Ніколи"
+internal fun reminderLabelResFor(mode: String) =
+    REMINDER_OPTIONS.firstOrNull { it.first == mode }?.second ?: R.string.rep_never
 
 // ── Date sheet ────────────────────────────────────────────────────────────────
 
@@ -132,7 +132,7 @@ fun CalcDateSheet(
             modifier            = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg).padding(bottom = Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Дата", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.date_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
             Surface(
                 onClick   = onPickDate,
@@ -147,7 +147,7 @@ fun CalcDateSheet(
                 ) {
                     Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(Spacing.md))
-                    Text("Виберіть день", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.date_pick_day), style = MaterialTheme.typography.bodyLarge)
                 }
             }
 
@@ -203,8 +203,8 @@ fun CalcDateSheet(
                     ) {
                         Icon(Icons.Default.Repeat, null, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.height(Spacing.xs))
-                        Text("Повторення", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text(repeatLabelFor(repeatMode), style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.date_repeat), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(stringResource(repeatLabelResFor(repeatMode)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 }
@@ -220,8 +220,8 @@ fun CalcDateSheet(
                     ) {
                         Icon(Icons.Outlined.Notifications, null, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.height(Spacing.xs))
-                        Text("Нагадування", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text(reminderLabelFor(reminderMode), style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.date_reminder), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(stringResource(reminderLabelResFor(reminderMode)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 }
@@ -249,7 +249,7 @@ fun FullDatePickerDialog(
             }) { Text("OK") }
         },
         dismissButton    = {
-            TextButton(onClick = onDismiss) { Text("Скасувати") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     ) {
         DatePicker(state = state)
@@ -272,25 +272,25 @@ internal fun RepeatDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Repeat, null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Повторення", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.date_repeat), style = MaterialTheme.typography.titleLarge)
             }
         },
         text = {
             LazyColumn {
-                items(REPEAT_OPTIONS) { (key, label) ->
+                items(REPEAT_OPTIONS) { (key, labelRes) ->
                     Row(
                         modifier          = Modifier.fillMaxWidth().clickable { sel = key }.padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = sel == key, onClick = { sel = key })
                         Spacer(Modifier.width(6.dp))
-                        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(stringResource(labelRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     }
                 }
             }
         },
         confirmButton   = { TextButton(onClick = { onSelect(sel) }) { Text("OK") } },
-        dismissButton   = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton   = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -310,25 +310,25 @@ internal fun ReminderDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Notifications, null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Нагадування", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.date_reminder), style = MaterialTheme.typography.titleLarge)
             }
         },
         text = {
             LazyColumn {
-                items(REMINDER_OPTIONS) { (key, label) ->
+                items(REMINDER_OPTIONS) { (key, labelRes) ->
                     Row(
                         modifier          = Modifier.fillMaxWidth().clickable { sel = key }.padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = sel == key, onClick = { sel = key })
                         Spacer(Modifier.width(6.dp))
-                        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(stringResource(labelRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     }
                 }
             }
         },
         confirmButton   = { TextButton(onClick = { onSelect(sel) }) { Text("OK") } },
-        dismissButton   = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton   = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 
@@ -339,7 +339,7 @@ internal fun ReminderDialog(
 fun AccountPickerSheet(
     accounts:   List<AccountEntity>,
     selectedId: Long?,
-    label:      String = "З рахунку",
+    label:      String? = null,
     onSelect:   (AccountEntity) -> Unit,
     onDismiss:  () -> Unit
 ) {
@@ -375,10 +375,10 @@ fun AccountPickerSheet(
                 Column(
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = 10.dp)
                 ) {
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
+                    Text(label ?: stringResource(R.string.acc_from), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
                     Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                     Text(
-                        "Баланс: ${formatMoney(selected?.balance ?: 0.0)} ₴",
+                        stringResource(R.string.acc_balance, formatMoney(selected?.balance ?: 0.0)),
                         style = MaterialTheme.typography.bodySmall,
                         color = contentColor.copy(alpha = 0.8f)
                     )
@@ -392,7 +392,7 @@ fun AccountPickerSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text("Рахунки", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.nav_accounts), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${formatMoney(accounts.sumOf { it.balance })} ₴",
                     style = MaterialTheme.typography.bodyMedium,

@@ -376,4 +376,36 @@
     <!-- Calculator -->
     <string name="calc_save_tx">Зберегти транзакцію</string>
     <string name="calc_amount">Сума</string>
+
+    <!-- Date sheet -->
+    <string name="date_title">Дата</string>
+    <string name="date_pick_day">Виберіть день</string>
+    <string name="date_repeat">Повторення</string>
+    <string name="date_reminder">Нагадування</string>
+    <!-- Repeat options -->
+    <string name="rep_never">Ніколи</string>
+    <string name="rep_daily">Щодня</string>
+    <string name="rep_every_2_days">Кожні 2 дні</string>
+    <string name="rep_weekdays">Будні</string>
+    <string name="rep_weekends">Вихідні дні</string>
+    <string name="rep_weekly">Щотижня</string>
+    <string name="rep_every_2_weeks">Кожні 2 тижні</string>
+    <string name="rep_every_4_weeks">Кожні 4 тижні</string>
+    <string name="rep_monthly">Щомісяця</string>
+    <string name="rep_every_2_months">Кожні 2 місяці</string>
+    <string name="rep_every_3_months">Кожні 3 місяці</string>
+    <string name="rep_every_6_months">Кожні 6 місяців</string>
+    <string name="rep_yearly">Щорічно</string>
+    <!-- Reminder options -->
+    <string name="rem_same_day">Того ж дня</string>
+    <string name="rem_1_day">за 1 день до</string>
+    <string name="rem_2_days">за 2 дні до</string>
+    <string name="rem_3_days">за 3 дні до</string>
+    <string name="rem_4_days">за 4 дні до</string>
+    <string name="rem_5_days">за 5 днів до</string>
+    <string name="rem_6_days">за 6 днів до</string>
+    <string name="rem_7_days">за 7 днів до</string>
+    <!-- Account picker -->
+    <string name="acc_from">З рахунку</string>
+    <string name="acc_balance">Баланс: %1$s ₴</string>
 </resources>

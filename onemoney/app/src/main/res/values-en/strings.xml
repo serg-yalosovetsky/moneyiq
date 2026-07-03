@@ -365,4 +365,36 @@
     <!-- Calculator -->
     <string name="calc_save_tx">Save transaction</string>
     <string name="calc_amount">Amount</string>
+
+    <!-- Date sheet -->
+    <string name="date_title">Date</string>
+    <string name="date_pick_day">Pick a day</string>
+    <string name="date_repeat">Repeat</string>
+    <string name="date_reminder">Reminder</string>
+    <!-- Repeat options -->
+    <string name="rep_never">Never</string>
+    <string name="rep_daily">Daily</string>
+    <string name="rep_every_2_days">Every 2 days</string>
+    <string name="rep_weekdays">Weekdays</string>
+    <string name="rep_weekends">Weekends</string>
+    <string name="rep_weekly">Weekly</string>
+    <string name="rep_every_2_weeks">Every 2 weeks</string>
+    <string name="rep_every_4_weeks">Every 4 weeks</string>
+    <string name="rep_monthly">Monthly</string>
+    <string name="rep_every_2_months">Every 2 months</string>
+    <string name="rep_every_3_months">Every 3 months</string>
+    <string name="rep_every_6_months">Every 6 months</string>
+    <string name="rep_yearly">Yearly</string>
+    <!-- Reminder options -->
+    <string name="rem_same_day">Same day</string>
+    <string name="rem_1_day">1 day before</string>
+    <string name="rem_2_days">2 days before</string>
+    <string name="rem_3_days">3 days before</string>
+    <string name="rem_4_days">4 days before</string>
+    <string name="rem_5_days">5 days before</string>
+    <string name="rem_6_days">6 days before</string>
+    <string name="rem_7_days">7 days before</string>
+    <!-- Account picker -->
+    <string name="acc_from">From account</string>
+    <string name="acc_balance">Balance: %1$s ₴</string>
 </resources>
