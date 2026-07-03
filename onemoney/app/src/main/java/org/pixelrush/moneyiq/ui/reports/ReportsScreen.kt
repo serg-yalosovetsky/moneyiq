@@ -29,6 +29,8 @@ import org.syalosovetskyi.onemoney.data.db.dao.CategorySpending
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.IncomeGreen
+import org.syalosovetskyi.onemoney.ui.theme.ExpenseRed
 
 @Composable
 fun ReportsScreen(
@@ -252,8 +254,8 @@ private fun SummaryCards(income: Double, expense: Double) {
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SummaryCard("Доходы", income, Color(0xFF4CAF50), Modifier.weight(1f))
-        SummaryCard("Расходы", expense, Color(0xFFF44336), Modifier.weight(1f))
+        SummaryCard("Доходы", income, IncomeGreen, Modifier.weight(1f))
+        SummaryCard("Расходы", expense, ExpenseRed, Modifier.weight(1f))
     }
     Spacer(Modifier.height(8.dp))
     val diff = income - expense
@@ -263,7 +265,7 @@ private fun SummaryCards(income: Double, expense: Double) {
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
         colors = CardDefaults.cardColors(
-            containerColor = if (diff >= 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+            containerColor = if (diff >= 0) IncomeGreen.copy(alpha = 0.12f) else ExpenseRed.copy(alpha = 0.12f)
         )
     ) {
         Row(
@@ -277,7 +279,7 @@ private fun SummaryCards(income: Double, expense: Double) {
             Text(
                 (if (diff >= 0) "+" else "") + formatMoney(diff),
                 fontWeight = FontWeight.Bold,
-                color = if (diff >= 0) Color(0xFF2E7D32) else Color(0xFFB71C1C)
+                color = if (diff >= 0) IncomeGreen else ExpenseRed
             )
         }
     }

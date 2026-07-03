@@ -30,14 +30,19 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.AccentIndigo
+import org.syalosovetskyi.onemoney.ui.theme.AccentTeal
+import org.syalosovetskyi.onemoney.ui.theme.ExpenseRed
+import org.syalosovetskyi.onemoney.ui.theme.IncomeGreen
+import org.syalosovetskyi.onemoney.ui.theme.FallbackIconColor
 import java.text.SimpleDateFormat
 import java.util.*
 
-private val PanelFromColor   = Color(0xFF3949AB)  // indigo — рахунок-джерело (витрата/дохід)
-private val TransferFromColor = Color(0xFF009688)  // teal — рахунок-джерело (переказ)
-private val TransferToColor   = Color(0xFF3949AB)  // indigo — рахунок-призначення
-private val ExpenseColor      = Color(0xFFE53935)  // red
-private val IncomeColor       = Color(0xFF43A047)  // green
+private val PanelFromColor    = AccentIndigo   // рахунок-джерело (витрата/дохід)
+private val TransferFromColor = AccentTeal     // рахунок-джерело (переказ)
+private val TransferToColor   = AccentIndigo   // рахунок-призначення
+private val ExpenseColor      = ExpenseRed     // уніфіковано (було E53935)
+private val IncomeColor       = IncomeGreen    // уніфіковано (було 43A047)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +113,7 @@ fun AddTransactionScreen(
     val leftPanelColor  = if (isTransfer) TransferFromColor else PanelFromColor
     val rightPanelColor = when {
         isTransfer -> TransferToColor
-        else       -> fromCatColor ?: Color(0xFF757575)
+        else       -> fromCatColor ?: FallbackIconColor
     }
     val accentColor = when (state.type) {
         TransactionType.TRANSFER -> TransferToColor

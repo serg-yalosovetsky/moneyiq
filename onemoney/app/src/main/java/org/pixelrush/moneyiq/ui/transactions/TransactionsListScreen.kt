@@ -46,13 +46,16 @@ import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.AccentBlueGrey
+import org.syalosovetskyi.onemoney.ui.theme.AccentIndigo
+import org.syalosovetskyi.onemoney.ui.theme.AccentIndigoLight
 import androidx.compose.ui.res.painterResource
 import java.text.SimpleDateFormat
 import java.util.*
 
-private val FilterDefaultColor = Color(0xFF607D8B)
-private val FilterQueryColor   = Color(0xFF5C6BC0)
-private val FilterAccountColor = Color(0xFF3949AB)
+private val FilterDefaultColor = AccentBlueGrey     // нейтральний фільтр (було 607D8B)
+private val FilterQueryColor   = AccentIndigoLight  // фільтр за запитом (було 5C6BC0)
+private val FilterAccountColor = AccentIndigo        // фільтр за рахунком (було 3949AB)
 
 
 // ── Screen ────────────────────────────────────────────────────────────────────

@@ -28,11 +28,11 @@ import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
 import java.text.SimpleDateFormat
 import java.util.*
 
-private val FallbackAccountColor: Color = Color(0xFF3949AB)
-private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
 
 // ── Date label helpers ────────────────────────────────────────────────────────
 
@@ -343,7 +343,7 @@ fun AccountPickerSheet(
     val selColor = selected?.let {
         parseColorHex(it.colorHex, FallbackAccountColor)
     } ?: FallbackAccountColor
-    val contentColor = if (selColor.luminance() > 0.5f) DarkOnLightColor else Color.White
+    val contentColor = if (selColor.luminance() > 0.5f) OnLightColor else Color.White
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -400,7 +400,7 @@ fun AccountPickerSheet(
 
             accounts.forEach { acc ->
                 val accColor = parseColorHex(acc.colorHex, FallbackAccountColor)
-                val itemContentColor = if (accColor.luminance() > 0.5f) DarkOnLightColor else Color.White
+                val itemContentColor = if (accColor.luminance() > 0.5f) OnLightColor else Color.White
                 val isSelected = acc.id == selectedId
                 Row(
                     modifier = Modifier

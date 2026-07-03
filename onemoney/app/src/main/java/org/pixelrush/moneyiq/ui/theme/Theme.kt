@@ -30,6 +30,12 @@ val FallbackAccountColor  = Color(0xFF4361EE)  // дефолт-цвет счёт
 val FallbackCategoryColor = Color(0xFFFF5722)  // дефолт-цвет категории
 val FallbackIconColor     = Color(0xFF757575)  // дефолт-тинт иконки
 
+// ── UI-акценты панелей/фильтров (раньше хардкод ARGB по экранам) ──────────────
+val AccentIndigo      = Color(0xFF3949AB)  // панель счёта-источника/назначения, фильтр по счёту
+val AccentIndigoLight = Color(0xFF5C6BC0)  // фильтр по запросу
+val AccentTeal        = Color(0xFF009688)  // панель переказу
+val AccentBlueGrey    = Color(0xFF607D8B)  // нейтральный фильтр/fallback категории
+
 // ── Category screen colour tokens ─────────────────────────────────────────────
 val MonthRed                  = Color(0xFFD7261E)
 val MonthRedLight             = Color(0xFFF8D9D5)

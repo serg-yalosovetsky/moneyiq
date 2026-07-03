@@ -33,6 +33,13 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.txDateLabelPublic
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.AccentIndigo
+import org.syalosovetskyi.onemoney.ui.theme.AccentTeal
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.ui.theme.FallbackIconColor
+import org.syalosovetskyi.onemoney.ui.theme.IncomeGreen
+import org.syalosovetskyi.onemoney.ui.theme.ExpenseRed
+import org.syalosovetskyi.onemoney.ui.theme.TransferBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +69,7 @@ internal fun TransactionDetailSheet(
     }
 
     val accountColor = remember(tx.accountColor) {
-        parseColorHex(tx.accountColor, Color(0xFF3949AB))
+        parseColorHex(tx.accountColor, FallbackAccountColor)
     }
     val catColor = remember(tx.categoryColor) {
         tx.categoryColor?.let {
@@ -70,16 +77,16 @@ internal fun TransactionDetailSheet(
         }
     }
     val isTransfer  = tx.type == TransactionType.TRANSFER
-    val leftColor   = if (isTransfer) Color(0xFF009688) else accountColor
+    val leftColor   = if (isTransfer) AccentTeal else accountColor
     val rightColor  = when {
-        isTransfer       -> Color(0xFF3949AB)
+        isTransfer       -> AccentIndigo
         catColor != null -> catColor
-        else             -> Color(0xFF757575)
+        else             -> FallbackIconColor
     }
-    val accentColor = when (tx.type) {
-        TransactionType.TRANSFER -> Color(0xFF009688)
-        TransactionType.INCOME   -> Color(0xFF43A047)
-        else                     -> Color(0xFFE53935)
+    val accentColor = when (tx.type) {           // колір суми — уніфіковано до семантики
+        TransactionType.TRANSFER -> TransferBlue
+        TransactionType.INCOME   -> IncomeGreen
+        else                     -> ExpenseRed
     }
     val keyBg   = MaterialTheme.colorScheme.surfaceVariant
     val screenH = LocalConfiguration.current.screenHeightDp.dp

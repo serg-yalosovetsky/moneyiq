@@ -668,7 +668,7 @@ private fun BudgetSummarySection(
     val overviewColors = OneMoneyTheme.colors
     val expenseColor   = overviewColors.budgetExpense
     val savingsColor   = overviewColors.budgetIncome
-    val incomeColor    = Color(0xFF66BB6A)
+    val incomeColor    = overviewColors.incomeGreen   // уніфіковано (було 66BB6A)
 
     Spacer(Modifier.height(8.dp))
     Card(

@@ -32,6 +32,11 @@ import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.IncomeGreen
+import org.syalosovetskyi.onemoney.ui.theme.ExpenseRed
+import org.syalosovetskyi.onemoney.ui.theme.TransferBlue
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.ui.theme.AccentBlueGrey
 
 @Composable
 internal fun TxSearchScreen(
@@ -49,9 +54,9 @@ internal fun TxSearchScreen(
     onReset:            () -> Unit,
     onDone:             () -> Unit
 ) {
-    val expenseColor  = Color(0xFFE91E63)
-    val incomeColor   = Color(0xFF009688)
-    val transferColor = Color(0xFF607D8B)
+    val expenseColor  = ExpenseRed    // уніфіковано до семантики (було E91E63)
+    val incomeColor   = IncomeGreen   // уніфіковано (було 009688)
+    val transferColor = TransferBlue  // уніфіковано (було 607D8B)
 
     Dialog(
         onDismissRequest = onDone,
@@ -161,7 +166,7 @@ internal fun TxSearchScreen(
                         ) {
                             accounts.forEach { acc ->
                                 val selected = acc.id in filterAccountIds
-                                val accColor = parseColorHex(acc.colorHex, Color(0xFF3949AB))
+                                val accColor = parseColorHex(acc.colorHex, FallbackAccountColor)
                                 ColoredFilterChip(
                                     label    = acc.name,
                                     subLabel = formatMoney(acc.balance),
@@ -187,7 +192,7 @@ internal fun TxSearchScreen(
                         ) {
                             expenseCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = parseColorHex(cat.colorHex, Color(0xFF607D8B))
+                                val catColor = parseColorHex(cat.colorHex, AccentBlueGrey)
                                 ColoredFilterChip(
                                     label    = cat.name,
                                     icon     = categoryIconFor(cat.icon),
@@ -212,7 +217,7 @@ internal fun TxSearchScreen(
                         ) {
                             incomeCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = parseColorHex(cat.colorHex, Color(0xFF607D8B))
+                                val catColor = parseColorHex(cat.colorHex, AccentBlueGrey)
                                 ColoredFilterChip(
                                     label    = cat.name,
                                     icon     = categoryIconFor(cat.icon),
