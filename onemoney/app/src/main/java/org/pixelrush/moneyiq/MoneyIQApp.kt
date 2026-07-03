@@ -12,6 +12,7 @@ import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.data.repository.CategoryRepository
+import org.syalosovetskyi.onemoney.data.repository.CurrencyRatesRepository
 import org.syalosovetskyi.onemoney.workers.RepeatTransactionWorker
 import javax.inject.Inject
 
@@ -20,6 +21,7 @@ class onemoneyApp : Application() {
 
     @Inject lateinit var categoryRepository: CategoryRepository
     @Inject lateinit var accountDao: AccountDao
+    @Inject lateinit var currencyRatesRepository: CurrencyRatesRepository
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -39,6 +41,7 @@ class onemoneyApp : Application() {
         }
 
         appScope.launch { seedInitialData() }
+        appScope.launch { currencyRatesRepository.refreshIfStale() }
         RepeatTransactionWorker.scheduleOnce(this)
     }
 
