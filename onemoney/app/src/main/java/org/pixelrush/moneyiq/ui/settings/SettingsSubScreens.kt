@@ -218,19 +218,15 @@ internal fun SettingsToggleRow(
 
 @Composable
 internal fun SettingsIcon(icon: ImageVector, showCrown: Boolean = false) {
-    Box(contentAlignment = Alignment.TopEnd) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.size(40.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, null, modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        if (showCrown) {
-            Text("👑", fontSize = 10.sp, modifier = Modifier.offset(x = 2.dp, y = (-4).dp))
+    // No premium tier in this build — everything is available, so no crown badge.
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, null, modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
