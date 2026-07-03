@@ -261,6 +261,12 @@
         <item>Dec</item>
     </string-array>
 
+    <!-- Reports -->
+    <string name="reports_no_data">No data for the period</string>
+    <string name="reports_by_category">By category</string>
+    <string name="reports_next">Next</string>
+    <string name="reports_period_balance">Period balance</string>
+
     <!-- Overview -->
     <string name="ovr_daily_avg">Daily (avg)</string>
     <string name="ovr_in_budget">in budget</string>

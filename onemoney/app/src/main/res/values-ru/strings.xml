@@ -263,6 +263,12 @@
         <item>дек</item>
     </string-array>
 
+    <!-- Reports -->
+    <string name="reports_no_data">Нет данных за период</string>
+    <string name="reports_by_category">По категориям</string>
+    <string name="reports_next">Вперёд</string>
+    <string name="reports_period_balance">Баланс за период</string>
+
     <!-- Overview -->
     <string name="ovr_daily_avg">День (сред.)</string>
     <string name="ovr_in_budget">в бюджете</string>

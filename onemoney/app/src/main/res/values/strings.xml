@@ -268,6 +268,12 @@
         <item>гру</item>
     </string-array>
 
+    <!-- Reports -->
+    <string name="reports_no_data">Немає даних за період</string>
+    <string name="reports_by_category">За категоріями</string>
+    <string name="reports_next">Вперед</string>
+    <string name="reports_period_balance">Баланс за період</string>
+
     <!-- Overview -->
     <string name="ovr_daily_avg">День (сер.)</string>
     <string name="ovr_in_budget">в бюджеті</string>

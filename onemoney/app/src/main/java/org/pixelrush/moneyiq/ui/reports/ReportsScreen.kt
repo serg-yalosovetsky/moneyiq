@@ -20,11 +20,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.dao.CategorySpending
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
@@ -79,12 +81,12 @@ fun ReportsScreen(
                             Tab(
                                 selected = selectedTab == 0,
                                 onClick = { selectedTab = 0 },
-                                text = { Text("Расходы") }
+                                text = { Text(stringResource(R.string.common_expenses)) }
                             )
                             Tab(
                                 selected = selectedTab == 1,
                                 onClick = { selectedTab = 1 },
-                                text = { Text("Доходы") }
+                                text = { Text(stringResource(R.string.common_incomes)) }
                             )
                         }
                         Spacer(Modifier.height(16.dp))
@@ -104,7 +106,7 @@ fun ReportsScreen(
                                     )
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        "Нет данных за период",
+                                        stringResource(R.string.reports_no_data),
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                     )
                                 }
@@ -164,7 +166,7 @@ fun ReportsScreen(
             if (catItems.isNotEmpty()) {
                 item {
                     Text(
-                        "По категориям",
+                        stringResource(R.string.reports_by_category),
                         modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
@@ -240,9 +242,9 @@ private fun PeriodSelector(label: String, onPrev: () -> Unit, onNext: () -> Unit
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = onPrev) { Icon(Icons.Default.ChevronLeft, "Назад") }
+        IconButton(onClick = onPrev) { Icon(Icons.Default.ChevronLeft, stringResource(R.string.common_back)) }
         Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "Вперёд") }
+        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, stringResource(R.string.reports_next)) }
     }
 }
 
@@ -254,8 +256,8 @@ private fun SummaryCards(income: Double, expense: Double) {
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SummaryCard("Доходы", income, IncomeGreen, Modifier.weight(1f))
-        SummaryCard("Расходы", expense, ExpenseRed, Modifier.weight(1f))
+        SummaryCard(stringResource(R.string.common_incomes), income, IncomeGreen, Modifier.weight(1f))
+        SummaryCard(stringResource(R.string.common_expenses), expense, ExpenseRed, Modifier.weight(1f))
     }
     Spacer(Modifier.height(8.dp))
     val diff = income - expense
@@ -275,7 +277,7 @@ private fun SummaryCards(income: Double, expense: Double) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Баланс за период", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.reports_period_balance), style = MaterialTheme.typography.bodyMedium)
             Text(
                 (if (diff >= 0) "+" else "") + formatMoney(diff),
                 fontWeight = FontWeight.Bold,
