@@ -107,7 +107,7 @@ class RepeatTransactionWorker(
         val nm = NotificationManagerCompat.from(context)
         if (!nm.areNotificationsEnabled()) return
         createReminderChannel(context)
-        val fmt   = java.text.SimpleDateFormat("d MMM", java.util.Locale.forLanguageTag("uk"))
+        val fmt   = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault())
         val title = if (note.isNotBlank()) note else "Повторна транзакція"
         val text  = "${String.format("%.2f", amount)} ₴ · ${fmt.format(java.util.Date(date))}"
         val notif = NotificationCompat.Builder(context, REMINDER_CHANNEL_ID)

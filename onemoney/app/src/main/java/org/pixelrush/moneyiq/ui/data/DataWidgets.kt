@@ -37,7 +37,7 @@ internal fun MonoFlowSyncCard(
     viewModel: DataViewModel
 ) {
     val scope = rememberCoroutineScope()
-    val fmt   = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.forLanguageTag("uk")) }
+    val fmt   = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.getDefault()) }
 
     // Локальні поля введення
     var editUrl   by remember(state.monoflowUrl)   { mutableStateOf(state.monoflowUrl)   }
@@ -227,7 +227,7 @@ internal fun DriveBackupItem(
     entry: DriveBackupEntry,
     onRestore: () -> Unit
 ) {
-    val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
+    val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()) }
     val size = when {
         entry.sizeBytes < 1024        -> "${entry.sizeBytes} Б"
         entry.sizeBytes < 1024 * 1024 -> "${entry.sizeBytes / 1024} КБ"
@@ -253,7 +253,7 @@ internal fun DriveBackupItem(
 
 @Composable
 internal fun LocalBackupItem(backup: BackupEntry) {
-    val fmt    = remember { SimpleDateFormat("d MMMM yyyy 'р.' H:mm", Locale.forLanguageTag("uk")) }
+    val fmt    = remember { SimpleDateFormat("d MMMM yyyy, H:mm", Locale.getDefault()) }
     val txLbl  = pluralStringResource(R.plurals.cat_operations_count, backup.txCount, backup.txCount)
     val accLbl = pluralStringResource(R.plurals.data_plural_accounts, backup.accountCount, backup.accountCount)
     val catLbl = pluralStringResource(R.plurals.data_plural_categories, backup.categoryCount, backup.categoryCount)

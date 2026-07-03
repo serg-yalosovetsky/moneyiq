@@ -281,7 +281,7 @@ fun DataScreen(
                             }
                             if (state.driveLastBackupMs > 0L) {
                                 Spacer(Modifier.height(4.dp))
-                                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("uk")) }
+                                val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()) }
                                 Text(
                                     stringResource(R.string.data_last_backup, fmt.format(Date(state.driveLastBackupMs))),
                                     style = MaterialTheme.typography.bodySmall,

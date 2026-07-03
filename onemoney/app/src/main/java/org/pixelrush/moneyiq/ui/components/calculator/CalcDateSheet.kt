@@ -38,17 +38,19 @@ import java.util.*
 
 // ── Date label helpers ────────────────────────────────────────────────────────
 
+@Composable
 fun txDateLabelPublic(date: Long): String = txDateLabel(date)
 
+@Composable
 internal fun txDateLabel(date: Long): String {
-    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale.forLanguageTag("uk"))
+    val fmt  = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
     val cal  = Calendar.getInstance().apply { timeInMillis = date }
     val now  = Calendar.getInstance()
     val yest = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
     val short = fmt.format(Date(date))
     return when {
-        sameDay(cal, now)  -> "Сьогодні, $short"
-        sameDay(cal, yest) -> "Вчора, $short"
+        sameDay(cal, now)  -> "${stringResource(R.string.date_today)}, $short"
+        sameDay(cal, yest) -> "${stringResource(R.string.date_yesterday)}, $short"
         else               -> short
     }
 }
@@ -119,7 +121,7 @@ fun CalcDateSheet(
         Calendar.getInstance().apply { timeInMillis = currentDate },
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
     )
-    val dFmt = SimpleDateFormat("d MMMM", Locale.forLanguageTag("uk"))
+    val dFmt = SimpleDateFormat("d MMMM", Locale.getDefault())
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
