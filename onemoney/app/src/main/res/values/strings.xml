@@ -408,4 +408,8 @@
     <!-- Account picker -->
     <string name="acc_from">З рахунку</string>
     <string name="acc_balance">Баланс: %1$s ₴</string>
+    <!-- Byte size units -->
+    <string name="unit_b">Б</string>
+    <string name="unit_kb">КБ</string>
+    <string name="unit_mb">МБ</string>
 </resources>

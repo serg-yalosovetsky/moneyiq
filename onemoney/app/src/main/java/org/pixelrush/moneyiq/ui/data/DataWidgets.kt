@@ -229,9 +229,9 @@ internal fun DriveBackupItem(
 ) {
     val fmt = remember { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()) }
     val size = when {
-        entry.sizeBytes < 1024        -> "${entry.sizeBytes} Б"
-        entry.sizeBytes < 1024 * 1024 -> "${entry.sizeBytes / 1024} КБ"
-        else -> "${"%.1f".format(entry.sizeBytes / (1024.0 * 1024))} МБ"
+        entry.sizeBytes < 1024        -> "${entry.sizeBytes} ${stringResource(R.string.unit_b)}"
+        entry.sizeBytes < 1024 * 1024 -> "${entry.sizeBytes / 1024} ${stringResource(R.string.unit_kb)}"
+        else -> "${"%.1f".format(entry.sizeBytes / (1024.0 * 1024))} ${stringResource(R.string.unit_mb)}"
     }
     ListItem(
         leadingContent = {
