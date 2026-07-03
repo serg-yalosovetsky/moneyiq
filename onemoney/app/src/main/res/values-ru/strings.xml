@@ -234,7 +234,6 @@
 
     <!-- Navigation drawer -->
     <string name="drawer_sync_off">Синхронизация отключена…</string>
-    <string name="drawer_premium">Премиум-версия</string>
     <string name="drawer_signin">Войти</string>
     <string name="drawer_rate">Оцените нас</string>
     <string name="drawer_support">Поддержка</string>

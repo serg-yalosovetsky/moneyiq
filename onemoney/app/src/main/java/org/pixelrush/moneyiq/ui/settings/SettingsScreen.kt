@@ -134,7 +134,6 @@ private fun MainSettingsContent(
                     title       = stringResource(R.string.settings_theme),
                     subtitle    = themeLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
-                    showCrown   = true,
                     onClick     = onTheme
                 )
             }
@@ -170,7 +169,6 @@ private fun MainSettingsContent(
                     icon      = Icons.Default.Fingerprint,
                     title     = stringResource(R.string.settings_login_protection),
                     subtitle  = if (settings.loginProtectionEnabled) stringResource(R.string.settings_after_30s) else null,
-                    showCrown = true,
                     checked   = settings.loginProtectionEnabled,
                     onToggle  = { vm.setLoginProtection(it) }
                 )
@@ -224,7 +222,6 @@ private fun MainSettingsContent(
                     title     = stringResource(R.string.settings_first_day_month),
                     subtitle  = settings.firstDayOfMonth.toString(),
                     subtitleColor = MaterialTheme.colorScheme.primary,
-                    showCrown = true,
                     onClick   = { showMonthDialog = true }
                 )
             }

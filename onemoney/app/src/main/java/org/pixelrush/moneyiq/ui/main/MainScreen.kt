@@ -414,33 +414,6 @@ private fun AppDrawerContent(
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Spacer(Modifier.height(12.dp))
 
-        // Premium button
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(50))
-                .background(
-                    Brush.horizontalGradient(listOf(Color(0xFFE53935), Color(0xFFFF7043)))
-                )
-                .clickable {}
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.WorkspacePremium, null, tint = Color.White, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    stringResource(R.string.drawer_premium),
-                    color      = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style      = MaterialTheme.typography.bodyLarge
-                )
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
         // Menu items
         DrawerMenuItem(Icons.Outlined.Person,     stringResource(R.string.drawer_signin))
         DrawerMenuItem(Icons.Outlined.Settings,   stringResource(R.string.settings_title), onClick = onSettingsClick)

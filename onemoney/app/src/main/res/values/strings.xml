@@ -239,7 +239,6 @@
 
     <!-- Navigation drawer -->
     <string name="drawer_sync_off">Синхронізацію вимкнено…</string>
-    <string name="drawer_premium">Преміум-версія</string>
     <string name="drawer_signin">Увійти</string>
     <string name="drawer_rate">Оцініть нас</string>
     <string name="drawer_support">Підтримка</string>

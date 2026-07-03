@@ -232,7 +232,6 @@
 
     <!-- Navigation drawer -->
     <string name="drawer_sync_off">Sync disabled…</string>
-    <string name="drawer_premium">Premium version</string>
     <string name="drawer_signin">Sign in</string>
     <string name="drawer_rate">Rate us</string>
     <string name="drawer_support">Support</string>

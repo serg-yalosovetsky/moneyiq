@@ -59,7 +59,6 @@ internal fun ThemePageContent(
                     title     = stringResource(R.string.settings_theme),
                     subtitle  = themeLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
-                    showCrown = true,
                     onClick   = { showThemeModeDialog = true }
                 )
             }
@@ -169,12 +168,11 @@ internal fun SettingsRow(
     title:         String,
     subtitle:      String?       = null,
     subtitleColor: Color         = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-    showCrown:     Boolean       = false,
     onClick:       () -> Unit
 ) {
     ListItem(
         modifier       = Modifier.clickable(onClick = onClick),
-        leadingContent = { SettingsIcon(icon, showCrown) },
+        leadingContent = { SettingsIcon(icon) },
         headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
         supportingContent = subtitle?.let {
             { Text(it, style = MaterialTheme.typography.bodySmall, color = subtitleColor) }
@@ -195,14 +193,13 @@ internal fun SettingsToggleRow(
     title:              String,
     subtitle:           String?   = null,
     subtitleClickable:  Boolean   = false,
-    showCrown:          Boolean   = false,
     checked:            Boolean,
     onToggle:           (Boolean) -> Unit,
     onSubtitleClick:    () -> Unit = {}
 ) {
     ListItem(
         modifier       = Modifier.clickable { onToggle(!checked) },
-        leadingContent = { SettingsIcon(icon, showCrown) },
+        leadingContent = { SettingsIcon(icon) },
         headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
         supportingContent = subtitle?.let {
             {
@@ -222,8 +219,7 @@ internal fun SettingsToggleRow(
 }
 
 @Composable
-internal fun SettingsIcon(icon: ImageVector, showCrown: Boolean = false) {
-    // No premium tier in this build — everything is available, so no crown badge.
+internal fun SettingsIcon(icon: ImageVector) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
