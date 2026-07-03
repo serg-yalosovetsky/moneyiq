@@ -21,10 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.repository.*
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
 import org.syalosovetskyi.onemoney.ui.settings.data.*
@@ -100,23 +103,26 @@ private fun MainSettingsContent(
     val currencyInfo = CURRENCIES_ALL.find { it.code == settings.defaultCurrency }
     val currencyLabel = currencyInfo?.let { "${it.name} — ${it.symbol}" } ?: settings.defaultCurrency
     val formatLabel = CURRENCY_FORMAT_EXAMPLES.getOrNull(settings.currencyFormatIndex) ?: ""
-    val weekLabel   = DAYS_OF_WEEK.find { it.first == settings.firstDayOfWeek }?.second ?: "Понеділок"
+    val weekDays    = stringArrayResource(R.array.week_days)
+    val weekLabel   = weekDays.getOrElse(settings.firstDayOfWeek - 1) { weekDays[1] }
     val themeLabel  = when (settings.themeMode) {
-        ThemeMode.LIGHT  -> "Світла"
-        ThemeMode.DARK   -> "Темна"
-        ThemeMode.SYSTEM -> "Системна"
+        ThemeMode.LIGHT  -> stringResource(R.string.settings_theme_light)
+        ThemeMode.DARK   -> stringResource(R.string.settings_theme_dark)
+        ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
     }
-    val langLabel = LANGUAGES.find { it.first == settings.language }?.second ?: "За замовчуванням"
+    val defaultLangLabel = stringResource(R.string.settings_lang_default)
+    val langLabel = LANGUAGES.find { it.first == settings.language }
+        ?.let { if (it.first == "default") defaultLangLabel else it.second } ?: defaultLangLabel
 
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-        SettingsTopBar(title = "Налаштування", onBack = onBack)
+        SettingsTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
 
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
             // ── Група 1: Мова / Тема ─────────────────────────────────────────
             item {
                 SettingsRow(
                     icon        = Icons.Default.Language,
-                    title       = "Мова",
+                    title       = stringResource(R.string.settings_language),
                     subtitle    = langLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     onClick     = { showLangDialog = true }
@@ -125,7 +131,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon        = Icons.Default.Palette,
-                    title       = "Тема",
+                    title       = stringResource(R.string.settings_theme),
                     subtitle    = themeLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     showCrown   = true,
@@ -135,7 +141,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon    = Icons.Default.Storage,
-                    title   = "Дані",
+                    title   = stringResource(R.string.settings_data),
                     onClick = onData
                 )
             }
@@ -145,8 +151,8 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon      = Icons.Default.Home,
-                    title     = "Головний екран",
-                    subtitle  = settings.homeScreen.label,
+                    title     = stringResource(R.string.settings_home_screen),
+                    subtitle  = stringResource(settings.homeScreen.labelRes),
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     onClick   = { showHomeDialog = true }
                 )
@@ -154,7 +160,7 @@ private fun MainSettingsContent(
             item {
                 SettingsToggleRow(
                     icon    = Icons.Default.PieChart,
-                    title   = "Бюджет",
+                    title   = stringResource(R.string.nav_budget),
                     checked = settings.budgetVisible,
                     onToggle = { vm.setBudgetVisible(it) }
                 )
@@ -162,8 +168,8 @@ private fun MainSettingsContent(
             item {
                 SettingsToggleRow(
                     icon      = Icons.Default.Fingerprint,
-                    title     = "Захист при вході",
-                    subtitle  = if (settings.loginProtectionEnabled) "Через 30 секунд" else null,
+                    title     = stringResource(R.string.settings_login_protection),
+                    subtitle  = if (settings.loginProtectionEnabled) stringResource(R.string.settings_after_30s) else null,
                     showCrown = true,
                     checked   = settings.loginProtectionEnabled,
                     onToggle  = { vm.setLoginProtection(it) }
@@ -172,7 +178,7 @@ private fun MainSettingsContent(
             item {
                 SettingsToggleRow(
                     icon      = Icons.Default.Notifications,
-                    title     = "Сповіщення",
+                    title     = stringResource(R.string.settings_notifications),
                     subtitle  = if (settings.notificationsEnabled)
                         "%02d:%02d".format(settings.notificationHour, settings.notificationMinute)
                         else null,
@@ -188,7 +194,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon      = Icons.Default.AttachMoney,
-                    title     = "Валюта за замовчуванням",
+                    title     = stringResource(R.string.settings_default_currency),
                     subtitle  = currencyLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     onClick   = onCurrency
@@ -197,7 +203,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon      = Icons.Default.FormatListNumbered,
-                    title     = "Формат валюти",
+                    title     = stringResource(R.string.settings_currency_format),
                     subtitle  = formatLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     onClick   = { showFormatDialog = true }
@@ -206,7 +212,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon      = Icons.Default.CalendarToday,
-                    title     = "Перший день тижня",
+                    title     = stringResource(R.string.settings_first_day_week),
                     subtitle  = weekLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     onClick   = { showWeekDialog = true }
@@ -215,7 +221,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon      = Icons.Default.Event,
-                    title     = "Перший день місяця",
+                    title     = stringResource(R.string.settings_first_day_month),
                     subtitle  = settings.firstDayOfMonth.toString(),
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     showCrown = true,
@@ -228,7 +234,7 @@ private fun MainSettingsContent(
             item {
                 SettingsRow(
                     icon     = Icons.Default.Info,
-                    title    = "Про додаток",
+                    title    = stringResource(R.string.settings_about),
                     onClick  = onAbout
                 )
             }
@@ -239,9 +245,9 @@ private fun MainSettingsContent(
 
     if (showLangDialog) {
         RadioListDialog(
-            title   = "Мова",
+            title   = stringResource(R.string.settings_language),
             icon    = Icons.Default.Language,
-            options = LANGUAGES.map { it.second },
+            options = LANGUAGES.map { if (it.first == "default") defaultLangLabel else it.second },
             selected = LANGUAGES.indexOfFirst { it.first == settings.language }.coerceAtLeast(0),
             onSelect = { idx ->
                 val tag = LANGUAGES[idx].first
@@ -256,9 +262,9 @@ private fun MainSettingsContent(
 
     if (showHomeDialog) {
         RadioListDialog(
-            title    = "Головний екран",
+            title    = stringResource(R.string.settings_home_screen),
             icon     = Icons.Default.Home,
-            options  = HomeScreenTab.entries.map { it.label },
+            options  = HomeScreenTab.entries.map { stringResource(it.labelRes) },
             selected = settings.homeScreen.index,
             onSelect = { idx -> vm.setHomeScreen(HomeScreenTab.fromIndex(idx)); showHomeDialog = false },
             onDismiss = { showHomeDialog = false }
@@ -267,7 +273,7 @@ private fun MainSettingsContent(
 
     if (showFormatDialog) {
         RadioListDialog(
-            title    = "Формат валюти",
+            title    = stringResource(R.string.settings_currency_format),
             icon     = Icons.Default.FormatListNumbered,
             options  = CURRENCY_FORMAT_EXAMPLES.map { it.replace("UAH", currencyInfo?.symbol ?: "₴") },
             selected = settings.currencyFormatIndex,
@@ -278,18 +284,18 @@ private fun MainSettingsContent(
 
     if (showWeekDialog) {
         RadioListDialog(
-            title    = "Перший день тижня",
+            title    = stringResource(R.string.settings_first_day_week),
             icon     = Icons.Default.CalendarToday,
-            options  = DAYS_OF_WEEK.map { it.second },
-            selected = DAYS_OF_WEEK.indexOfFirst { it.first == settings.firstDayOfWeek }.coerceAtLeast(0),
-            onSelect = { idx -> vm.setFirstDayOfWeek(DAYS_OF_WEEK[idx].first); showWeekDialog = false },
+            options  = weekDays.toList(),
+            selected = (settings.firstDayOfWeek - 1).coerceIn(0, 6),
+            onSelect = { idx -> vm.setFirstDayOfWeek(idx + 1); showWeekDialog = false },
             onDismiss = { showWeekDialog = false }
         )
     }
 
     if (showMonthDialog) {
         RadioListDialog(
-            title    = "Перший день місяця",
+            title    = stringResource(R.string.settings_first_day_month),
             icon     = Icons.Default.Event,
             options  = (1..31).map { it.toString() },
             selected = (settings.firstDayOfMonth - 1).coerceIn(0, 30),

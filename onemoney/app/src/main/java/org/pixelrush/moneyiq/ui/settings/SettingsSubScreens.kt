@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,20 +43,20 @@ internal fun ThemePageContent(
     onBack:   () -> Unit
 ) {
     val themeLabel = when (settings.themeMode) {
-        ThemeMode.LIGHT  -> "Світла"
-        ThemeMode.DARK   -> "Темна"
-        ThemeMode.SYSTEM -> "Системна"
+        ThemeMode.LIGHT  -> stringResource(R.string.settings_theme_light)
+        ThemeMode.DARK   -> stringResource(R.string.settings_theme_dark)
+        ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
     }
     var showThemeModeDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-        SettingsTopBar(title = "Тема", onBack = onBack)
+        SettingsTopBar(title = stringResource(R.string.settings_theme), onBack = onBack)
 
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
             item {
                 SettingsRow(
                     icon      = Icons.Default.Brightness6,
-                    title     = "Тема",
+                    title     = stringResource(R.string.settings_theme),
                     subtitle  = themeLabel,
                     subtitleColor = MaterialTheme.colorScheme.primary,
                     showCrown = true,
@@ -65,7 +66,7 @@ internal fun ThemePageContent(
             item {
                 SettingsToggleRow(
                     icon    = Icons.Default.DarkMode,
-                    title   = "Темна тема",
+                    title   = stringResource(R.string.settings_dark_theme),
                     checked = settings.themeMode == ThemeMode.DARK,
                     onToggle = { dark ->
                         vm.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
@@ -76,7 +77,7 @@ internal fun ThemePageContent(
 
             item {
                 Text(
-                    "Колір",
+                    stringResource(R.string.cat_color),
                     modifier  = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp),
                     style     = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
@@ -94,9 +95,13 @@ internal fun ThemePageContent(
 
     if (showThemeModeDialog) {
         RadioListDialog(
-            title    = "Тема",
+            title    = stringResource(R.string.settings_theme),
             icon     = Icons.Default.Brightness6,
-            options  = listOf("Системна", "Світла", "Темна"),
+            options  = listOf(
+                stringResource(R.string.settings_theme_system),
+                stringResource(R.string.settings_theme_light),
+                stringResource(R.string.settings_theme_dark)
+            ),
             selected = when (settings.themeMode) { ThemeMode.SYSTEM -> 0; ThemeMode.LIGHT -> 1; ThemeMode.DARK -> 2 },
             onSelect = { idx ->
                 vm.setThemeMode(when (idx) { 1 -> ThemeMode.LIGHT; 2 -> ThemeMode.DARK; else -> ThemeMode.SYSTEM })
@@ -148,7 +153,7 @@ internal fun SettingsTopBar(title: String, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
         }
         Text(
             title,
@@ -300,7 +305,7 @@ internal fun RadioListDialog(
 @Composable
 internal fun AboutPageContent(onBack: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-        SettingsTopBar(title = "Про додаток", onBack = onBack)
+        SettingsTopBar(title = stringResource(R.string.settings_about), onBack = onBack)
 
         Column(
             modifier            = Modifier
@@ -337,7 +342,7 @@ internal fun AboutPageContent(onBack: () -> Unit) {
             Spacer(Modifier.height(6.dp))
 
             Text(
-                "Версія ${BuildConfig.VERSION_NAME}",
+                stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -349,7 +354,7 @@ internal fun AboutPageContent(onBack: () -> Unit) {
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "Персональний фінансовий менеджер.\nВідстежуйте витрати, доходи та бюджет.",
+                stringResource(R.string.settings_about_desc),
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -387,13 +392,13 @@ internal fun TimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title   = { Text("Час сповіщення") },
+        title   = { Text(stringResource(R.string.settings_notif_time)) },
         text    = { TimePicker(state = state) },
         confirmButton = {
             TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Скасувати") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

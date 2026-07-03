@@ -141,10 +141,10 @@ fun MainScreen(
     }
 
     // Жест «назад» — повертаємося на головну вкладку (налаштовується), звідти — виходимо з додатку
-    val homeTabIndex   = activeTabs.indexOfFirst { it.label == settings.homeScreen.label }
+    val homeTabIndex   = activeTabs.indexOfFirst { it.titleRes == settings.homeScreen.labelRes }
         .takeIf { it >= 0 } ?: 0
-    val txTabIndex     = activeTabs.indexOfFirst { it.label == "Операції" }.takeIf { it >= 0 } ?: 2
-    val budgetTabIndex = activeTabs.indexOfFirst { it.label == "Бюджет"   }.takeIf { it >= 0 } ?: -1
+    val txTabIndex     = activeTabs.indexOfFirst { it.titleRes == R.string.nav_operations }.takeIf { it >= 0 } ?: 2
+    val budgetTabIndex = activeTabs.indexOfFirst { it.titleRes == R.string.nav_budget }.takeIf { it >= 0 } ?: -1
     val goBack: () -> Unit = {
         if (currentPage != homeTabIndex) scope.launch { pagerState.animateScrollToPage(homeTabIndex) }
     }

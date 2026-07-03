@@ -202,4 +202,38 @@
     <string name="period_pick_range">Вибрати діапазон</string>
     <string name="date_today">Сьогодні</string>
     <string name="date_yesterday">Вчора</string>
+
+    <!-- Day names (for first-day-of-week), Sunday-first to match day index 1..7 -->
+    <string-array name="week_days">
+        <item>Неділя</item>
+        <item>Понеділок</item>
+        <item>Вівторок</item>
+        <item>Середа</item>
+        <item>Четвер</item>
+        <item>П\'ятниця</item>
+        <item>Субота</item>
+    </string-array>
+
+    <!-- Settings -->
+    <string name="settings_title">Налаштування</string>
+    <string name="settings_language">Мова</string>
+    <string name="settings_lang_default">За замовчуванням</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_light">Світла</string>
+    <string name="settings_theme_dark">Темна</string>
+    <string name="settings_theme_system">Системна</string>
+    <string name="settings_dark_theme">Темна тема</string>
+    <string name="settings_data">Дані</string>
+    <string name="settings_home_screen">Головний екран</string>
+    <string name="settings_login_protection">Захист при вході</string>
+    <string name="settings_after_30s">Через 30 секунд</string>
+    <string name="settings_notifications">Сповіщення</string>
+    <string name="settings_default_currency">Валюта за замовчуванням</string>
+    <string name="settings_currency_format">Формат валюти</string>
+    <string name="settings_first_day_week">Перший день тижня</string>
+    <string name="settings_first_day_month">Перший день місяця</string>
+    <string name="settings_about">Про додаток</string>
+    <string name="settings_version">Версія %1$s</string>
+    <string name="settings_about_desc">Персональний фінансовий менеджер.\nВідстежуйте витрати, доходи та бюджет.</string>
+    <string name="settings_notif_time">Час сповіщення</string>
 </resources>

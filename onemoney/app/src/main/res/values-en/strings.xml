@@ -195,4 +195,38 @@
     <string name="period_pick_range">Select range</string>
     <string name="date_today">Today</string>
     <string name="date_yesterday">Yesterday</string>
+
+    <!-- Day names (for first-day-of-week), Sunday-first to match day index 1..7 -->
+    <string-array name="week_days">
+        <item>Sunday</item>
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+    </string-array>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_lang_default">Default</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_home_screen">Home screen</string>
+    <string name="settings_login_protection">Login protection</string>
+    <string name="settings_after_30s">After 30 seconds</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_default_currency">Default currency</string>
+    <string name="settings_currency_format">Currency format</string>
+    <string name="settings_first_day_week">First day of week</string>
+    <string name="settings_first_day_month">First day of month</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_about_desc">Personal finance manager.\nTrack expenses, income and budget.</string>
+    <string name="settings_notif_time">Notification time</string>
 </resources>

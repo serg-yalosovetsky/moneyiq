@@ -9,17 +9,18 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 import org.syalosovetskyi.onemoney.BuildConfig
+import org.syalosovetskyi.onemoney.R
 
 private val Context.settingsDataStore by preferencesDataStore(name = "app_settings")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-enum class HomeScreenTab(val index: Int, val label: String) {
-    ACCOUNTS(0, "Рахунки"),
-    CATEGORIES(1, "Категорії"),
-    TRANSACTIONS(2, "Операції"),
-    BUDGET(3, "Бюджет"),
-    OVERVIEW(4, "Огляд");
+enum class HomeScreenTab(val index: Int, val labelRes: Int) {
+    ACCOUNTS(0, R.string.nav_accounts),
+    CATEGORIES(1, R.string.nav_categories),
+    TRANSACTIONS(2, R.string.nav_operations),
+    BUDGET(3, R.string.nav_budget),
+    OVERVIEW(4, R.string.nav_overview);
 
     companion object {
         fun fromIndex(index: Int) = entries.find { it.index == index } ?: CATEGORIES

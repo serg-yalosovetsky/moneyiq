@@ -197,4 +197,38 @@
     <string name="period_pick_range">Выбрать диапазон</string>
     <string name="date_today">Сегодня</string>
     <string name="date_yesterday">Вчера</string>
+
+    <!-- Day names (for first-day-of-week), Sunday-first to match day index 1..7 -->
+    <string-array name="week_days">
+        <item>Воскресенье</item>
+        <item>Понедельник</item>
+        <item>Вторник</item>
+        <item>Среда</item>
+        <item>Четверг</item>
+        <item>Пятница</item>
+        <item>Суббота</item>
+    </string-array>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_lang_default">По умолчанию</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="settings_dark_theme">Тёмная тема</string>
+    <string name="settings_data">Данные</string>
+    <string name="settings_home_screen">Главный экран</string>
+    <string name="settings_login_protection">Защита при входе</string>
+    <string name="settings_after_30s">Через 30 секунд</string>
+    <string name="settings_notifications">Уведомления</string>
+    <string name="settings_default_currency">Валюта по умолчанию</string>
+    <string name="settings_currency_format">Формат валюты</string>
+    <string name="settings_first_day_week">Первый день недели</string>
+    <string name="settings_first_day_month">Первый день месяца</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_version">Версия %1$s</string>
+    <string name="settings_about_desc">Персональный финансовый менеджер.\nОтслеживайте расходы, доходы и бюджет.</string>
+    <string name="settings_notif_time">Время уведомления</string>
 </resources>
