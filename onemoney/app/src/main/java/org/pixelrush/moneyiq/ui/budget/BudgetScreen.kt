@@ -72,13 +72,6 @@ fun BudgetScreen(
                 onSwipeRight = viewModel::prevMonth
             )
     ) {
-        if (!embeddedMode) {
-            BudgetTopBar(
-                totalBalance    = state.totalBalance,
-                onSettingsClick = { showSettingsSheet = true }
-            )
-        }
-
         SharedMonthNavPill(
             appMonth       = state.appMonth,
             daysInPeriod   = state.daysInMonth,
@@ -176,68 +169,6 @@ fun BudgetScreen(
             onDeleteBudget      = { viewModel.clearAllBudgets(); showSettingsSheet = false; onSettingsDismiss() },
             onDismiss           = { showSettingsSheet = false; onSettingsDismiss() }
         )
-    }
-}
-
-// ── Шапка ────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun BudgetTopBar(totalBalance: Double, onSettingsClick: () -> Unit = {}) {
-    val dimens = OneMoneyTheme.dimens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = Spacing.sm, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(dimens.topBarAvatarSize)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Outlined.Person, null,
-                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(dimens.topBarAvatarIconSize)
-            )
-        }
-
-        Spacer(Modifier.width(Spacing.md))
-
-        Column(
-            modifier            = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Всі рахунки",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
-            Text(
-                formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface,
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
-            )
-        }
-
-        Spacer(Modifier.width(Spacing.md))
-
-        IconButton(
-            onClick  = onSettingsClick,
-            modifier = Modifier.size(dimens.topBarAvatarSize).clip(CircleShape)
-        ) {
-            Icon(
-                Icons.Outlined.Speed, "Настройки бюджета",
-                tint     = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(dimens.topBarAvatarIconSize)
-            )
-        }
     }
 }
 

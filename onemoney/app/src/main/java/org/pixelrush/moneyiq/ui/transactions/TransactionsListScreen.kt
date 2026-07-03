@@ -153,14 +153,6 @@ fun TransactionsListScreen(
                 .fillMaxSize()
                 .padding(top = if (embeddedMode) 0.dp else padding.calculateTopPadding())
         ) {
-            // Шапка
-            if (!embeddedMode) {
-                TxTopBar(
-                    totalBalance  = state.closingBalance,
-                    onSearchClick = { showFilterSheet = true }
-                )
-            }
-
             // Пілюля-навігатор місяця
             SharedMonthNavPill(
                 appMonth       = state.appMonth,
@@ -310,47 +302,6 @@ fun TransactionsListScreen(
                 selectedDetailTx = null
             }
         )
-    }
-}
-
-// ── Шапка ────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TxTopBar(totalBalance: Double, onSearchClick: () -> Unit) {
-    val dimens = OneMoneyTheme.dimens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = Spacing.sm, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(dimens.topBarAvatarSize)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(dimens.topBarAvatarIconSize))
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Всі рахунки",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-            Text(
-                "${formatMoney(totalBalance)} ₴",
-                style      = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface,
-                maxLines   = 1, overflow = TextOverflow.Ellipsis
-            )
-        }
-        Spacer(Modifier.width(Spacing.md))
-        IconButton(onClick = onSearchClick, modifier = Modifier.size(dimens.topBarAvatarSize).clip(CircleShape)) {
-            Icon(Icons.Default.Search, "Пошук", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(dimens.topBarAvatarIconSize))
-        }
     }
 }
 

@@ -100,10 +100,6 @@ fun OverviewScreen(
                 onSwipeRight = viewModel::prevMonth
             )
     ) {
-        if (!embeddedMode) {
-            OverviewTopBar(totalBalance = state.totalBalance)
-        }
-
         SharedMonthNavPill(
             appMonth       = state.appMonth,
             daysInPeriod   = state.daysInMonth,
@@ -183,53 +179,6 @@ fun OverviewScreen(
                 )
             }
         }
-    }
-}
-
-// ── Top bar ───────────────────────────────────────────────────────────────────
-
-@Composable
-private fun OverviewTopBar(totalBalance: Double) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Avatar circle
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.Person, null,
-                modifier = Modifier.size(22.dp),
-                tint     = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Center: "Всі рахунки" + balance
-        Column(
-            modifier              = Modifier.weight(1f),
-            horizontalAlignment   = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Всі рахунки",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-            )
-            Text(
-                formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        // Right placeholder (keeps centre column centred)
-        Spacer(Modifier.size(36.dp))
     }
 }
 

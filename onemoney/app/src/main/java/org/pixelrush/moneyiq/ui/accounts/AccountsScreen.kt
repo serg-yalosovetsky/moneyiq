@@ -74,13 +74,6 @@ fun AccountsScreen(
                 onSwipeRight = { selectedSubTab = 0 }
             )
     ) {
-        if (!embeddedMode) {
-            AccountsTopBar(
-                totalBalance = state.totalBalance,
-                onAddClick   = onRequestAdd
-            )
-        }
-
         TabRow(
             selectedTabIndex = selectedSubTab,
             containerColor   = MaterialTheme.colorScheme.surface,
@@ -186,62 +179,6 @@ fun AccountsScreen(
             },
             onDismiss = { adjustAccount = null }
         )
-    }
-}
-
-// ── Top bar (non-embedded) ────────────────────────────────────────────────────
-
-@Composable
-private fun AccountsTopBar(
-    totalBalance: Double,
-    onAddClick:   () -> Unit
-) {
-    val dimens = OneMoneyTheme.dimens
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = Spacing.sm, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier         = Modifier
-                .size(dimens.topBarAvatarSize)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Outlined.Person, null,
-                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(dimens.topBarAvatarIconSize)
-            )
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Column(
-            modifier            = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Всі рахунки",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
-            Text(
-                formatMoney(totalBalance),
-                style      = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        Spacer(Modifier.width(Spacing.md))
-        IconButton(onClick = onAddClick, modifier = Modifier.size(dimens.topBarAvatarSize)) {
-            Icon(
-                Icons.Default.Add, "Додати рахунок",
-                tint     = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(dimens.standardIconSize)
-            )
-        }
     }
 }
 
