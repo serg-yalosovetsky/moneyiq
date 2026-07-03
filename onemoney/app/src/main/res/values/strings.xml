@@ -2,11 +2,14 @@
 <resources>
     <string name="app_name">onemoney</string>
 
-    <!-- Navigation -->
-    <string name="nav_home">Главная</string>
-    <string name="nav_accounts">Счета</string>
-    <string name="nav_reports">Отчёты</string>
-    <string name="nav_categories">Категории</string>
+    <!-- Navigation (default = Ukrainian, the app's primary language) -->
+    <string name="nav_home">Головна</string>
+    <string name="nav_accounts">Рахунки</string>
+    <string name="nav_reports">Звіти</string>
+    <string name="nav_categories">Категорії</string>
+    <string name="nav_operations">Операції</string>
+    <string name="nav_budget">Бюджет</string>
+    <string name="nav_overview">Огляд</string>
 
     <!-- Transactions -->
     <string name="add_transaction">Добавить транзакцию</string>

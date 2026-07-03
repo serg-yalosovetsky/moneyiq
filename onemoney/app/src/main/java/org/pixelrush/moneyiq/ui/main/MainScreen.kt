@@ -1,6 +1,8 @@
 ﻿package org.syalosovetskyi.onemoney.ui.main
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.res.stringResource
+import org.syalosovetskyi.onemoney.R
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,18 +65,19 @@ import java.util.*
 // ── Bottom tab definition ─────────────────────────────────────────────────────
 
 private data class BottomTab(
-    val label: String,
+    val label: String,        // stable identity key (do NOT localize — used for lookups)
+    val titleRes: Int,        // localized display label
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )
 
 // Порядок вкладок — як в оригіналі 1Money
 private val TABS = listOf(
-    BottomTab("Рахунки",   Icons.Filled.AccountBalanceWallet,      Icons.Outlined.AccountBalanceWallet),
-    BottomTab("Категорії", Icons.Filled.DonutLarge,                Icons.Outlined.DonutLarge),
-    BottomTab("Операції",  Icons.AutoMirrored.Filled.ReceiptLong,  Icons.AutoMirrored.Outlined.ReceiptLong),
-    BottomTab("Бюджет",    Icons.Filled.Speed,                     Icons.Outlined.Speed),
-    BottomTab("Огляд",     Icons.AutoMirrored.Filled.TrendingUp,   Icons.AutoMirrored.Filled.TrendingUp),
+    BottomTab("Рахунки",   R.string.nav_accounts,   Icons.Filled.AccountBalanceWallet,      Icons.Outlined.AccountBalanceWallet),
+    BottomTab("Категорії", R.string.nav_categories, Icons.Filled.DonutLarge,                Icons.Outlined.DonutLarge),
+    BottomTab("Операції",  R.string.nav_operations, Icons.AutoMirrored.Filled.ReceiptLong,  Icons.AutoMirrored.Outlined.ReceiptLong),
+    BottomTab("Бюджет",    R.string.nav_budget,     Icons.Filled.Speed,                     Icons.Outlined.Speed),
+    BottomTab("Огляд",     R.string.nav_overview,   Icons.AutoMirrored.Filled.TrendingUp,   Icons.AutoMirrored.Filled.TrendingUp),
 )
 
 // ── Main container ────────────────────────────────────────────────────────────
@@ -174,12 +177,12 @@ fun MainScreen(
                         icon = {
                             Icon(
                                 if (currentPage == index) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.label
+                                contentDescription = stringResource(tab.titleRes)
                             )
                         },
                         label  = {
                             Text(
-                                tab.label, maxLines = 1,
+                                stringResource(tab.titleRes), maxLines = 1,
                                 fontSize   = 10.sp,
                                 fontWeight = if (currentPage == index) FontWeight.Medium else FontWeight.Light,
                                 letterSpacing = 0.sp

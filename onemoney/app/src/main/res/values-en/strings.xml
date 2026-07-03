@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation -->
+    <string name="nav_accounts">Accounts</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_operations">Operations</string>
+    <string name="nav_budget">Budget</string>
+    <string name="nav_overview">Overview</string>
+</resources>
