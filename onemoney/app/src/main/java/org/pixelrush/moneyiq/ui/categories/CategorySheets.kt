@@ -27,6 +27,9 @@ import androidx.compose.ui.graphics.luminance
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import org.syalosovetskyi.onemoney.R
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,13 +54,6 @@ private val FallbackIconColor:     Color = Color(0xFF757575)
 private val CategoryDisplayColor:  Color = Color(0xFF37474F)
 
 // ── Category Action Sheet ─────────────────────────────────────────────────────
-
-private fun txCountLabel(n: Int): String = when {
-    n % 100 in 11..19 -> "$n операцій"
-    n % 10 == 1        -> "$n операція"
-    n % 10 in 2..4     -> "$n операції"
-    else               -> "$n операцій"
-}
 
 @Composable
 fun CategoryActionSheet(
@@ -123,7 +119,7 @@ fun CategoryActionSheet(
                     Spacer(Modifier.height(Spacing.sm))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            txCountLabel(txCount),
+                            pluralStringResource(R.plurals.cat_operations_count, txCount, txCount),
                             color = onCatColor.copy(alpha = 0.85f),
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -192,9 +188,9 @@ fun CategoryActionSheet(
                         ),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    CatActionButton(Icons.Default.Edit,     "Редагувати", catColor, onEdit,       Modifier.weight(1f))
-                    CatActionButton(Icons.Outlined.Speed,   "Бюджет",     catColor, onBudget,     Modifier.weight(1f))
-                    CatActionButton(Icons.Outlined.Receipt, "Операції",   catColor, onOperations, Modifier.weight(1f))
+                    CatActionButton(Icons.Default.Edit,     stringResource(R.string.common_edit), catColor, onEdit,       Modifier.weight(1f))
+                    CatActionButton(Icons.Outlined.Speed,   stringResource(R.string.cat_budget),     catColor, onBudget,     Modifier.weight(1f))
+                    CatActionButton(Icons.Outlined.Receipt, stringResource(R.string.nav_operations),   catColor, onOperations, Modifier.weight(1f))
                 }
                 } // Column wrapper
 
@@ -362,7 +358,7 @@ fun QuickExpenseSheet(
                         ) {
                             Column(modifier = Modifier.align(Alignment.BottomStart)) {
                                 Text(
-                                    if (isIncome) "На рахунок" else "З рахунку",
+                                    if (isIncome) stringResource(R.string.tx_to_account) else stringResource(R.string.tx_from_account),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(0.5f)
                                 )
@@ -386,7 +382,7 @@ fun QuickExpenseSheet(
                         ) {
                             Column(modifier = Modifier.align(Alignment.BottomStart)) {
                                 Text(
-                                    if (isIncome) "З категорії" else "До категорії",
+                                    if (isIncome) stringResource(R.string.cat_from_category) else stringResource(R.string.tx_to_category),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = onCatColor.copy(0.7f)
                                 )
@@ -446,7 +442,7 @@ fun QuickExpenseSheet(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    if (isIncome) "Дохід" else "Витрата",
+                    if (isIncome) stringResource(R.string.tx_income) else stringResource(R.string.tx_expense),
                     style = MaterialTheme.typography.labelMedium,
                     color = amountDisplayColor
                 )
@@ -466,7 +462,7 @@ fun QuickExpenseSheet(
                 onValueChange = { note = it },
                 placeholder   = {
                     Text(
-                        "Нотатки...",
+                        stringResource(R.string.tx_notes_hint),
                         style     = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                         textAlign = TextAlign.Center,
                         color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
@@ -517,7 +513,7 @@ fun QuickExpenseSheet(
     if (showCurrencyPicker) {
         CurrencyBottomSheet(
             selected  = selectedCurrency,
-            title     = "Валюта транзакції",
+            title     = stringResource(R.string.tx_currency_title),
             onSelect  = { selectedCurrency = it; showCurrencyPicker = false },
             onDismiss = { showCurrencyPicker = false }
         )
@@ -579,7 +575,7 @@ fun QuickExpenseSheet(
         AccountPickerSheet(
             accounts       = accounts,
             selectedId     = selectedAccount?.id,
-            label          = "З рахунку",
+            label          = stringResource(R.string.tx_from_account),
             onSelect       = { acc -> selectedAccount = acc; showAccSheet = false },
             onDismiss      = { showAccSheet = false }
         )
@@ -607,14 +603,16 @@ private fun QuickCategoryPickerSheet(
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Text(
-            "Категорія",
+            stringResource(R.string.tx_category),
             style      = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
+        val expensesLabel = stringResource(R.string.common_expenses)
+        val incomesLabel  = stringResource(R.string.common_incomes)
         LazyColumn(modifier = Modifier.fillMaxWidth()) {
-            quickCatSection("Витрати", expCats, selectedCategoryId, onSelect)
-            quickCatSection("Доходи",  incCats, selectedCategoryId, onSelect)
+            quickCatSection(expensesLabel, expCats, selectedCategoryId, onSelect)
+            quickCatSection(incomesLabel,  incCats, selectedCategoryId, onSelect)
             item { Spacer(Modifier.height(32.dp)) }
         }
     }

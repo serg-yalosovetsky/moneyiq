@@ -107,4 +107,39 @@
     <string name="tx_dest_account_error">Выберите счёт назначения</string>
     <string name="tx_save_error">Ошибка сохранения</string>
     <string name="tx_delete_error">Ошибка удаления</string>
+
+    <!-- Categories -->
+    <string name="common_back">Назад</string>
+    <string name="cat_from_category">Из категории</string>
+    <string name="cat_edit_categories">Редактировать категории</string>
+    <string name="cat_edit_subcategories">Редактировать субкатегории</string>
+    <string name="cat_subcategories">Подкатегории</string>
+    <string name="cat_subcategories_tab">Субкатегории</string>
+    <string name="cat_subcategory">Субкатегория</string>
+    <string name="cat_new">Новая категория</string>
+    <string name="cat_new_sub">Новая субкатегория</string>
+    <string name="cat_settings">Настройки</string>
+    <string name="cat_currency">Валюта категории</string>
+    <string name="cat_budget">Бюджет</string>
+    <string name="cat_month">месяц</string>
+    <string name="cat_week">неделя</string>
+    <string name="cat_no_limit">Без лимита</string>
+    <string name="cat_detach">Убрать из подкатегорий</string>
+    <string name="cat_add_sub">Добавить подкатегорию</string>
+    <string name="cat_archived">Архивная категория</string>
+    <string name="cat_delete">Удалить категорию</string>
+    <string name="cat_delete_title">Удалить категорию?</string>
+    <string name="cat_delete_message">Транзакции останутся, но без категории.</string>
+    <string name="cat_name_hint">Введите название</string>
+    <string name="cat_icon_title">Значок категории</string>
+    <string name="cat_icon">Значок</string>
+    <string name="cat_color">Цвет</string>
+    <string name="cat_empty">Нет категорий</string>
+    <string name="cat_empty_hint">Нажмите + чтобы добавить</string>
+    <plurals name="cat_operations_count">
+        <item quantity="one">%d операция</item>
+        <item quantity="few">%d операции</item>
+        <item quantity="many">%d операций</item>
+        <item quantity="other">%d операций</item>
+    </plurals>
 </resources>

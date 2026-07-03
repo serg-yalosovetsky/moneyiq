@@ -41,6 +41,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import org.syalosovetskyi.onemoney.R
 import androidx.activity.compose.BackHandler
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
@@ -134,10 +136,10 @@ fun CategoryFormSheet(
                 TopAppBar(
                     title = {
                         Text(when {
-                            existing == null && forParentId != null -> "Нова субкатегорія"
-                            existing == null                         -> "Нова категорія"
-                            existing.parentId != null                -> "Субкатегорія"
-                            else                                     -> "Категорія"
+                            existing == null && forParentId != null -> stringResource(R.string.cat_new_sub)
+                            existing == null                         -> stringResource(R.string.cat_new)
+                            existing.parentId != null                -> stringResource(R.string.cat_subcategory)
+                            else                                     -> stringResource(R.string.tx_category)
                         })
                     },
                     navigationIcon = {
@@ -149,7 +151,7 @@ fun CategoryFormSheet(
                                 onDismiss()
                             }
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_back))
                         }
                     },
                     actions = {
@@ -157,7 +159,7 @@ fun CategoryFormSheet(
                             onClick  = ::doSave,
                             enabled  = name.isNotBlank()
                         ) {
-                            Text("Зберегти", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_save), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 )
@@ -185,7 +187,7 @@ fun CategoryFormSheet(
                 item {
                     Spacer(Modifier.height(Spacing.md))
                     Text(
-                        "Налаштування",
+                        stringResource(R.string.cat_settings),
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                         style      = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -201,10 +203,10 @@ fun CategoryFormSheet(
                                 tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                                 modifier = Modifier.size(22.dp))
                         },
-                        headlineContent = { Text("Тип") },
+                        headlineContent = { Text(stringResource(R.string.acc_field_type)) },
                         trailingContent = {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(TransactionType.EXPENSE to "Витрати", TransactionType.INCOME to "Доходи")
+                                listOf(TransactionType.EXPENSE to stringResource(R.string.common_expenses), TransactionType.INCOME to stringResource(R.string.common_incomes))
                                     .forEach { (t, label) ->
                                         FilterChip(
                                             selected = type == t,
@@ -229,7 +231,7 @@ fun CategoryFormSheet(
                                 tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                                 modifier = Modifier.size(22.dp))
                         },
-                        headlineContent  = { Text("Валюта категорії") },
+                        headlineContent  = { Text(stringResource(R.string.cat_currency)) },
                         supportingContent = {
                             Text(
                                 currencyLabel,
@@ -250,11 +252,11 @@ fun CategoryFormSheet(
                                 tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                                 modifier = Modifier.size(22.dp))
                         },
-                        headlineContent  = { Text("Бюджет") },
+                        headlineContent  = { Text(stringResource(R.string.cat_budget)) },
                         supportingContent = {
                             Text(
-                                if (budgetNum > 0.0) "$budget ₴ / ${if (period == "MONTHLY") "місяць" else "тиждень"}"
-                                else "Без ліміту",
+                                if (budgetNum > 0.0) "$budget ₴ / ${if (period == "MONTHLY") stringResource(R.string.cat_month) else stringResource(R.string.cat_week)}"
+                                else stringResource(R.string.cat_no_limit),
                                 color = if (budgetNum > 0.0) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                             )
@@ -269,7 +271,7 @@ fun CategoryFormSheet(
                     item {
                         Spacer(Modifier.height(Spacing.sm))
                         Text(
-                            "Підкатегорії",
+                            stringResource(R.string.cat_subcategories),
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                             style      = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
@@ -302,7 +304,7 @@ fun CategoryFormSheet(
                                 IconButton(onClick = { onDetachSubcategory(child) }) {
                                     Icon(
                                         Icons.Outlined.LinkOff,
-                                        contentDescription = "Прибрати з підкатегорій",
+                                        contentDescription = stringResource(R.string.cat_detach),
                                         tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                                         modifier = Modifier.size(22.dp)
                                     )
@@ -321,7 +323,7 @@ fun CategoryFormSheet(
                                         modifier = Modifier.size(22.dp))
                                 },
                                 headlineContent = {
-                                    Text("Додати підкатегорію",
+                                    Text(stringResource(R.string.cat_add_sub),
                                         color = MaterialTheme.colorScheme.primary)
                                 },
                                 modifier = Modifier.clickable { onAddSubcategory() }
@@ -339,7 +341,7 @@ fun CategoryFormSheet(
                                 tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                                 modifier = Modifier.size(22.dp))
                         },
-                        headlineContent  = { Text("Архівна категорія") },
+                        headlineContent  = { Text(stringResource(R.string.cat_archived)) },
                         trailingContent  = {
                             Switch(checked = archived, onCheckedChange = { archived = it })
                         },
@@ -358,7 +360,7 @@ fun CategoryFormSheet(
                                     modifier = Modifier.size(22.dp))
                             },
                             headlineContent = {
-                                Text("Видалити категорію",
+                                Text(stringResource(R.string.cat_delete),
                                     color = MaterialTheme.colorScheme.error)
                             },
                             modifier = Modifier.clickable { showDeleteConfirm = true }
@@ -409,7 +411,7 @@ private fun CategoryFormHeader(
     ) {
         Column(modifier = Modifier.padding(end = 76.dp)) {
             Text(
-                "Назва",
+                stringResource(R.string.acc_name_hint),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
@@ -433,7 +435,7 @@ private fun CategoryFormHeader(
                     Box {
                         if (name.isBlank()) {
                             Text(
-                                "Введіть назву",
+                                stringResource(R.string.cat_name_hint),
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                             )
@@ -495,8 +497,8 @@ private fun CategoryFormDialogs(
 
     if (showDeleteConfirm) {
         ConfirmationDialog(
-            title     = "Видалити категорію?",
-            message   = "Транзакції залишаться, але без категорії.",
+            title     = stringResource(R.string.cat_delete_title),
+            message   = stringResource(R.string.cat_delete_message),
             onConfirm = onDeleteConfirm,
             onDismiss = onDeleteDismiss
         )
@@ -505,7 +507,7 @@ private fun CategoryFormDialogs(
     if (showBudgetCalc) {
         AmountCalculatorSheet(
             initial   = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
-            title     = "Бюджет",
+            title     = stringResource(R.string.cat_budget),
             onResult  = onBudgetResult,
             onDismiss = onBudgetDismiss
         )
@@ -517,7 +519,7 @@ private fun CategoryFormDialogs(
             properties       = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             CurrencyPageContent(
-                title    = "Валюта категорії",
+                title    = stringResource(R.string.cat_currency),
                 selected = currencyCode,
                 onSelect = onCurrencySelect,
                 onClose  = onCurrencyDismiss
@@ -557,10 +559,10 @@ internal fun ColorIconPickerSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Закрити", modifier = Modifier.size(34.dp))
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.acc_close), modifier = Modifier.size(34.dp))
                     }
                     Text(
-                        "Значок категорії",
+                        stringResource(R.string.cat_icon_title),
                         modifier = Modifier.weight(1f).padding(start = Spacing.sm),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
@@ -570,7 +572,7 @@ internal fun ColorIconPickerSheet(
                         shape = RoundedCornerShape(28.dp),
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
                     ) {
-                        Text("Готово", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.common_done), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -611,13 +613,13 @@ internal fun ColorIconPickerSheet(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
                         icon = { Icon(Icons.Outlined.StarBorder, null, modifier = Modifier.size(30.dp)) },
-                        text = { Text("Значок", fontWeight = FontWeight.SemiBold) }
+                        text = { Text(stringResource(R.string.cat_icon), fontWeight = FontWeight.SemiBold) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
                         icon = { Icon(Icons.Outlined.Palette, null, modifier = Modifier.size(30.dp)) },
-                        text = { Text("Колір", fontWeight = FontWeight.SemiBold) }
+                        text = { Text(stringResource(R.string.cat_color), fontWeight = FontWeight.SemiBold) }
                     )
                 }
 
@@ -730,10 +732,10 @@ fun EditCategoriesScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text(if (showSubcategories) "Редагувати субкатегорії" else "Редагувати категорії") },
+                    title = { Text(if (showSubcategories) stringResource(R.string.cat_edit_subcategories) else stringResource(R.string.cat_edit_categories)) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_back))
                         }
                     },
                     actions = {
@@ -741,7 +743,7 @@ fun EditCategoriesScreen(
                             onClick = { showSubcategories = !showSubcategories }
                         ) {
                             Text(
-                                if (showSubcategories) "Категорії" else "Субкатегорії",
+                                if (showSubcategories) stringResource(R.string.nav_categories) else stringResource(R.string.cat_subcategories_tab),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (showSubcategories)
                                     MaterialTheme.colorScheme.primary
@@ -763,13 +765,13 @@ fun EditCategoriesScreen(
                         selected = selectedTab == 0,
                         onClick  = { selectedTab = 0 },
                         icon     = { Icon(Icons.Outlined.ArrowCircleDown, null, modifier = Modifier.size(20.dp)) },
-                        text     = { Text("Витрати", fontWeight = if (selectedTab == 0) FontWeight.Normal else FontWeight.Normal) }
+                        text     = { Text(stringResource(R.string.common_expenses), fontWeight = if (selectedTab == 0) FontWeight.Normal else FontWeight.Normal) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick  = { selectedTab = 1 },
                         icon     = { Icon(Icons.Outlined.ArrowCircleUp, null, modifier = Modifier.size(20.dp)) },
-                        text     = { Text("Доходи", fontWeight = if (selectedTab == 1) FontWeight.Normal else FontWeight.Normal) }
+                        text     = { Text(stringResource(R.string.common_incomes), fontWeight = if (selectedTab == 1) FontWeight.Normal else FontWeight.Normal) }
                     )
                 }
 

@@ -10,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
@@ -77,17 +79,17 @@ fun EditCategoriesScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
                 Text(
-                    if (showSubcategories) "Редагувати субкатегорії" else "Редагувати категорії",
+                    if (showSubcategories) stringResource(R.string.cat_edit_subcategories) else stringResource(R.string.cat_edit_categories),
                     style    = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp)
                 )
                 TextButton(onClick = { showSubcategories = !showSubcategories }) {
-                    Text(if (showSubcategories) "Категорії" else "Субкатегорії")
+                    Text(if (showSubcategories) stringResource(R.string.nav_categories) else stringResource(R.string.cat_subcategories_tab))
                 }
             }
 
@@ -97,13 +99,13 @@ fun EditCategoriesScreen(
                     selected = selectedTab == 0,
                     onClick  = { selectedTab = 0 },
                     icon     = { Icon(Icons.Outlined.ArrowCircleDown, contentDescription = null) },
-                    text     = { Text("Витрати") }
+                    text     = { Text(stringResource(R.string.common_expenses)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick  = { selectedTab = 1 },
                     icon     = { Icon(Icons.Outlined.AddCircleOutline, contentDescription = null) },
-                    text     = { Text("Доходи") }
+                    text     = { Text(stringResource(R.string.common_incomes)) }
                 )
             }
 

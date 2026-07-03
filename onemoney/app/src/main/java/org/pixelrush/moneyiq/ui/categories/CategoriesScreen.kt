@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
@@ -187,7 +189,7 @@ fun CategoriesScreen(
             catRow      = BudgetCatRow(cat, catAmount),
             monthLabel  = monthLabel,
             accentColor = if (cat.type == TransactionType.INCOME) BudgetIncomeColor else BudgetExpenseColor,
-            amountLabel = if (cat.type == TransactionType.INCOME) "отримано" else "витрачено",
+            amountLabel = if (cat.type == TransactionType.INCOME) stringResource(R.string.budget_received) else stringResource(R.string.budget_spent),
             onDismiss   = { budgetCategory = null },
             onConfirm   = { newBudget, _ ->
                 viewModel.update(cat.copy(budgetAmount = newBudget))
@@ -598,13 +600,13 @@ internal fun CategoriesGridContent(
                         )
                         Spacer(Modifier.height(Spacing.md))
                         Text(
-                            "Немає категорій",
+                            stringResource(R.string.cat_empty),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Натисніть + щоб додати",
+                            stringResource(R.string.cat_empty_hint),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                             style = MaterialTheme.typography.bodySmall
                         )

@@ -112,4 +112,39 @@
     <string name="tx_dest_account_error">Оберіть рахунок призначення</string>
     <string name="tx_save_error">Помилка збереження</string>
     <string name="tx_delete_error">Помилка видалення</string>
+
+    <!-- Categories -->
+    <string name="common_back">Назад</string>
+    <string name="cat_from_category">З категорії</string>
+    <string name="cat_edit_categories">Редагувати категорії</string>
+    <string name="cat_edit_subcategories">Редагувати субкатегорії</string>
+    <string name="cat_subcategories">Підкатегорії</string>
+    <string name="cat_subcategories_tab">Субкатегорії</string>
+    <string name="cat_subcategory">Субкатегорія</string>
+    <string name="cat_new">Нова категорія</string>
+    <string name="cat_new_sub">Нова субкатегорія</string>
+    <string name="cat_settings">Налаштування</string>
+    <string name="cat_currency">Валюта категорії</string>
+    <string name="cat_budget">Бюджет</string>
+    <string name="cat_month">місяць</string>
+    <string name="cat_week">тиждень</string>
+    <string name="cat_no_limit">Без ліміту</string>
+    <string name="cat_detach">Прибрати з підкатегорій</string>
+    <string name="cat_add_sub">Додати підкатегорію</string>
+    <string name="cat_archived">Архівна категорія</string>
+    <string name="cat_delete">Видалити категорію</string>
+    <string name="cat_delete_title">Видалити категорію?</string>
+    <string name="cat_delete_message">Транзакції залишаться, але без категорії.</string>
+    <string name="cat_name_hint">Введіть назву</string>
+    <string name="cat_icon_title">Значок категорії</string>
+    <string name="cat_icon">Значок</string>
+    <string name="cat_color">Колір</string>
+    <string name="cat_empty">Немає категорій</string>
+    <string name="cat_empty_hint">Натисніть + щоб додати</string>
+    <plurals name="cat_operations_count">
+        <item quantity="one">%d операція</item>
+        <item quantity="few">%d операції</item>
+        <item quantity="many">%d операцій</item>
+        <item quantity="other">%d операцій</item>
+    </plurals>
 </resources>

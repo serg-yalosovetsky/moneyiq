@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +42,7 @@ import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.util.parseColorHex
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
+import org.syalosovetskyi.onemoney.R
 
 private val FallbackCategoryColor: Color = Color(0xFFFF5722)
 
@@ -620,7 +622,7 @@ internal fun DonutChart(
                 .clickable(onClick = onToggle)
         ) {
             Text(
-                if (selectedTab == 0) "Витрати" else "Доходи",
+                if (selectedTab == 0) stringResource(R.string.common_expenses) else stringResource(R.string.common_incomes),
                 style      = typo.centerTitle.copy(letterSpacing = 0.sp),
                 color      = MaterialTheme.colorScheme.onSurface
             )
