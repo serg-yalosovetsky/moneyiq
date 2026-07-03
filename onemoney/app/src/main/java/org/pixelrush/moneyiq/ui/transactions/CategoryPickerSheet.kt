@@ -20,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
@@ -55,9 +57,9 @@ internal fun CategoryPickerSheet(
     data class TabDef(val type: TransactionType?, val label: String,
                       val icon: androidx.compose.ui.graphics.vector.ImageVector)
     val tabDefs = listOf(
-        TabDef(TransactionType.INCOME,  "Дохід",   Icons.Default.ArrowUpward),
-        TabDef(TransactionType.EXPENSE, "Витрата", Icons.Default.ArrowDownward),
-        TabDef(null,                    "Переказ", Icons.Default.SwapHoriz)
+        TabDef(TransactionType.INCOME,  stringResource(R.string.tx_income),   Icons.Default.ArrowUpward),
+        TabDef(TransactionType.EXPENSE, stringResource(R.string.tx_expense), Icons.Default.ArrowDownward),
+        TabDef(null,                    stringResource(R.string.tx_transfer), Icons.Default.SwapHoriz)
     )
 
     ModalBottomSheet(
@@ -73,9 +75,9 @@ internal fun CategoryPickerSheet(
                 else                     -> Icons.Default.ArrowDownward
             }
             val typeLabel = when (currentType) {
-                TransactionType.INCOME   -> "Дохід"
-                TransactionType.TRANSFER -> "Переказ"
-                else                     -> "Витрата"
+                TransactionType.INCOME   -> stringResource(R.string.tx_income)
+                TransactionType.TRANSFER -> stringResource(R.string.tx_transfer)
+                else                     -> stringResource(R.string.tx_expense)
             }
             Column(modifier = Modifier.fillMaxWidth().height(screenH * 0.55f)) {
                 Row(
@@ -102,7 +104,7 @@ internal fun CategoryPickerSheet(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Рахунки", style = MaterialTheme.typography.titleMedium,
+                            Text(stringResource(R.string.tx_accounts), style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                             Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
@@ -165,7 +167,7 @@ internal fun CategoryPickerSheet(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("Рахунки", style = MaterialTheme.typography.titleMedium,
+                            Text(stringResource(R.string.tx_accounts), style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                             Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,

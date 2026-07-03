@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -210,7 +211,7 @@ fun TransactionsListScreen(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.Add, "Нова транзакція",
+                Icons.Default.Add, stringResource(R.string.tx_new),
                 tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(28.dp)
             )
@@ -344,10 +345,10 @@ private fun ActiveFilterChipsRow(
         // Типи операцій
         filterTypes.forEach { typeName ->
             val (label, color) = when (typeName) {
-                "INCOME"   -> "Дохід"   to txColors.budgetIncome
-                "EXPENSE"  -> "Витрата" to txColors.budgetExpense
-                "TRANSFER" -> "Переказ" to FilterDefaultColor
-                "BORROW"   -> "Борг"    to txColors.debtOrange
+                "INCOME"   -> stringResource(R.string.tx_income)   to txColors.budgetIncome
+                "EXPENSE"  -> stringResource(R.string.tx_expense)  to txColors.budgetExpense
+                "TRANSFER" -> stringResource(R.string.tx_transfer) to FilterDefaultColor
+                "BORROW"   -> stringResource(R.string.tx_borrow)   to txColors.debtOrange
                 else       -> typeName  to FilterDefaultColor
             }
             FilterActiveChip(
@@ -359,7 +360,7 @@ private fun ActiveFilterChipsRow(
 
         // Рахунки
         filterAccountIds.forEach { accId ->
-            val name = accounts.firstOrNull { it.id == accId }?.name ?: "Рахунок"
+            val name = accounts.firstOrNull { it.id == accId }?.name ?: stringResource(R.string.tx_account_fallback)
             FilterActiveChip(
                 label    = name,
                 color    = FilterAccountColor,
@@ -370,7 +371,7 @@ private fun ActiveFilterChipsRow(
         // Категорії
         filterCategoryIds.forEach { catId ->
             val cat   = allCats.firstOrNull { it.id == catId }
-            val name  = cat?.name ?: "Категорія"
+            val name  = cat?.name ?: stringResource(R.string.tx_category)
             val color = cat?.colorHex?.let { hex ->
                 parseColorHex(hex, FilterDefaultColor)
             } ?: FilterDefaultColor
@@ -414,8 +415,8 @@ private fun BalanceCardsRow(openingBalance: Double, closingBalance: Double) {
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        BalanceCard("Початковий баланс", openingBalance, Modifier.weight(1f))
-        BalanceCard("Кінцевий баланс",  closingBalance, Modifier.weight(1f))
+        BalanceCard(stringResource(R.string.tx_opening_balance), openingBalance, Modifier.weight(1f))
+        BalanceCard(stringResource(R.string.tx_closing_balance), closingBalance, Modifier.weight(1f))
     }
 }
 
@@ -476,8 +477,8 @@ private fun EmptyMonthState(sel: TxSelectedMonth, isFiltered: Boolean) {
             )
             Spacer(Modifier.height(20.dp))
             Text(
-                text      = if (isFiltered) "Нічого не знайдено за вашими фільтрами"
-                            else "Тут ви можете переглянути транзакції за\n${MONTH_NAMES_UA_FULL[sel.month]} ${sel.year}",
+                text      = if (isFiltered) stringResource(R.string.tx_empty_filtered)
+                            else stringResource(R.string.tx_empty_month, "${MONTH_NAMES_UA_FULL[sel.month]} ${sel.year}"),
                 style     = MaterialTheme.typography.bodyLarge,
                 fontStyle = FontStyle.Italic,
                 textAlign = TextAlign.Center,

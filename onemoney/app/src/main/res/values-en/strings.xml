@@ -71,4 +71,40 @@
     <string name="widget_add_expense">Expense</string>
     <string name="widget_expense">Expenses</string>
     <string name="widget_income">Income</string>
+
+    <!-- Transactions -->
+    <string name="tx_expense">Expense</string>
+    <string name="tx_income">Income</string>
+    <string name="tx_transfer">Transfer</string>
+    <string name="tx_borrow">Debt</string>
+    <string name="tx_from_account">From account</string>
+    <string name="tx_to_account">To account</string>
+    <string name="tx_to_category">To category</string>
+    <string name="tx_category">Category</string>
+    <string name="tx_no_category">No category</string>
+    <string name="tx_choose">Choose…</string>
+    <string name="tx_notes_hint">Notes…</string>
+    <string name="tx_notes">Notes</string>
+    <string name="tx_currency_title">Transaction currency</string>
+    <string name="tx_delete_title">Delete transaction?</string>
+    <string name="tx_delete_message">The transaction will be deleted and the account balance adjusted. This cannot be undone.</string>
+    <string name="tx_today">Today, %1$s</string>
+    <string name="tx_yesterday">Yesterday, %1$s</string>
+    <string name="tx_search">Search</string>
+    <string name="tx_reset_close">Reset and close</string>
+    <string name="tx_type">Operation type</string>
+    <string name="tx_accounts">Accounts</string>
+    <string name="tx_date">Date</string>
+    <string name="tx_duplicate">Duplicate</string>
+    <string name="tx_new">New transaction</string>
+    <string name="tx_opening_balance">Opening balance</string>
+    <string name="tx_closing_balance">Closing balance</string>
+    <string name="tx_account_fallback">Account</string>
+    <string name="tx_empty_filtered">Nothing found for your filters</string>
+    <string name="tx_empty_month">Here you can view transactions for\n%1$s</string>
+    <string name="tx_amount_error">Enter a valid amount</string>
+    <string name="tx_account_error">Select an account</string>
+    <string name="tx_dest_account_error">Select a destination account</string>
+    <string name="tx_save_error">Error saving</string>
+    <string name="tx_delete_error">Error deleting</string>
 </resources>

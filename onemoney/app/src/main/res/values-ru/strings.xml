@@ -71,4 +71,40 @@
     <string name="widget_add_expense">Расход</string>
     <string name="widget_expense">Расходы</string>
     <string name="widget_income">Доходы</string>
+
+    <!-- Transactions -->
+    <string name="tx_expense">Расход</string>
+    <string name="tx_income">Доход</string>
+    <string name="tx_transfer">Перевод</string>
+    <string name="tx_borrow">Долг</string>
+    <string name="tx_from_account">Со счёта</string>
+    <string name="tx_to_account">На счёт</string>
+    <string name="tx_to_category">В категорию</string>
+    <string name="tx_category">Категория</string>
+    <string name="tx_no_category">Без категории</string>
+    <string name="tx_choose">Выбрать…</string>
+    <string name="tx_notes_hint">Заметки…</string>
+    <string name="tx_notes">Заметки</string>
+    <string name="tx_currency_title">Валюта транзакции</string>
+    <string name="tx_delete_title">Удалить транзакцию?</string>
+    <string name="tx_delete_message">Транзакция будет удалена, а баланс счёта скорректирован. Это действие нельзя отменить.</string>
+    <string name="tx_today">Сегодня, %1$s</string>
+    <string name="tx_yesterday">Вчера, %1$s</string>
+    <string name="tx_search">Поиск</string>
+    <string name="tx_reset_close">Сбросить и закрыть</string>
+    <string name="tx_type">Тип операции</string>
+    <string name="tx_accounts">Счета</string>
+    <string name="tx_date">Дата</string>
+    <string name="tx_duplicate">Дублировать</string>
+    <string name="tx_new">Новая транзакция</string>
+    <string name="tx_opening_balance">Начальный баланс</string>
+    <string name="tx_closing_balance">Конечный баланс</string>
+    <string name="tx_account_fallback">Счёт</string>
+    <string name="tx_empty_filtered">Ничего не найдено по вашим фильтрам</string>
+    <string name="tx_empty_month">Здесь вы можете просмотреть транзакции за\n%1$s</string>
+    <string name="tx_amount_error">Введите корректную сумму</string>
+    <string name="tx_account_error">Выберите счёт</string>
+    <string name="tx_dest_account_error">Выберите счёт назначения</string>
+    <string name="tx_save_error">Ошибка сохранения</string>
+    <string name="tx_delete_error">Ошибка удаления</string>
 </resources>

@@ -16,12 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyBottomSheet
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
@@ -139,9 +141,9 @@ fun AddTransactionScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                 }
                 listOf(
-                    TransactionType.EXPENSE  to "Витрата",
-                    TransactionType.INCOME   to "Дохід",
-                    TransactionType.TRANSFER to "Переказ"
+                    TransactionType.EXPENSE  to stringResource(R.string.tx_expense),
+                    TransactionType.INCOME   to stringResource(R.string.tx_income),
+                    TransactionType.TRANSFER to stringResource(R.string.tx_transfer)
                 ).forEach { (type, label) ->
                     val selected = state.type == type
                     TextButton(
@@ -185,7 +187,7 @@ fun AddTransactionScreen(
                         Icon(Icons.Outlined.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     }
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp)) {
-                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(stringResource(R.string.tx_from_account), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                         Text(
                             fromAccount?.name ?: "—",
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
@@ -230,14 +232,14 @@ fun AddTransactionScreen(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            if (isTransfer) "На рахунок" else "До категорії",
+                            if (isTransfer) stringResource(R.string.tx_to_account) else stringResource(R.string.tx_to_category),
                             style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f)
                         )
                         Text(
                             when {
-                                isTransfer           -> toAccount?.name ?: "Обрати..."
+                                isTransfer           -> toAccount?.name ?: stringResource(R.string.tx_choose)
                                 fromCategory != null -> fromCategory.name
-                                else                 -> "Без категорії"
+                                else                 -> stringResource(R.string.tx_no_category)
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                             color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
@@ -253,9 +255,9 @@ fun AddTransactionScreen(
             ) {
                 Text(
                     when (state.type) {
-                        TransactionType.TRANSFER -> "Переказ"
-                        TransactionType.INCOME   -> "Дохід"
-                        else                     -> "Витрата"
+                        TransactionType.TRANSFER -> stringResource(R.string.tx_transfer)
+                        TransactionType.INCOME   -> stringResource(R.string.tx_income)
+                        else                     -> stringResource(R.string.tx_expense)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = accentColor
@@ -287,7 +289,7 @@ fun AddTransactionScreen(
             OutlinedTextField(
                 value         = state.note,
                 onValueChange = viewModel::setNote,
-                placeholder   = { Text("Нотатки...") },
+                placeholder   = { Text(stringResource(R.string.tx_notes_hint)) },
                 modifier      = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 singleLine    = true,
                 shape         = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
@@ -355,7 +357,7 @@ fun AddTransactionScreen(
     if (showCurrencyPicker) {
         CurrencyBottomSheet(
             selected  = selectedCurrency,
-            title     = "Валюта транзакції",
+            title     = stringResource(R.string.tx_currency_title),
             onSelect  = { selectedCurrency = it; showCurrencyPicker = false },
             onDismiss = { showCurrencyPicker = false }
         )
@@ -372,7 +374,7 @@ fun AddTransactionScreen(
                     showDatePicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Скасувати") } }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.common_cancel)) } }
         ) {
             DatePicker(state = dateState)
         }
@@ -383,28 +385,29 @@ fun AddTransactionScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             icon  = { Icon(Icons.Outlined.DeleteForever, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Видалити транзакцію?") },
-            text  = { Text("Транзакцію буде видалено, а баланс рахунку скориговано. Цю дію не можна скасувати.") },
+            title = { Text(stringResource(R.string.tx_delete_title)) },
+            text  = { Text(stringResource(R.string.tx_delete_message)) },
             confirmButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false; viewModel.delete() },
                     colors  = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Видалити") }
+                ) { Text(stringResource(R.string.common_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Скасувати") } }
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 }
 
+@Composable
 private fun formatTxDate(date: Long): String {
-    val fmt  = SimpleDateFormat("d MMM yyyy 'р.'", Locale.forLanguageTag("uk"))
+    val fmt  = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
     val cal  = Calendar.getInstance().apply { timeInMillis = date }
     val now  = Calendar.getInstance()
     val yest = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
     val short = fmt.format(Date(date))
     return when {
-        sameDayTx(cal, now)  -> "Сьогодні, $short"
-        sameDayTx(cal, yest) -> "Вчора, $short"
+        sameDayTx(cal, now)  -> stringResource(R.string.tx_today, short)
+        sameDayTx(cal, yest) -> stringResource(R.string.tx_yesterday, short)
         else                 -> short
     }
 }

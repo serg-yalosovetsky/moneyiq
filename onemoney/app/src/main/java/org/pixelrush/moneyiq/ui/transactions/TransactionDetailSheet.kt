@@ -16,11 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionWithDetails
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
@@ -110,7 +112,7 @@ internal fun TransactionDetailSheet(
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Outlined.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp)) {
-                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(stringResource(R.string.tx_from_account), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                         Text(tx.accountName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -135,14 +137,14 @@ internal fun TransactionDetailSheet(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            if (isTransfer) "На рахунок" else "Категорія",
+                            if (isTransfer) stringResource(R.string.tx_to_account) else stringResource(R.string.tx_category),
                             style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f)
                         )
                         Text(
                             when {
                                 isTransfer              -> tx.toAccountName ?: "—"
                                 tx.categoryName != null -> tx.categoryName
-                                else                    -> "Без категорії"
+                                else                    -> stringResource(R.string.tx_no_category)
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                             color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
@@ -157,9 +159,9 @@ internal fun TransactionDetailSheet(
             ) {
                 Text(
                     when (tx.type) {
-                        TransactionType.TRANSFER -> "Переказ"
-                        TransactionType.INCOME   -> "Дохід"
-                        else                     -> "Витрата"
+                        TransactionType.TRANSFER -> stringResource(R.string.tx_transfer)
+                        TransactionType.INCOME   -> stringResource(R.string.tx_income)
+                        else                     -> stringResource(R.string.tx_expense)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = accentColor
@@ -178,7 +180,7 @@ internal fun TransactionDetailSheet(
                 OutlinedTextField(
                     value         = note,
                     onValueChange = { note = it; isDirty = true },
-                    placeholder   = { Text("Нотатки...") },
+                    placeholder   = { Text(stringResource(R.string.tx_notes_hint)) },
                     modifier      = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     singleLine    = true,
                     shape         = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
@@ -207,17 +209,17 @@ internal fun TransactionDetailSheet(
                     ) {
                         Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Видалити")
+                        Text(stringResource(R.string.common_delete))
                     }
                     TextButton(onClick = { showDateSheet = true }) {
                         Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Дата")
+                        Text(stringResource(R.string.tx_date))
                     }
                     TextButton(onClick = onDuplicate) {
                         Icon(Icons.Outlined.ContentCopy, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Дублювати")
+                        Text(stringResource(R.string.tx_duplicate))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -252,8 +254,8 @@ internal fun TransactionDetailSheet(
 
     if (showDeleteDialog) {
         ConfirmationDialog(
-            title     = "Видалити транзакцію?",
-            message   = "Транзакцію буде видалено, а баланс рахунку скориговано. Цю дію не можна скасувати.",
+            title     = stringResource(R.string.tx_delete_title),
+            message   = stringResource(R.string.tx_delete_message),
             icon      = Icons.Outlined.DeleteForever,
             onConfirm = { showDeleteDialog = false; onDelete() },
             onDismiss = { showDeleteDialog = false }

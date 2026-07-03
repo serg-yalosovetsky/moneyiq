@@ -21,10 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.ui.accounts.accountIconFromKey
@@ -76,11 +78,11 @@ internal fun TxSearchScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onReset) {
-                        Icon(Icons.Default.Close, "Скинути та закрити",
+                        Icon(Icons.Default.Close, stringResource(R.string.tx_reset_close),
                             tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Text(
-                        "Пошук",
+                        stringResource(R.string.tx_search),
                         modifier   = Modifier.weight(1f).padding(start = 4.dp),
                         style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
@@ -92,7 +94,7 @@ internal fun TxSearchScreen(
                     ) {
                         Icon(Icons.Default.FilterList, null,
                             modifier = Modifier.size(18.dp).padding(end = 4.dp))
-                        Text("Готово", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.common_done), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -104,12 +106,12 @@ internal fun TxSearchScreen(
             ) {
 
                 item {
-                    SearchSectionHeader("Нотатки", MaterialTheme.colorScheme.primary)
+                    SearchSectionHeader(stringResource(R.string.tx_notes), MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value         = query,
                         onValueChange = onQueryChange,
-                        placeholder   = { Text("Нотатки...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) },
+                        placeholder   = { Text(stringResource(R.string.tx_notes_hint), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) },
                         modifier      = Modifier.fillMaxWidth(),
                         singleLine    = true,
                         leadingIcon   = {
@@ -126,16 +128,16 @@ internal fun TxSearchScreen(
                 }
 
                 item {
-                    SearchSectionHeader("Тип операції", expenseColor)
+                    SearchSectionHeader(stringResource(R.string.tx_type), expenseColor)
                     Spacer(Modifier.height(10.dp))
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(
-                            Triple("EXPENSE",  "Витрата",  expenseColor),
-                            Triple("INCOME",   "Дохід",    incomeColor),
-                            Triple("TRANSFER", "Переказ",  transferColor)
+                            Triple("EXPENSE",  stringResource(R.string.tx_expense),  expenseColor),
+                            Triple("INCOME",   stringResource(R.string.tx_income),    incomeColor),
+                            Triple("TRANSFER", stringResource(R.string.tx_transfer),  transferColor)
                         ).forEach { (key, label, color) ->
                             val selected = key in filterTypes
                             TypeFilterCard(
@@ -158,7 +160,7 @@ internal fun TxSearchScreen(
 
                 if (accounts.isNotEmpty()) {
                     item {
-                        SearchSectionHeader("Рахунки", MaterialTheme.colorScheme.primary)
+                        SearchSectionHeader(stringResource(R.string.tx_accounts), MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(10.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -184,7 +186,7 @@ internal fun TxSearchScreen(
 
                 if (expenseCategories.isNotEmpty()) {
                     item {
-                        SearchSectionHeader("Витрати", expenseColor)
+                        SearchSectionHeader(stringResource(R.string.common_expenses), expenseColor)
                         Spacer(Modifier.height(10.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -209,7 +211,7 @@ internal fun TxSearchScreen(
 
                 if (incomeCategories.isNotEmpty()) {
                     item {
-                        SearchSectionHeader("Доходи", incomeColor)
+                        SearchSectionHeader(stringResource(R.string.common_incomes), incomeColor)
                         Spacer(Modifier.height(10.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),

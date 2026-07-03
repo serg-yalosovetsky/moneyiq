@@ -76,4 +76,40 @@
     <string name="widget_add_expense">Витрата</string>
     <string name="widget_expense">Витрати</string>
     <string name="widget_income">Доходи</string>
+
+    <!-- Transactions -->
+    <string name="tx_expense">Витрата</string>
+    <string name="tx_income">Дохід</string>
+    <string name="tx_transfer">Переказ</string>
+    <string name="tx_borrow">Борг</string>
+    <string name="tx_from_account">З рахунку</string>
+    <string name="tx_to_account">На рахунок</string>
+    <string name="tx_to_category">До категорії</string>
+    <string name="tx_category">Категорія</string>
+    <string name="tx_no_category">Без категорії</string>
+    <string name="tx_choose">Обрати…</string>
+    <string name="tx_notes_hint">Нотатки…</string>
+    <string name="tx_notes">Нотатки</string>
+    <string name="tx_currency_title">Валюта транзакції</string>
+    <string name="tx_delete_title">Видалити транзакцію?</string>
+    <string name="tx_delete_message">Транзакцію буде видалено, а баланс рахунку скориговано. Цю дію не можна скасувати.</string>
+    <string name="tx_today">Сьогодні, %1$s</string>
+    <string name="tx_yesterday">Вчора, %1$s</string>
+    <string name="tx_search">Пошук</string>
+    <string name="tx_reset_close">Скинути та закрити</string>
+    <string name="tx_type">Тип операції</string>
+    <string name="tx_accounts">Рахунки</string>
+    <string name="tx_date">Дата</string>
+    <string name="tx_duplicate">Дублювати</string>
+    <string name="tx_new">Нова транзакція</string>
+    <string name="tx_opening_balance">Початковий баланс</string>
+    <string name="tx_closing_balance">Кінцевий баланс</string>
+    <string name="tx_account_fallback">Рахунок</string>
+    <string name="tx_empty_filtered">Нічого не знайдено за вашими фільтрами</string>
+    <string name="tx_empty_month">Тут ви можете переглянути транзакції за\n%1$s</string>
+    <string name="tx_amount_error">Введіть коректну суму</string>
+    <string name="tx_account_error">Оберіть рахунок</string>
+    <string name="tx_dest_account_error">Оберіть рахунок призначення</string>
+    <string name="tx_save_error">Помилка збереження</string>
+    <string name="tx_delete_error">Помилка видалення</string>
 </resources>

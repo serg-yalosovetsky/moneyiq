@@ -100,15 +100,15 @@ class TransactionViewModel @Inject constructor(
         val s = _state.value
         val amount = s.amount.replace(",", ".").toDoubleOrNull()
         if (amount == null || amount <= 0) {
-            _state.update { it.copy(error = "Введите корректную сумму") }
+            _state.update { it.copy(error = "Введіть коректну суму") }
             return
         }
         if (s.selectedAccountId == null) {
-            _state.update { it.copy(error = "Выберите счёт") }
+            _state.update { it.copy(error = "Оберіть рахунок") }
             return
         }
         if (s.type == TransactionType.TRANSFER && s.selectedToAccountId == null) {
-            _state.update { it.copy(error = "Выберите счёт назначения") }
+            _state.update { it.copy(error = "Оберіть рахунок призначення") }
             return
         }
 
@@ -144,7 +144,7 @@ class TransactionViewModel @Inject constructor(
                 }
                 _state.update { it.copy(isSaving = false, saved = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(isSaving = false, error = e.message ?: "Ошибка сохранения") }
+                _state.update { it.copy(isSaving = false, error = e.message ?: "Помилка збереження") }
             }
         }
     }
@@ -157,7 +157,7 @@ class TransactionViewModel @Inject constructor(
                 txRepo.deleteTransaction(orig)
                 _state.update { it.copy(isSaving = false, saved = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(isSaving = false, error = e.message ?: "Ошибка удаления") }
+                _state.update { it.copy(isSaving = false, error = e.message ?: "Помилка видалення") }
             }
         }
     }

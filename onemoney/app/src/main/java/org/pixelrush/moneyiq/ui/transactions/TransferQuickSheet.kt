@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.components.calculator.AccountPickerSheet
 import org.syalosovetskyi.onemoney.ui.components.calculator.CalcDateSheet
@@ -82,7 +84,7 @@ internal fun TransferQuickSheet(
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp)) {
-                        Text("З рахунку", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(stringResource(R.string.tx_from_account), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                         Text(selectedFrom.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -97,7 +99,7 @@ internal fun TransferQuickSheet(
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
                     Column(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 8.dp), horizontalAlignment = Alignment.End) {
-                        Text("На рахунок", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Text(stringResource(R.string.tx_to_account), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                         Text(selectedTo?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -107,13 +109,13 @@ internal fun TransferQuickSheet(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Переказ", style = MaterialTheme.typography.labelMedium, color = transferColor)
+                Text(stringResource(R.string.tx_transfer), style = MaterialTheme.typography.labelMedium, color = transferColor)
                 Text(calc.displayExpr("₴"), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = transferColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
 
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
-                placeholder = { Text("Нотатки...") },
+                placeholder = { Text(stringResource(R.string.tx_notes_hint)) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 singleLine = true, shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
             )
@@ -169,7 +171,7 @@ internal fun TransferQuickSheet(
         AccountPickerSheet(
             accounts   = allAccounts.filter { it.id != selectedTo?.id },
             selectedId = selectedFrom.id,
-            label      = "З рахунку",
+            label      = stringResource(R.string.tx_from_account),
             onSelect   = { acc -> selectedFrom = acc; showFromAccSheet = false },
             onDismiss  = { showFromAccSheet = false }
         )
@@ -178,7 +180,7 @@ internal fun TransferQuickSheet(
         AccountPickerSheet(
             accounts   = allAccounts.filter { it.id != selectedFrom.id },
             selectedId = selectedTo?.id,
-            label      = "На рахунок",
+            label      = stringResource(R.string.tx_to_account),
             onSelect   = { acc -> selectedTo = acc; showToAccSheet = false },
             onDismiss  = { showToAccSheet = false }
         )
