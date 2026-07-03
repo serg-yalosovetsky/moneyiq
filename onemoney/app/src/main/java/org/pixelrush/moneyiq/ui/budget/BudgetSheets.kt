@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.budget
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.ui.components.calculator.SharedCalcKeypad
 import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
 import org.syalosovetskyi.onemoney.ui.components.icons.CircleIconBox
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
@@ -49,8 +50,7 @@ internal fun BudgetInputSheet(
     onConfirm:   (Double, String) -> Unit
 ) {
     val catColor = remember(catRow.category.colorHex) {
-        try { Color(catRow.category.colorHex.toColorInt()) }
-        catch (_: Exception) { accentColor }
+        parseColorHex(catRow.category.colorHex, accentColor)
     }
     val isLightBg    = catColor.luminance() > 0.5f
     val onCatColor   = if (isLightBg) DarkOnLightColor else Color.White
@@ -245,8 +245,7 @@ internal fun IncomeCategoryPickerSheet(
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
             items(rows) { row ->
                 val catColor = remember(row.category.colorHex) {
-                    try { Color(row.category.colorHex.toColorInt()) }
-                    catch (_: Exception) { accentColor }
+                    parseColorHex(row.category.colorHex, accentColor)
                 }
                 ListItem(
                     modifier       = Modifier.clickable { onPick(row) },

@@ -35,7 +35,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.CategoryScreenTokens
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme

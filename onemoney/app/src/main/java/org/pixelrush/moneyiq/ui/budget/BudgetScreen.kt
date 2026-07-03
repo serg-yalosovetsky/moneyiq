@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.budget
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,7 +32,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
@@ -423,8 +424,7 @@ private fun BudgetCatFullRow(
     onClick:     () -> Unit
 ) {
     val color     = remember(row.category.colorHex) {
-        try { Color(row.category.colorHex.toColorInt()) }
-        catch (_: Exception) { accentColor }
+        parseColorHex(row.category.colorHex, accentColor)
     }
     val remaining = row.category.budgetAmount - row.amount
     val isOver    = remaining < 0
@@ -538,8 +538,7 @@ private fun BudgetCatChip(
     onClick:     () -> Unit
 ) {
     val color = remember(row.category.colorHex) {
-        try { Color(row.category.colorHex.toColorInt()) }
-        catch (_: Exception) { accentColor }
+        parseColorHex(row.category.colorHex, accentColor)
     }
 
     Column(

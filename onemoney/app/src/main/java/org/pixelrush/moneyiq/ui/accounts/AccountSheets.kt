@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.accounts
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -180,8 +181,7 @@ fun AccountFormSheet(
 
     val appColors   = OneMoneyTheme.colors
     val accentColor = remember(colorHex) {
-        try { Color(colorHex.toColorInt()) }
-        catch (_: Exception) { appColors.budgetExpense }
+        parseColorHex(colorHex, appColors.budgetExpense)
     }
     val iconTint      = if (accentColor.luminance() > 0.5f) DarkOnLightColor else Color.White
     val currencyLabel = "${currencyDisplayName(currency)} – ${currencySymbol(currency)}"

@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.overview
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -33,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
 import org.syalosovetskyi.onemoney.ui.main.TransactionListItem
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
@@ -59,8 +60,7 @@ fun OverviewScreen(
 
     // ── Category detail bottom sheet ──────────────────────────────────────────
     selectedCat?.let { cat ->
-        val catColor = try { Color(cat.colorHex.toColorInt()) }
-                       catch (_: Exception) { MaterialTheme.colorScheme.primary }
+        val catColor = parseColorHex(cat.colorHex, MaterialTheme.colorScheme.primary)
 
         ModalBottomSheet(
             onDismissRequest = { selectedCat = null },
@@ -433,9 +433,7 @@ private fun SpendingChart(
                             if (bar.segments.isNotEmpty()) {
                                 var currentBottom = h
                                 bar.segments.forEach { seg ->
-                                    val segColor = try {
-                                        Color(seg.colorHex.toColorInt())
-                                    } catch (_: Exception) { accentColor }
+                                    val segColor = parseColorHex(seg.colorHex, accentColor)
                                     val segH   = (h - barTop) * (seg.amount / bar.amount).toFloat()
                                     val segTop = currentBottom - segH
                                     drawRect(
@@ -566,8 +564,7 @@ private fun CategoryRow(
     accentColor: Color,
     onClick:     () -> Unit
 ) {
-    val catColor = try { Color(row.colorHex.toColorInt()) }
-                   catch (_: Exception) { accentColor }
+    val catColor = parseColorHex(row.colorHex, accentColor)
 
     Column(
         modifier = Modifier

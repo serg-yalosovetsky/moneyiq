@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.reports
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -25,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.data.db.dao.CategorySpending
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
@@ -113,9 +114,7 @@ fun ReportsScreen(
                             ) {
                                 DonutChart(
                                     segments = catItems.map { cat ->
-                                        val c = try {
-                                            Color(cat.categoryColor.toColorInt())
-                                        } catch (_: Exception) { Color.Gray }
+                                        val c = parseColorHex(cat.categoryColor, Color.Gray)
                                         c to if (catTotal > 0) (cat.total / catTotal).toFloat() else 0f
                                     },
                                     centerLabel = formatMoney(catTotal),
@@ -125,9 +124,7 @@ fun ReportsScreen(
                                 // Легенда
                                 Column(modifier = Modifier.weight(1f)) {
                                     catItems.take(6).forEach { cat ->
-                                        val c = try {
-                                            Color(cat.categoryColor.toColorInt())
-                                        } catch (_: Exception) { Color.Gray }
+                                        val c = parseColorHex(cat.categoryColor, Color.Gray)
                                         val pct = if (catTotal > 0) cat.total / catTotal * 100 else 0.0
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -308,9 +305,7 @@ private fun SummaryCard(label: String, amount: Double, color: Color, modifier: M
 
 @Composable
 private fun CategorySpendingRow(cat: CategorySpending, total: Double) {
-    val color = try {
-        Color(cat.categoryColor.toColorInt())
-    } catch (_: Exception) { Color.Gray }
+    val color = parseColorHex(cat.categoryColor, Color.Gray)
     val percent = if (total > 0) (cat.total / total * 100).toFloat() else 0f
 
     Column(

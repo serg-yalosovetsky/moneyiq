@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.accounts
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -111,8 +112,7 @@ fun ColorPickerSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     row.forEach { hex ->
-                        val c = try { Color(hex.toColorInt()) }
-                                catch (_: Exception) { Color.Gray }
+                        val c = parseColorHex(hex, Color.Gray)
                         Box(
                             modifier         = Modifier
                                 .size(52.dp)
@@ -221,8 +221,7 @@ fun AccountActionSheet(
     onSetDefault:    () -> Unit
 ) {
     val accentColor = remember(account.colorHex) {
-        try { Color(account.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackAccountColor }
+        parseColorHex(account.colorHex, FallbackAccountColor)
     }
     val isLightCard = accentColor.luminance() > 0.5f
     val onCard      = if (isLightCard) DarkOnLightColor else Color.White
@@ -296,7 +295,7 @@ fun AccountActionSheet(
                         color = onCard.copy(alpha = 0.8f)
                     )
                     Text(
-                        "${org.syalosovetskyi.onemoney.ui.main.formatMoney(account.balance)} $sym",
+                        "${org.syalosovetskyi.onemoney.util.formatMoney(account.balance)} $sym",
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color      = onCard

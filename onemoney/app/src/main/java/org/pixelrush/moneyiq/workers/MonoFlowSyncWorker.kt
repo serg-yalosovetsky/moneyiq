@@ -14,6 +14,7 @@ import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
 import org.syalosovetskyi.onemoney.data.repository.SettingsRepository
 import org.syalosovetskyi.onemoney.util.BackupSerializer
+import org.syalosovetskyi.onemoney.util.NetworkTimeouts
 import org.syalosovetskyi.onemoney.util.normalizeImportedCategory
 import java.util.concurrent.TimeUnit
 
@@ -86,8 +87,8 @@ class MonoFlowSyncWorker(
             .openConnection() as java.net.HttpURLConnection
         conn.setRequestProperty("Authorization", "Bearer $token")
         conn.setRequestProperty("Accept", "application/json")
-        conn.connectTimeout = 15_000
-        conn.readTimeout    = 60_000
+        conn.connectTimeout = NetworkTimeouts.CONNECT_MS
+        conn.readTimeout    = NetworkTimeouts.READ_LONG_MS
         val code = conn.responseCode
         if (code != 200) {
             throw Exception("HTTP $code from MonoFlow")

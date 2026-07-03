@@ -2,6 +2,7 @@
 
 package org.syalosovetskyi.onemoney.ui.transactions
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,7 +29,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.ui.accounts.accountIconFromKey
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
@@ -160,8 +161,7 @@ internal fun TxSearchScreen(
                         ) {
                             accounts.forEach { acc ->
                                 val selected = acc.id in filterAccountIds
-                                val accColor = try { Color(acc.colorHex.toColorInt()) }
-                                               catch (_: Exception) { Color(0xFF3949AB) }
+                                val accColor = parseColorHex(acc.colorHex, Color(0xFF3949AB))
                                 ColoredFilterChip(
                                     label    = acc.name,
                                     subLabel = formatMoney(acc.balance),
@@ -187,8 +187,7 @@ internal fun TxSearchScreen(
                         ) {
                             expenseCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = try { Color(cat.colorHex.toColorInt()) }
-                                               catch (_: Exception) { Color(0xFF607D8B) }
+                                val catColor = parseColorHex(cat.colorHex, Color(0xFF607D8B))
                                 ColoredFilterChip(
                                     label    = cat.name,
                                     icon     = categoryIconFor(cat.icon),
@@ -213,8 +212,7 @@ internal fun TxSearchScreen(
                         ) {
                             incomeCategories.forEach { cat ->
                                 val selected = cat.id in filterCategoryIds
-                                val catColor = try { Color(cat.colorHex.toColorInt()) }
-                                               catch (_: Exception) { Color(0xFF607D8B) }
+                                val catColor = parseColorHex(cat.colorHex, Color(0xFF607D8B))
                                 ColoredFilterChip(
                                     label    = cat.name,
                                     icon     = categoryIconFor(cat.icon),

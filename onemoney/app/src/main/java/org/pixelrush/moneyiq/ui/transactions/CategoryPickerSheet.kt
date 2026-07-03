@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.transactions
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +30,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.accounts.accountTypeIcon
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
@@ -219,8 +220,7 @@ internal fun CategoryPickerCell(
     onClick: () -> Unit
 ) {
     val catColor = remember(cat.colorHex) {
-        try { Color(cat.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFFFF5722) }
+        parseColorHex(cat.colorHex, Color(0xFFFF5722))
     }
     val hasSpending = amount > 0
     Column(
@@ -269,8 +269,7 @@ internal fun CategoryPickerCell(
 @Composable
 internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
     val accColor = remember(account.colorHex) {
-        try { Color(account.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF3949AB) }
+        parseColorHex(account.colorHex, Color(0xFF3949AB))
     }
     val balColor = when {
         account.balance < 0 -> Color(0xFFD32F2F)

@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.components.calculator
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import java.text.SimpleDateFormat
@@ -340,8 +341,7 @@ fun AccountPickerSheet(
 ) {
     val selected = accounts.firstOrNull { it.id == selectedId } ?: accounts.firstOrNull()
     val selColor = selected?.let {
-        try { Color(it.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackAccountColor }
+        parseColorHex(it.colorHex, FallbackAccountColor)
     } ?: FallbackAccountColor
     val contentColor = if (selColor.luminance() > 0.5f) DarkOnLightColor else Color.White
 
@@ -399,8 +399,7 @@ fun AccountPickerSheet(
             HorizontalDivider()
 
             accounts.forEach { acc ->
-                val accColor = try { Color(acc.colorHex.toColorInt()) }
-                               catch (_: Exception) { FallbackAccountColor }
+                val accColor = parseColorHex(acc.colorHex, FallbackAccountColor)
                 val itemContentColor = if (accColor.luminance() > 0.5f) DarkOnLightColor else Color.White
                 val isSelected = acc.id == selectedId
                 Row(

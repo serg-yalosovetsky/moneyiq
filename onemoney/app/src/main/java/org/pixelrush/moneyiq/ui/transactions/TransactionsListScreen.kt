@@ -1,6 +1,7 @@
 ﻿
 package org.syalosovetskyi.onemoney.ui.transactions
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -40,7 +41,7 @@ import org.syalosovetskyi.onemoney.ui.categories.QuickExpenseSheet
 import org.syalosovetskyi.onemoney.ui.main.SectionHeader
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
 import org.syalosovetskyi.onemoney.ui.main.TransactionListItem
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
@@ -416,7 +417,7 @@ private fun ActiveFilterChipsRow(
             val cat   = allCats.firstOrNull { it.id == catId }
             val name  = cat?.name ?: "Категорія"
             val color = cat?.colorHex?.let { hex ->
-                try { Color(hex.toColorInt()) } catch (_: Exception) { FilterDefaultColor }
+                parseColorHex(hex, FilterDefaultColor)
             } ?: FilterDefaultColor
             FilterActiveChip(label = name, color = color, onRemove = { onRemoveCategory(catId) })
         }

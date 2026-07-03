@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.accounts
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -269,8 +270,7 @@ fun IconColorPickerScreen(
     var tab           by remember { mutableIntStateOf(0) }
 
     val previewColor = remember(selectedColor) {
-        try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { FallbackAccountColor }
+        parseColorHex(selectedColor, FallbackAccountColor)
     }
 
     Dialog(
@@ -419,8 +419,7 @@ private fun ColorGrid(selectedHex: String, onSelect: (String) -> Unit) {
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
     ) {
         items(ACCOUNT_COLORS_PALETTE) { hex ->
-            val color      = try { Color(hex.toColorInt()) }
-                             catch (_: Exception) { Color.Gray }
+            val color      = parseColorHex(hex, Color.Gray)
             val isSelected = hex.equals(selectedHex, ignoreCase = true)
             Box(
                 modifier = Modifier

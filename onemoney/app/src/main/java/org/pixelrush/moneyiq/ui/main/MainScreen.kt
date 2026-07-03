@@ -58,8 +58,9 @@ import org.syalosovetskyi.onemoney.ui.settings.SettingsViewModel
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.transactions.TransactionsListScreen
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
+import org.syalosovetskyi.onemoney.util.DateFormats
+import org.syalosovetskyi.onemoney.util.formatMoney
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import java.util.*
 
 // ── Bottom tab definition ─────────────────────────────────────────────────────
@@ -566,8 +567,7 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
     }
     val fallbackColor = MaterialTheme.colorScheme.secondaryContainer
     val catColor = tx.categoryColor?.let {
-        try { Color(it.toColorInt()) }
-        catch (_: Exception) { fallbackColor }
+        parseColorHex(it, fallbackColor)
     } ?: fallbackColor
 
     ListItem(
@@ -589,7 +589,7 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
             )
         },
         supportingContent = {
-            val dateStr = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(tx.date))
+            val dateStr = DateFormats.dayMonthShort(Date(tx.date))
             val sub = buildString {
                 append(dateStr)
                 if (tx.note.isNotBlank()) append(" · ${tx.note}")
@@ -636,16 +636,6 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier) {
         fontWeight = FontWeight.SemiBold,
         color      = MaterialTheme.colorScheme.onSurface
     )
-}
-
-// ── Formatting ────────────────────────────────────────────────────────────────
-
-fun formatMoney(amount: Double, currency: String = ""): String {
-    val isWhole = amount == kotlin.math.floor(amount) && !amount.isInfinite()
-    val nf = NumberFormat.getNumberInstance(Locale.getDefault())
-    nf.minimumFractionDigits = if (isWhole) 0 else 2
-    nf.maximumFractionDigits = if (isWhole) 0 else 2
-    return if (currency.isNotBlank()) "${nf.format(amount)} $currency" else nf.format(amount)
 }
 
 // ── Swipe gesture helpers ─────────────────────────────────────────────────────

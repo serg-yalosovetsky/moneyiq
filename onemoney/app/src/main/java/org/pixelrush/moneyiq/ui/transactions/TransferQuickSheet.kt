@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.transactions
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,12 +52,10 @@ internal fun TransferQuickSheet(
     val calc = rememberCalcState()
 
     val fromColor = remember(selectedFrom.colorHex) {
-        try { Color(selectedFrom.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF26A69A) }
+        parseColorHex(selectedFrom.colorHex, Color(0xFF26A69A))
     }
     val toColor = remember(selectedTo?.colorHex) {
-        try { Color((selectedTo?.colorHex ?: "#3949AB").toColorInt()) }
-        catch (_: Exception) { Color(0xFF3949AB) }
+        parseColorHex((selectedTo?.colorHex ?: "#3949AB"), Color(0xFF3949AB))
     }
     val transferColor = Color(0xFF5C6BC0)
     val keyBg = MaterialTheme.colorScheme.surfaceVariant

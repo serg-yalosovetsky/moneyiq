@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.transactions
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,7 +30,7 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.FullDatePickerDialog
 import org.syalosovetskyi.onemoney.ui.components.calculator.SharedCalcKeypad
 import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
 import org.syalosovetskyi.onemoney.ui.components.calculator.txDateLabelPublic
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
@@ -61,8 +62,7 @@ internal fun TransactionDetailSheet(
     }
 
     val accountColor = remember(tx.accountColor) {
-        try { Color(tx.accountColor.toColorInt()) }
-        catch (_: Exception) { Color(0xFF3949AB) }
+        parseColorHex(tx.accountColor, Color(0xFF3949AB))
     }
     val catColor = remember(tx.categoryColor) {
         tx.categoryColor?.let {

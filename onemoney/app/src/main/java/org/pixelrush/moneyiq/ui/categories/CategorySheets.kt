@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.categories
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -38,7 +39,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyBottomSheet
 import org.syalosovetskyi.onemoney.ui.components.calculator.*
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
@@ -70,8 +71,7 @@ fun CategoryActionSheet(
     onDismiss:     () -> Unit
 ) {
     val catColor = remember(category.colorHex) {
-        try { Color(category.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(category.colorHex, FallbackCategoryColor)
     }
     val isLightBg  = catColor.luminance() > 0.5f
     val onCatColor = if (isLightBg) DarkOnLightColor else Color.White
@@ -267,8 +267,7 @@ fun QuickExpenseSheet(
     var selectedCategory by remember(category) { mutableStateOf(category) }
 
     val catColor = remember(selectedCategory.colorHex) {
-        try { Color(selectedCategory.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(selectedCategory.colorHex, FallbackCategoryColor)
     }
     val isCatLight   = catColor.luminance() > 0.5f
     val onCatColor   = if (isCatLight) DarkOnLightColor else Color.White
@@ -550,8 +549,7 @@ fun QuickExpenseSheet(
                     }
                     items(expCats) { cat ->
                         val color = remember(cat.colorHex) {
-                            try { Color(cat.colorHex.toColorInt()) }
-                            catch (_: Exception) { FallbackIconColor }
+                            parseColorHex(cat.colorHex, FallbackIconColor)
                         }
                         ListItem(
                             modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
@@ -577,8 +575,7 @@ fun QuickExpenseSheet(
                     }
                     items(incCats) { cat ->
                         val color = remember(cat.colorHex) {
-                            try { Color(cat.colorHex.toColorInt()) }
-                            catch (_: Exception) { FallbackIconColor }
+                            parseColorHex(cat.colorHex, FallbackIconColor)
                         }
                         ListItem(
                             modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },

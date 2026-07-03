@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.categories
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -112,8 +113,7 @@ fun CategoryFormSheet(
     }
 
     val catColor by remember { derivedStateOf {
-        try { Color(colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(colorHex, FallbackCategoryColor)
     } }
 
     fun doSave() {
@@ -331,8 +331,7 @@ fun CategoryFormSheet(
 
                     items(children) { child ->
                         val childColor = remember(child.colorHex) {
-                            try { Color(child.colorHex.toColorInt()) }
-                            catch (_: Exception) { Color.Gray }
+                            parseColorHex(child.colorHex, Color.Gray)
                         }
                         ListItem(
                             leadingContent = {
@@ -490,8 +489,7 @@ internal fun ColorIconPickerSheet(
     var selectedColor by remember { mutableStateOf(currentColor) }
     var selectedIcon  by remember { mutableStateOf(currentIcon) }
     val color by remember { derivedStateOf {
-        try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(selectedColor, FallbackCategoryColor)
     } }
     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -611,8 +609,7 @@ internal fun ColorIconPickerSheet(
                     ) {
                         items(CATEGORY_FORM_COLORS) { hex ->
                             val swatch = remember(hex) {
-                                try { Color(hex.toColorInt()) }
-                                catch (_: Exception) { Color.Gray }
+                                parseColorHex(hex, Color.Gray)
                             }
                             val isSel = hex == selectedColor
                             Box(

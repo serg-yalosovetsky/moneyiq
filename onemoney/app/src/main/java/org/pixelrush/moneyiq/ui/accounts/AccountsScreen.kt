@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.accounts
 
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,7 +37,7 @@ import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
@@ -314,8 +315,7 @@ private fun AccountListItem(
     onSetDefault: () -> Unit
 ) {
     val accentColor = remember(account.colorHex) {
-        try { Color(account.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackAccountColor }
+        parseColorHex(account.colorHex, FallbackAccountColor)
     }
     var showMenu          by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }

@@ -46,7 +46,7 @@ import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.ui.budget.BudgetCatRow
 import org.syalosovetskyi.onemoney.ui.budget.BudgetInputSheet
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
-import org.syalosovetskyi.onemoney.ui.main.formatMoney
+import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 import org.syalosovetskyi.onemoney.ui.theme.Spacing

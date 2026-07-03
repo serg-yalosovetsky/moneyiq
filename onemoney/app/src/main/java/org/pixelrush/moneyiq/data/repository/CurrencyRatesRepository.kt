@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import org.syalosovetskyi.onemoney.util.ApiEndpoints
+import org.syalosovetskyi.onemoney.util.NetworkTimeouts
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,8 +36,6 @@ class CurrencyRatesRepository @Inject constructor(
 
     companion object {
         private const val BASE = "UAH"
-        private const val NBU_URL =
-            "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
         private const val STALE_AFTER_MS = 12L * 60 * 60 * 1000  // 12 годин
 
         private val KEY_RATES_JSON    = stringPreferencesKey("rates_json")
@@ -78,11 +78,11 @@ class CurrencyRatesRepository @Inject constructor(
     // ── HTTP (без зовнішніх залежностей, як у MonoFlowSyncWorker) ────────────────
 
     private fun fetchRatesJson(): String {
-        val conn = java.net.URL(NBU_URL)
+        val conn = java.net.URL(ApiEndpoints.NBU_RATES)
             .openConnection() as java.net.HttpURLConnection
         conn.setRequestProperty("Accept", "application/json")
-        conn.connectTimeout = 15_000
-        conn.readTimeout    = 30_000
+        conn.connectTimeout = NetworkTimeouts.CONNECT_MS
+        conn.readTimeout    = NetworkTimeouts.READ_SHORT_MS
         val code = conn.responseCode
         if (code != 200) throw java.io.IOException("HTTP $code from NBU")
         return conn.inputStream.bufferedReader(Charsets.UTF_8).readText()
