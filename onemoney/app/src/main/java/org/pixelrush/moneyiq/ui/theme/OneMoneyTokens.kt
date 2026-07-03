@@ -91,13 +91,16 @@ data class OneMoneyDimens(
     val sheetHandleWidth:         Dp,
     val sheetHandleHeight:        Dp,
     // ── Radius variants ───────────────────────────────────────────────────────
-    val smallRadius:              Dp,
-    val largeRadius:              Dp,
-    val pillRadius:               Dp,
+    val smallRadius:              Dp,   // 8dp
+    val keyRadius:                Dp,   // 10dp — клавиатура/мелкие чипы
+    val cardRadiusAlt:            Dp,   // 14dp — карточки-строки, поля
+    val largeRadius:              Dp,   // 16dp
+    val pillRadius:               Dp,   // 50dp — «таблетки»
     // ── Stroke widths ─────────────────────────────────────────────────────────
     val thinStroke:               Dp,
     val mediumStroke:             Dp,
     val thickStroke:              Dp,
+    val selectionRingWidth:       Dp,   // 3dp — кольцо выделения иконки/цвета
 )
 
 // Dark-mode semantic tokens. Neutrals follow the same M3 dark tonal palette as the
@@ -194,10 +197,13 @@ object OneMoneyLightTokens {
         sheetHandleWidth          = 32.dp,
         sheetHandleHeight         =  4.dp,
         smallRadius               =  8.dp,
+        keyRadius                 = 10.dp,
+        cardRadiusAlt             = 14.dp,
         largeRadius               = 16.dp,
         pillRadius                = 50.dp,
         thinStroke                =  1.dp,
         mediumStroke              =  1.5.dp,
         thickStroke               =  2.dp,
+        selectionRingWidth        =  3.dp,
     )
 }

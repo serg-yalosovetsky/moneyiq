@@ -21,6 +21,15 @@ val DebtOrange       = Color(0xFFFF9800)
 val BudgetExpenseColor = Color(0xFFD81B60)
 val BudgetIncomeColor  = Color(0xFF26A69A)
 
+// ── Fallback / utility colors (централизованы; раньше дублировались локальными
+//    private val по экранам, местами рассинхронизированные) ─────────────────────
+val NegativeAmountColor   = Color(0xFFD32F2F)  // сумма/баланс в минусе
+val StarGoldColor         = Color(0xFFFFD700)  // «зроблено основним» / избранное
+val OnLightColor          = Color(0xFF1C1B1F)  // тёмный контент на светлом/цветном фоне (был DarkOnLightColor ×6)
+val FallbackAccountColor  = Color(0xFF4361EE)  // дефолт-цвет счёта (унифицирован: было 4361EE в 3 местах и 3949AB в CalcDateSheet)
+val FallbackCategoryColor = Color(0xFFFF5722)  // дефолт-цвет категории
+val FallbackIconColor     = Color(0xFF757575)  // дефолт-тинт иконки
+
 // ── Category screen colour tokens ─────────────────────────────────────────────
 val MonthRed                  = Color(0xFFD7261E)
 val MonthRedLight             = Color(0xFFF8D9D5)
