@@ -531,68 +531,10 @@ internal fun CategoriesGridContent(
     // All categories always shown: spending==0 chips render pale (tinted circle, colored icon)
     val display = if (sortBySpending) sorted else categories
 
-    // ── Drag-to-swap (only when onChipDragSwap != null) ───────────────────────
-    val chipCenters      = if (onChipDragSwap != null) remember { mutableStateMapOf<Long, Offset>() } else null
-    var draggingId       by remember { mutableStateOf<Long?>(null) }
-    var hoverTarget      by remember { mutableStateOf<Long?>(null) }
-    var dragOffset       by remember { mutableStateOf(Offset.Zero) }
-    var containerRootPos by remember { mutableStateOf(Offset.Zero) }
-
-    val dragModifier: (CategoryEntity?) -> Modifier = if (onChipDragSwap != null && chipCenters != null) {
-        { cat ->
-            if (cat == null) Modifier else {
-                val a = when {
-                    cat.id == draggingId  -> 0f    // invisible – ghost follows finger
-                    draggingId == null    -> 1f
-                    cat.id == hoverTarget -> 1f
-                    else                  -> 0.70f
-                }
-                Modifier
-                    .alpha(a)
-                    .onGloballyPositioned { coords ->
-                        val pos = coords.positionInRoot()
-                        chipCenters[cat.id] = Offset(
-                            pos.x + coords.size.width / 2f,
-                            pos.y + coords.size.height / 2f
-                        )
-                    }
-                    .pointerInput(cat.id) {
-                        var acc = Offset.Zero
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { _ ->
-                                draggingId = cat.id; hoverTarget = null
-                                acc = Offset.Zero; dragOffset = Offset.Zero
-                            },
-                            onDrag = { change, d ->
-                                change.consume()
-                                acc += d
-                                dragOffset = acc
-                                val center = chipCenters[cat.id]
-                                    ?: return@detectDragGesturesAfterLongPress
-                                val finger = center + acc
-                                hoverTarget = chipCenters.entries
-                                    .filter { (id, _) -> id != cat.id }
-                                    .minByOrNull { (_, c) -> (c - finger).getDistance() }
-                                    ?.key
-                            },
-                            onDragEnd = {
-                                hoverTarget?.let { onChipDragSwap(cat.id, it) }
-                                draggingId = null; hoverTarget = null
-                                acc = Offset.Zero; dragOffset = Offset.Zero
-                            },
-                            onDragCancel = {
-                                draggingId = null; hoverTarget = null
-                                acc = Offset.Zero; dragOffset = Offset.Zero
-                            }
-                        )
-                    }
-            }
-        }
-    } else { { _ -> Modifier } }
-
-    // Merge external visual modifier with internal drag modifier
+    // ── Drag-to-swap (стан-машина винесена в CategoryChipDrag.kt) ─────────────
+    val dragState = rememberChipDragState(onChipDragSwap)
     val effectiveChipModifier: (CategoryEntity?) -> Modifier = { cat ->
-        chipExtraModifier(cat).then(dragModifier(cat))
+        chipExtraModifier(cat).then(dragState?.chipModifier(cat) ?: Modifier)
     }
 
     // Layout: top 4 | [left2 | donut | right2] | + | ext rows of 4
@@ -619,7 +561,7 @@ internal fun CategoriesGridContent(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .onGloballyPositioned { containerRootPos = it.positionInRoot() }
+            .onGloballyPositioned { pos -> dragState?.let { it.containerRootPos = pos.positionInRoot() } }
     ) {
         // rowPad = CategoryGridRow's padding(horizontal=4dp); chipGap = spacedBy(6dp) × 3 gaps
         val rowPad  = 4.dp
@@ -864,15 +806,15 @@ internal fun CategoriesGridContent(
     }
 
     // ── Drag ghost: follows finger ─────────────────────────────────────────
-    val dragId = draggingId
-    if (dragId != null && chipCenters != null) {
+    val dragId = dragState?.draggingId
+    if (dragId != null && dragState != null) {
         val draggingCat = display.firstOrNull { it.id == dragId }
-        val center      = chipCenters[dragId]
+        val center      = dragState.chipCenters[dragId]
         if (draggingCat != null && center != null) {
             val chipPxW = with(density) { chipW.roundToPx() }
             val chipPxH = with(density) { chipHeight.roundToPx() }
-            val localX  = (center.x - containerRootPos.x + dragOffset.x).toInt() - chipPxW / 2
-            val localY  = (center.y - containerRootPos.y + dragOffset.y).toInt() - chipPxH / 2
+            val localX  = (center.x - dragState.containerRootPos.x + dragState.dragOffset.x).toInt() - chipPxW / 2
+            val localY  = (center.y - dragState.containerRootPos.y + dragState.dragOffset.y).toInt() - chipPxH / 2
             Box(
                 modifier = Modifier
                     .offset { IntOffset(localX, localY) }
