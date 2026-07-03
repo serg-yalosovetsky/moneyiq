@@ -229,4 +229,20 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_desc">Personal finance manager.\nTrack expenses, income and budget.</string>
     <string name="settings_notif_time">Notification time</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_sync_off">Sync disabled…</string>
+    <string name="drawer_premium">Premium version</string>
+    <string name="drawer_signin">Sign in</string>
+    <string name="drawer_rate">Rate us</string>
+    <string name="drawer_support">Support</string>
+
+    <!-- Top bar actions -->
+    <string name="toolbar_search_tx">Search transactions</string>
+    <string name="toolbar_budget_settings">Budget settings</string>
+
+    <!-- Transaction type default labels -->
+    <string name="tx_type_borrow">Borrow</string>
+    <string name="tx_type_lend">Lend</string>
+    <string name="tx_type_repay">Repay</string>
 </resources>

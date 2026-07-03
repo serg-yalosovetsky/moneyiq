@@ -231,4 +231,20 @@
     <string name="settings_version">Версия %1$s</string>
     <string name="settings_about_desc">Персональный финансовый менеджер.\nОтслеживайте расходы, доходы и бюджет.</string>
     <string name="settings_notif_time">Время уведомления</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_sync_off">Синхронизация отключена…</string>
+    <string name="drawer_premium">Премиум-версия</string>
+    <string name="drawer_signin">Войти</string>
+    <string name="drawer_rate">Оцените нас</string>
+    <string name="drawer_support">Поддержка</string>
+
+    <!-- Top bar actions -->
+    <string name="toolbar_search_tx">Поиск операций</string>
+    <string name="toolbar_budget_settings">Настройки бюджета</string>
+
+    <!-- Transaction type default labels -->
+    <string name="tx_type_borrow">Взять в долг</string>
+    <string name="tx_type_lend">Дать в долг</string>
+    <string name="tx_type_repay">Вернуть долг</string>
 </resources>

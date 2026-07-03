@@ -393,7 +393,7 @@ private fun AppDrawerContent(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Синхронізацію вимкнено…",
+                        stringResource(R.string.drawer_sync_off),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -431,7 +431,7 @@ private fun AppDrawerContent(
                 Icon(Icons.Outlined.WorkspacePremium, null, tint = Color.White, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    "Преміум-версія",
+                    stringResource(R.string.drawer_premium),
                     color      = Color.White,
                     fontWeight = FontWeight.Bold,
                     style      = MaterialTheme.typography.bodyLarge
@@ -442,12 +442,12 @@ private fun AppDrawerContent(
         Spacer(Modifier.height(8.dp))
 
         // Menu items
-        DrawerMenuItem(Icons.Outlined.Person,     "Увійти")
-        DrawerMenuItem(Icons.Outlined.Settings,   "Налаштування", onClick = onSettingsClick)
-        DrawerMenuItem(Icons.Outlined.Storage,    "Дані",         onClick = onDataClick)
-        DrawerMenuItem(Icons.Outlined.StarBorder, "Оцініть нас")
-        DrawerMenuItem(Icons.Outlined.Headset,    "Підтримка")
-        DrawerMenuItem(Icons.Outlined.Info,       "Про застосунок")
+        DrawerMenuItem(Icons.Outlined.Person,     stringResource(R.string.drawer_signin))
+        DrawerMenuItem(Icons.Outlined.Settings,   stringResource(R.string.settings_title), onClick = onSettingsClick)
+        DrawerMenuItem(Icons.Outlined.Storage,    stringResource(R.string.settings_data),  onClick = onDataClick)
+        DrawerMenuItem(Icons.Outlined.StarBorder, stringResource(R.string.drawer_rate))
+        DrawerMenuItem(Icons.Outlined.Headset,    stringResource(R.string.drawer_support))
+        DrawerMenuItem(Icons.Outlined.Info,       stringResource(R.string.settings_about))
     }
 }
 
@@ -528,11 +528,11 @@ fun SharedTopBar(
 
         // Права кнопка
         val (icon, description, action) = when (currentPage) {
-            0    -> Triple(Icons.Default.Add,       "Новий рахунок",        onPlusClick)
-            1    -> Triple(ToolbarEditIcon,         "Редагувати категорії", onEditCategories)
-            2    -> Triple(Icons.Default.Search,    "Пошук операцій",       onSearchTx)
-            3    -> Triple(Icons.Outlined.Speed,    "Налаштування бюджету", onBudgetSettings)
-            else -> Triple(ToolbarSettingsIcon,     "Налаштування",         onSettings)
+            0    -> Triple(Icons.Default.Add,       stringResource(R.string.acc_new_title),          onPlusClick)
+            1    -> Triple(ToolbarEditIcon,         stringResource(R.string.cat_edit_categories),    onEditCategories)
+            2    -> Triple(Icons.Default.Search,    stringResource(R.string.toolbar_search_tx),      onSearchTx)
+            3    -> Triple(Icons.Outlined.Speed,    stringResource(R.string.toolbar_budget_settings), onBudgetSettings)
+            else -> Triple(ToolbarSettingsIcon,     stringResource(R.string.settings_title),         onSettings)
         }
 
         IconButton(
@@ -619,13 +619,14 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
     )
 }
 
-private fun TransactionType.defaultLabel() = when (this) {
-    TransactionType.TRANSFER -> "Перевід"
-    TransactionType.BORROW   -> "Взяти в борг"
-    TransactionType.LEND     -> "Дати в борг"
-    TransactionType.REPAY    -> "Повернути борг"
-    TransactionType.INCOME   -> "Дохід"
-    TransactionType.EXPENSE  -> "Витрата"
+@Composable
+private fun TransactionType.defaultLabel(): String = when (this) {
+    TransactionType.TRANSFER -> stringResource(R.string.tx_transfer)
+    TransactionType.BORROW   -> stringResource(R.string.tx_type_borrow)
+    TransactionType.LEND     -> stringResource(R.string.tx_type_lend)
+    TransactionType.REPAY    -> stringResource(R.string.tx_type_repay)
+    TransactionType.INCOME   -> stringResource(R.string.tx_income)
+    TransactionType.EXPENSE  -> stringResource(R.string.tx_expense)
 }
 
 @Composable

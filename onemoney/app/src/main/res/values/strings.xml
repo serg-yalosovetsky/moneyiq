@@ -236,4 +236,20 @@
     <string name="settings_version">Версія %1$s</string>
     <string name="settings_about_desc">Персональний фінансовий менеджер.\nВідстежуйте витрати, доходи та бюджет.</string>
     <string name="settings_notif_time">Час сповіщення</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_sync_off">Синхронізацію вимкнено…</string>
+    <string name="drawer_premium">Преміум-версія</string>
+    <string name="drawer_signin">Увійти</string>
+    <string name="drawer_rate">Оцініть нас</string>
+    <string name="drawer_support">Підтримка</string>
+
+    <!-- Top bar actions -->
+    <string name="toolbar_search_tx">Пошук операцій</string>
+    <string name="toolbar_budget_settings">Налаштування бюджету</string>
+
+    <!-- Transaction type default labels -->
+    <string name="tx_type_borrow">Взяти в борг</string>
+    <string name="tx_type_lend">Дати в борг</string>
+    <string name="tx_type_repay">Повернути борг</string>
 </resources>
