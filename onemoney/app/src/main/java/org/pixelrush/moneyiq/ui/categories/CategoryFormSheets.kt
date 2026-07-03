@@ -169,68 +169,16 @@ fun CategoryFormSheet(
             ) {
                 // ── Шапка: назва + іконка ────────────────────────────────────
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(end = 76.dp)) {
-                            Text(
-                                "Назва",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            BasicTextField(
-                                value          = name,
-                                onValueChange  = { name = it },
-                                textStyle      = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color      = MaterialTheme.colorScheme.onSurface
-                                ),
-                                cursorBrush    = SolidColor(MaterialTheme.colorScheme.primary),
-                                singleLine     = true,
-                                keyboardOptions   = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions   = KeyboardActions(onDone = {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                }),
-                                modifier       = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(nameFocusRequester)
-                                    .onFocusChanged { isNameFocused = it.isFocused },
-                                decorationBox  = { inner ->
-                                    Box {
-                                        if (name.isBlank()) {
-                                            Text(
-                                                "Введіть назву",
-                                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                                            )
-                                        }
-                                        inner()
-                                    }
-                                }
-                            )
-                        }
-                        // Велика кольорова іконка праворуч
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .size(64.dp)
-                                .clip(RoundedCornerShape(OneMoneyTheme.dimens.largeRadius))
-                                .background(catColor)
-                                .clickable { showIconPicker = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                categoryIconFor(iconKey), null,
-                                tint     = Color.White,
-                                modifier = Modifier.size(34.dp)
-                            )
-                        }
-                    }
+                    CategoryFormHeader(
+                        name               = name,
+                        onNameChange       = { name = it },
+                        catColor           = catColor,
+                        iconKey            = iconKey,
+                        nameFocusRequester = nameFocusRequester,
+                        onNameFocusChange  = { isNameFocused = it },
+                        onImeDone          = { focusManager.clearFocus(); keyboardController?.hide() },
+                        onIconClick        = { showIconPicker = true }
+                    )
                 }
 
                 // ── Налаштування ─────────────────────────────────────────────
@@ -421,57 +369,158 @@ fun CategoryFormSheet(
         }
     }
 
-    // ── Пікер кольору та іконки ───────────────────────────────────────────────
+    CategoryFormDialogs(
+        showIconPicker     = showIconPicker,
+        colorHex           = colorHex,
+        iconKey            = iconKey,
+        onIconSave         = { newColor, newIcon -> colorHex = newColor; iconKey = newIcon; showIconPicker = false },
+        onIconDismiss      = { showIconPicker = false },
+        showDeleteConfirm  = showDeleteConfirm,
+        onDeleteConfirm    = { showDeleteConfirm = false; onDelete?.invoke() },
+        onDeleteDismiss    = { showDeleteConfirm = false },
+        showBudgetCalc     = showBudgetCalc,
+        budget             = budget,
+        onBudgetResult     = { v -> budget = if (v <= 0.0) "" else v.toBigDecimal().stripTrailingZeros().toPlainString(); showBudgetCalc = false },
+        onBudgetDismiss    = { showBudgetCalc = false },
+        showCurrencyPicker = showCurrencyPicker,
+        currencyCode       = currencyCode,
+        onCurrencySelect   = { code -> currencyCode = code; showCurrencyPicker = false },
+        onCurrencyDismiss  = { showCurrencyPicker = false },
+    )
+}
+
+/** Шапка форми категорії: поле назви + велика кольорова іконка (клік → пікер). */
+@Composable
+private fun CategoryFormHeader(
+    name:               String,
+    onNameChange:       (String) -> Unit,
+    catColor:           Color,
+    iconKey:            String,
+    nameFocusRequester: FocusRequester,
+    onNameFocusChange:  (Boolean) -> Unit,
+    onImeDone:          () -> Unit,
+    onIconClick:        () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp)
+    ) {
+        Column(modifier = Modifier.padding(end = 76.dp)) {
+            Text(
+                "Назва",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+            Spacer(Modifier.height(6.dp))
+            BasicTextField(
+                value          = name,
+                onValueChange  = onNameChange,
+                textStyle      = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color      = MaterialTheme.colorScheme.onSurface
+                ),
+                cursorBrush    = SolidColor(MaterialTheme.colorScheme.primary),
+                singleLine     = true,
+                keyboardOptions   = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions   = KeyboardActions(onDone = { onImeDone() }),
+                modifier       = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(nameFocusRequester)
+                    .onFocusChanged { onNameFocusChange(it.isFocused) },
+                decorationBox  = { inner ->
+                    Box {
+                        if (name.isBlank()) {
+                            Text(
+                                "Введіть назву",
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                            )
+                        }
+                        inner()
+                    }
+                }
+            )
+        }
+        // Велика кольорова іконка праворуч
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(64.dp)
+                .clip(RoundedCornerShape(OneMoneyTheme.dimens.largeRadius))
+                .background(catColor)
+                .clickable { onIconClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                categoryIconFor(iconKey), null,
+                tint     = Color.White,
+                modifier = Modifier.size(34.dp)
+            )
+        }
+    }
+}
+
+/** Хвостові діалоги форми категорії (пікер кольору/іконки, підтвердження
+ *  видалення, бюджет-калькулятор, вибір валюти). Винесено з CategoryFormSheet
+ *  для читабельності. */
+@Composable
+private fun CategoryFormDialogs(
+    showIconPicker:     Boolean,
+    colorHex:           String,
+    iconKey:            String,
+    onIconSave:         (String, String) -> Unit,
+    onIconDismiss:      () -> Unit,
+    showDeleteConfirm:  Boolean,
+    onDeleteConfirm:    () -> Unit,
+    onDeleteDismiss:    () -> Unit,
+    showBudgetCalc:     Boolean,
+    budget:             String,
+    onBudgetResult:     (Double) -> Unit,
+    onBudgetDismiss:    () -> Unit,
+    showCurrencyPicker: Boolean,
+    currencyCode:       String,
+    onCurrencySelect:   (String) -> Unit,
+    onCurrencyDismiss:  () -> Unit,
+) {
     if (showIconPicker) {
         ColorIconPickerSheet(
             currentColor = colorHex,
             currentIcon  = iconKey,
-            onSave       = { newColor, newIcon ->
-                colorHex = newColor
-                iconKey  = newIcon
-                showIconPicker = false
-            },
-            onDismiss = { showIconPicker = false }
+            onSave       = onIconSave,
+            onDismiss    = onIconDismiss
         )
     }
 
-    // ── Видалення ─────────────────────────────────────────────────────────────
     if (showDeleteConfirm) {
         ConfirmationDialog(
             title     = "Видалити категорію?",
             message   = "Транзакції залишаться, але без категорії.",
-            onConfirm = { showDeleteConfirm = false; onDelete?.invoke() },
-            onDismiss = { showDeleteConfirm = false }
+            onConfirm = onDeleteConfirm,
+            onDismiss = onDeleteDismiss
         )
     }
 
-    // ── Бюджет-калькулятор ────────────────────────────────────────────────────
     if (showBudgetCalc) {
         AmountCalculatorSheet(
             initial   = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
             title     = "Бюджет",
-            onResult  = { v ->
-                budget = if (v <= 0.0) "" else v.toBigDecimal().stripTrailingZeros().toPlainString()
-                showBudgetCalc = false
-            },
-            onDismiss = { showBudgetCalc = false }
+            onResult  = onBudgetResult,
+            onDismiss = onBudgetDismiss
         )
     }
 
-    // ── Вибір валюти ─────────────────────────────────────────────────────────
     if (showCurrencyPicker) {
         Dialog(
-            onDismissRequest = { showCurrencyPicker = false },
+            onDismissRequest = onCurrencyDismiss,
             properties       = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             CurrencyPageContent(
                 title    = "Валюта категорії",
                 selected = currencyCode,
-                onSelect = { code ->
-                    currencyCode = code
-                    showCurrencyPicker = false
-                },
-                onClose  = { showCurrencyPicker = false }
+                onSelect = onCurrencySelect,
+                onClose  = onCurrencyDismiss
             )
         }
     }
