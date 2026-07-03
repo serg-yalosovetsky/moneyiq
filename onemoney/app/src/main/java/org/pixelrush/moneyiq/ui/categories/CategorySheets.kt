@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -524,78 +525,12 @@ fun QuickExpenseSheet(
 
     // ── Вибір категорії ───────────────────────────────────────────────────────
     if (showCatPicker && categories.isNotEmpty()) {
-        val expCats = remember(categories) {
-            categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.EXPENSE }
-        }
-        val incCats = remember(categories) {
-            categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.INCOME }
-        }
-        ModalBottomSheet(
-            onDismissRequest = { showCatPicker = false },
-            sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Text(
-                "Категорія",
-                style    = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                if (expCats.isNotEmpty()) {
-                    item {
-                        Text("Витрати", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                    }
-                    items(expCats) { cat ->
-                        val color = remember(cat.colorHex) {
-                            parseColorHex(cat.colorHex, FallbackIconColor)
-                        }
-                        ListItem(
-                            modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
-                            leadingContent  = {
-                                Box(
-                                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
-                                    contentAlignment = Alignment.Center
-                                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-                            },
-                            headlineContent = { Text(cat.name) },
-                            trailingContent = {
-                                if (cat.id == selectedCategory.id)
-                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
-                            }
-                        )
-                    }
-                }
-                if (incCats.isNotEmpty()) {
-                    item {
-                        Text("Доходи", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                    }
-                    items(incCats) { cat ->
-                        val color = remember(cat.colorHex) {
-                            parseColorHex(cat.colorHex, FallbackIconColor)
-                        }
-                        ListItem(
-                            modifier        = Modifier.clickable { selectedCategory = cat; showCatPicker = false },
-                            leadingContent  = {
-                                Box(
-                                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
-                                    contentAlignment = Alignment.Center
-                                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-                            },
-                            headlineContent = { Text(cat.name) },
-                            trailingContent = {
-                                if (cat.id == selectedCategory.id)
-                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
-                            }
-                        )
-                    }
-                }
-                item { Spacer(Modifier.height(32.dp)) }
-            }
-        }
+        QuickCategoryPickerSheet(
+            categories         = categories,
+            selectedCategoryId = selectedCategory.id,
+            onSelect           = { selectedCategory = it; showCatPicker = false },
+            onDismiss          = { showCatPicker = false }
+        )
     }
 
     // ── Вибір дати (аркуш) ────────────────────────────────────────────────────
@@ -647,6 +582,72 @@ fun QuickExpenseSheet(
             label          = "З рахунку",
             onSelect       = { acc -> selectedAccount = acc; showAccSheet = false },
             onDismiss      = { showAccSheet = false }
+        )
+    }
+}
+
+/** Аркуш вибору категорії для швидкого запису (секції Витрати/Доходи).
+ *  Раніше ~73 рядки inline у QuickExpenseSheet з дублюванням exp/inc гілок. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickCategoryPickerSheet(
+    categories:         List<CategoryEntity>,
+    selectedCategoryId: Long,
+    onSelect:           (CategoryEntity) -> Unit,
+    onDismiss:          () -> Unit,
+) {
+    val expCats = remember(categories) {
+        categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.EXPENSE }
+    }
+    val incCats = remember(categories) {
+        categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.INCOME }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Text(
+            "Категорія",
+            style      = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            quickCatSection("Витрати", expCats, selectedCategoryId, onSelect)
+            quickCatSection("Доходи",  incCats, selectedCategoryId, onSelect)
+            item { Spacer(Modifier.height(32.dp)) }
+        }
+    }
+}
+
+/** Секція пікера категорій (заголовок + рядки). Прибирає дубль exp/inc гілок. */
+private fun LazyListScope.quickCatSection(
+    title:              String,
+    cats:               List<CategoryEntity>,
+    selectedCategoryId: Long,
+    onSelect:           (CategoryEntity) -> Unit,
+) {
+    if (cats.isEmpty()) return
+    item {
+        Text(title, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+    }
+    items(cats) { cat ->
+        val color = parseColorHex(cat.colorHex, FallbackIconColor)
+        ListItem(
+            modifier        = Modifier.clickable { onSelect(cat) },
+            leadingContent  = {
+                Box(
+                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
+                    contentAlignment = Alignment.Center
+                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+            },
+            headlineContent = { Text(cat.name) },
+            trailingContent = {
+                if (cat.id == selectedCategoryId)
+                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+            }
         )
     }
 }
