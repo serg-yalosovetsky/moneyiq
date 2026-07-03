@@ -7,16 +7,6 @@ import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val MONTH_NAMES_UA = arrayOf(
-    "СІЧЕНЬ", "ЛЮТИЙ", "БЕРЕЗЕНЬ", "КВІТЕНЬ", "ТРАВЕНЬ", "ЧЕРВЕНЬ",
-    "ЛИПЕНЬ", "СЕРПЕНЬ", "ВЕРЕСЕНЬ", "ЖОВТЕНЬ", "ЛИСТОПАД", "ГРУДЕНЬ"
-)
-
-val MONTH_NAMES_UA_FULL = arrayOf(
-    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-)
-
 enum class PeriodMode { MONTH, TODAY, WEEK, YEAR, ALL, DAY, RANGE }
 
 data class AppMonth(
@@ -124,42 +114,6 @@ class SelectedMonthRepository @Inject constructor() {
         PeriodMode.ALL   -> "∞"
         PeriodMode.DAY   -> "1"
         PeriodMode.RANGE -> "${daysInPeriod(a)}"
-    }
-
-    fun pillLabel(a: AppMonth): String {
-        val today = Calendar.getInstance()
-        return when (a.mode) {
-            PeriodMode.MONTH -> "${MONTH_NAMES_UA[a.month]} ${a.year}"
-            PeriodMode.TODAY -> {
-                val d = today.get(Calendar.DAY_OF_MONTH)
-                val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)].uppercase()
-                "$d $m"
-            }
-            PeriodMode.WEEK -> {
-                val cal = Calendar.getInstance()
-                cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-                val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
-                cal.add(Calendar.DAY_OF_MONTH, 6)
-                val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()}"
-                "$s — $e"
-            }
-            PeriodMode.YEAR  -> "${a.year}"
-            PeriodMode.ALL   -> "ВІД ПОЧАТКУ"
-            PeriodMode.DAY   -> {
-                val cal = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
-                val d = cal.get(Calendar.DAY_OF_MONTH)
-                val m = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)].uppercase()
-                "$d $m ${cal.get(Calendar.YEAR)}"
-            }
-            PeriodMode.RANGE -> {
-                val s = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
-                val e = Calendar.getInstance().apply { timeInMillis = a.toMillis }
-                val fmt = { c: Calendar ->
-                    "${c.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)].uppercase()}"
-                }
-                "${fmt(s)} — ${fmt(e)}"
-            }
-        }
     }
 
     fun daysInMonth(year: Int, month: Int): Int =

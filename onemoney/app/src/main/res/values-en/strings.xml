@@ -161,4 +161,38 @@
         <item quantity="one">%d operation</item>
         <item quantity="other">%d operations</item>
     </plurals>
+
+    <!-- Month names (nominative, standalone form) -->
+    <string-array name="month_names">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
+
+    <!-- Top bar / period pill -->
+    <string name="acc_all_title">All accounts</string>
+    <string name="period_title">Period</string>
+    <string name="period_prev">Previous period</string>
+    <string name="period_next">Next period</string>
+    <string name="period_from_start">From start</string>
+    <string name="period_all">All time</string>
+    <string name="period_all_sub">from start</string>
+    <string name="period_pick_day">Pick a day</string>
+    <string name="period_pick_day_sub">choose a date</string>
+    <string name="period_week">Week</string>
+    <string name="period_today">Today</string>
+    <string name="period_year">Year</string>
+    <string name="period_month">Month</string>
+    <string name="period_pick_range">Select range</string>
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
 </resources>

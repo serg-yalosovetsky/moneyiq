@@ -22,15 +22,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.repository.AppMonth
-import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA
-import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.data.repository.PeriodMode
 import org.syalosovetskyi.onemoney.ui.components.icons.DoubleChevronLeft
 import org.syalosovetskyi.onemoney.ui.components.icons.DoubleChevronRight
@@ -50,35 +51,40 @@ private class Ref<T>(var value: T)
  */
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-internal fun pillLabelFor(a: AppMonth): String {
+/** Локалізовані назви місяців (називний відмінок), 0-based. */
+@Composable
+internal fun localizedMonths(): Array<String> = stringArrayResource(R.array.month_names)
+
+/** Мітка пілюлі періоду — форматується у Composable-шарі (локаль/ресурси доступні). */
+@Composable
+internal fun monthPillLabel(a: AppMonth): String {
+    val months = localizedMonths()
+    val fromStart = stringResource(R.string.period_from_start)
     val today = Calendar.getInstance()
     return when (a.mode) {
-        PeriodMode.MONTH -> "${MONTH_NAMES_UA_FULL[a.month].uppercase()} ${a.year}"
+        PeriodMode.MONTH -> "${months[a.month].uppercase()} ${a.year}"
         PeriodMode.TODAY -> {
             val d = today.get(Calendar.DAY_OF_MONTH)
-            val m = MONTH_NAMES_UA_FULL[today.get(Calendar.MONTH)]
-            "$d $m"
+            "$d ${months[today.get(Calendar.MONTH)]}"
         }
         PeriodMode.WEEK -> {
             val cal = Calendar.getInstance()
             cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-            val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]}"
+            val s = "${cal.get(Calendar.DAY_OF_MONTH)} ${months[cal.get(Calendar.MONTH)]}"
             cal.add(Calendar.DAY_OF_MONTH, 6)
-            val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]}"
+            val e = "${cal.get(Calendar.DAY_OF_MONTH)} ${months[cal.get(Calendar.MONTH)]}"
             "$s — $e"
         }
         PeriodMode.YEAR  -> "${a.year}"
-        PeriodMode.ALL   -> "Від початку"
+        PeriodMode.ALL   -> fromStart
         PeriodMode.DAY   -> {
             val cal = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
-            val d = cal.get(Calendar.DAY_OF_MONTH)
-            val m = MONTH_NAMES_UA_FULL[cal.get(Calendar.MONTH)]
-            "$d $m ${cal.get(Calendar.YEAR)}"
+            "${cal.get(Calendar.DAY_OF_MONTH)} ${months[cal.get(Calendar.MONTH)]} ${cal.get(Calendar.YEAR)}"
         }
         PeriodMode.RANGE -> {
             val s = Calendar.getInstance().apply { timeInMillis = a.fromMillis }
             val e = Calendar.getInstance().apply { timeInMillis = a.toMillis }
-            val fmt = { c: Calendar -> "${c.get(Calendar.DAY_OF_MONTH)} ${MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)]}" }
+            fun fmt(c: Calendar) = "${c.get(Calendar.DAY_OF_MONTH)} ${months[c.get(Calendar.MONTH)]}"
             "${fmt(s)} — ${fmt(e)}"
         }
     }
@@ -104,7 +110,7 @@ fun SharedMonthNavPill(
 ) {
     var showSheet by remember { mutableStateOf(false) }
 
-    val pillLabel = pillLabelFor(appMonth)
+    val pillLabel = monthPillLabel(appMonth)
     val pillBadge = pillBadgeFor(appMonth, daysInPeriod)
 
     val today = Calendar.getInstance()
@@ -150,7 +156,7 @@ fun SharedMonthNavPill(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Icon(
-            DoubleChevronLeft, "Попередній період",
+            DoubleChevronLeft, stringResource(R.string.period_prev),
             tint     = Color(0xFF111111),
             modifier = Modifier
                 .size(dimens.pillArrowSize)
@@ -215,7 +221,7 @@ fun SharedMonthNavPill(
         }
 
         Icon(
-            DoubleChevronRight, "Наступний період",
+            DoubleChevronRight, stringResource(R.string.period_next),
             tint     = if (isCurrentMonth) Color(0xFF111111) else MonthRed,
             modifier = Modifier
                 .size(dimens.pillArrowSize)
@@ -251,24 +257,25 @@ fun PeriodSelectorSheet(
     val todayDay  = today.get(Calendar.DAY_OF_MONTH)
     val yearDays  = if (todayYear % 4 == 0 && (todayYear % 100 != 0 || todayYear % 400 == 0)) 366 else 365
 
+    val months = localizedMonths()
     val weekStart = (today.clone() as Calendar).apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek) }
     val weekEnd   = (weekStart.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, 6) }
-    fun monthFull(c: Calendar) = MONTH_NAMES_UA_FULL[c.get(Calendar.MONTH)]
+    fun monthFull(c: Calendar) = months[c.get(Calendar.MONTH)]
     val wkLabel = "${weekStart.get(Calendar.DAY_OF_MONTH)} ${monthFull(weekStart)}" +
                   " — ${weekEnd.get(Calendar.DAY_OF_MONTH)} ${monthFull(weekEnd)}"
 
     val options = listOf(
-        PeriodOption("all",   "Весь час",      "від початку",
+        PeriodOption("all",   stringResource(R.string.period_all),      stringResource(R.string.period_all_sub),
                      "∞",   null, Color(0xFF607D8B)),
-        PeriodOption("day",   "Виберіть день", "оберіть дату",
+        PeriodOption("day",   stringResource(R.string.period_pick_day), stringResource(R.string.period_pick_day_sub),
                      null,  Icons.Default.CalendarMonth, Color(0xFF9E9E9E)),
-        PeriodOption("week",  "Тиждень",       wkLabel,
+        PeriodOption("week",  stringResource(R.string.period_week),     wkLabel,
                      "7",   null, Color(0xFF26A69A)),
-        PeriodOption("today", "Сьогодні",      "$todayDay ${MONTH_NAMES_UA_FULL[todayMon]}",
+        PeriodOption("today", stringResource(R.string.period_today),    "$todayDay ${months[todayMon]}",
                      "1",   null, Color(0xFF42A5F5)),
-        PeriodOption("year",  "Рік",           "$todayYear",
+        PeriodOption("year",  stringResource(R.string.period_year),     "$todayYear",
                      "$yearDays", null, Color(0xFFEF6C00)),
-        PeriodOption("month", "Місяць",        "${MONTH_NAMES_UA_FULL[appMonth.month]} ${appMonth.year}",
+        PeriodOption("month", stringResource(R.string.period_month),    "${months[appMonth.month]} ${appMonth.year}",
                      "$daysInPeriod", null, MonthRed),
     )
 
@@ -305,7 +312,7 @@ fun PeriodSelectorSheet(
                     }
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showDayPicker = false }) { Text("Скасувати") } }
+            dismissButton = { TextButton(onClick = { showDayPicker = false }) { Text(stringResource(R.string.common_cancel)) } }
         ) { DatePicker(state = dpState) }
         return
     }
@@ -338,7 +345,7 @@ fun PeriodSelectorSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text(
-                "Період",
+                stringResource(R.string.period_title),
                 modifier   = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -368,10 +375,10 @@ fun PeriodSelectorSheet(
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Вибрати діапазон", style = MaterialTheme.typography.bodyMedium,
+                        Text(stringResource(R.string.period_pick_range), style = MaterialTheme.typography.bodyMedium,
                              fontWeight = FontWeight.SemiBold)
                         Text(
-                            "${MONTH_NAMES_UA_FULL[appMonth.month]} ${appMonth.year}",
+                            "${months[appMonth.month]} ${appMonth.year}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )
@@ -514,7 +521,7 @@ private fun DateRangePickerFullScreen(
                 TopAppBar(
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Закрити")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.acc_close))
                         }
                     },
                     title  = {},
@@ -528,7 +535,7 @@ private fun DateRangePickerFullScreen(
                             enabled = canSave
                         ) {
                             Text(
-                                "Зберегти",
+                                stringResource(R.string.common_save),
                                 fontWeight = FontWeight.SemiBold,
                                 color      = if (canSave) MonthRed
                                              else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
@@ -548,7 +555,7 @@ private fun DateRangePickerFullScreen(
                     .padding(padding),
                 title    = {
                     Text(
-                        "Вибрати діапазон",
+                        stringResource(R.string.period_pick_range),
                         modifier   = Modifier.padding(start = 64.dp, top = 16.dp),
                         style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold

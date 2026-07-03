@@ -168,4 +168,38 @@
         <item quantity="many">%d операцій</item>
         <item quantity="other">%d операцій</item>
     </plurals>
+
+    <!-- Month names (nominative, standalone form) -->
+    <string-array name="month_names">
+        <item>Січень</item>
+        <item>Лютий</item>
+        <item>Березень</item>
+        <item>Квітень</item>
+        <item>Травень</item>
+        <item>Червень</item>
+        <item>Липень</item>
+        <item>Серпень</item>
+        <item>Вересень</item>
+        <item>Жовтень</item>
+        <item>Листопад</item>
+        <item>Грудень</item>
+    </string-array>
+
+    <!-- Top bar / period pill -->
+    <string name="acc_all_title">Всі рахунки</string>
+    <string name="period_title">Період</string>
+    <string name="period_prev">Попередній період</string>
+    <string name="period_next">Наступний період</string>
+    <string name="period_from_start">Від початку</string>
+    <string name="period_all">Весь час</string>
+    <string name="period_all_sub">від початку</string>
+    <string name="period_pick_day">Виберіть день</string>
+    <string name="period_pick_day_sub">оберіть дату</string>
+    <string name="period_week">Тиждень</string>
+    <string name="period_today">Сьогодні</string>
+    <string name="period_year">Рік</string>
+    <string name="period_month">Місяць</string>
+    <string name="period_pick_range">Вибрати діапазон</string>
+    <string name="date_today">Сьогодні</string>
+    <string name="date_yesterday">Вчора</string>
 </resources>

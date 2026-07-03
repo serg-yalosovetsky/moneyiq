@@ -163,4 +163,38 @@
         <item quantity="many">%d операций</item>
         <item quantity="other">%d операций</item>
     </plurals>
+
+    <!-- Month names (nominative, standalone form) -->
+    <string-array name="month_names">
+        <item>Январь</item>
+        <item>Февраль</item>
+        <item>Март</item>
+        <item>Апрель</item>
+        <item>Май</item>
+        <item>Июнь</item>
+        <item>Июль</item>
+        <item>Август</item>
+        <item>Сентябрь</item>
+        <item>Октябрь</item>
+        <item>Ноябрь</item>
+        <item>Декабрь</item>
+    </string-array>
+
+    <!-- Top bar / period pill -->
+    <string name="acc_all_title">Все счета</string>
+    <string name="period_title">Период</string>
+    <string name="period_prev">Предыдущий период</string>
+    <string name="period_next">Следующий период</string>
+    <string name="period_from_start">С начала</string>
+    <string name="period_all">Всё время</string>
+    <string name="period_all_sub">с начала</string>
+    <string name="period_pick_day">Выберите день</string>
+    <string name="period_pick_day_sub">выберите дату</string>
+    <string name="period_week">Неделя</string>
+    <string name="period_today">Сегодня</string>
+    <string name="period_year">Год</string>
+    <string name="period_month">Месяц</string>
+    <string name="period_pick_range">Выбрать диапазон</string>
+    <string name="date_today">Сегодня</string>
+    <string name="date_yesterday">Вчера</string>
 </resources>

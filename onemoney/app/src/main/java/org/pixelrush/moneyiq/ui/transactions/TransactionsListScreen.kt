@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,6 @@ import org.syalosovetskyi.onemoney.data.db.dao.TransactionWithDetails
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
-import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.ui.categories.QuickExpenseSheet
 import org.syalosovetskyi.onemoney.ui.main.SectionHeader
@@ -478,7 +478,7 @@ private fun EmptyMonthState(sel: TxSelectedMonth, isFiltered: Boolean) {
             Spacer(Modifier.height(20.dp))
             Text(
                 text      = if (isFiltered) stringResource(R.string.tx_empty_filtered)
-                            else stringResource(R.string.tx_empty_month, "${MONTH_NAMES_UA_FULL[sel.month]} ${sel.year}"),
+                            else stringResource(R.string.tx_empty_month, "${stringArrayResource(R.array.month_names)[sel.month]} ${sel.year}"),
                 style     = MaterialTheme.typography.bodyLarge,
                 fontStyle = FontStyle.Italic,
                 textAlign = TextAlign.Center,

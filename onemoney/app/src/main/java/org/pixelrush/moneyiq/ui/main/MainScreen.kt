@@ -511,7 +511,7 @@ fun SharedTopBar(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Всі рахунки",
+                stringResource(R.string.acc_all_title),
                 style      = topBarTypo.topBarLabel.copy(letterSpacing = 0.sp),
                 color      = topBarColors.primaryText
             )

@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -44,10 +45,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
-import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.ui.budget.BudgetCatRow
 import org.syalosovetskyi.onemoney.ui.budget.BudgetInputSheet
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
+import org.syalosovetskyi.onemoney.ui.main.monthPillLabel
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
@@ -120,7 +121,7 @@ fun CategoriesScreen(
         }
         result
     } else spending
-    val monthLabel = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
+    val monthLabel = "${stringArrayResource(R.array.month_names)[state.selectedMonth.month]} ${state.selectedMonth.year}"
 
     Column(
         modifier = Modifier
@@ -175,7 +176,7 @@ fun CategoriesScreen(
             spending      = catSpending,
             txCount       = catTxCount,
             totalInPeriod = catTotal,
-            pillLabel     = state.pillLabel,
+            pillLabel     = monthPillLabel(state.appMonth),
             onEdit        = { actionCategory = null; editCategory = cat },
             onBudget      = { actionCategory = null; budgetCategory = cat },
             onOperations  = { actionCategory = null; onViewCategoryTx(cat) },

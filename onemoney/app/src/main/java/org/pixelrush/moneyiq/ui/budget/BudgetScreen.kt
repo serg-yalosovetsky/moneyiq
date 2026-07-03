@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +31,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
-import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
 import org.syalosovetskyi.onemoney.ui.main.SharedMonthNavPill
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
@@ -54,7 +54,7 @@ fun BudgetScreen(
     val appColors           = OneMoneyTheme.colors
     val expenseColor        = appColors.budgetExpense
     val incomeColor         = appColors.budgetIncome
-    val monthLabel          = "${MONTH_NAMES_UA_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}"
+    val monthLabel          = "${stringArrayResource(R.array.month_names)[state.selectedMonth.month]} ${state.selectedMonth.year}"
     var showSettingsSheet      by remember { mutableStateOf(false) }
     var currentExpensesMode   by remember { mutableStateOf(false) }
     val settingsVisible        = showSettings || showSettingsSheet

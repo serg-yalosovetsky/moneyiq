@@ -20,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.util.formatMoney
@@ -161,7 +163,7 @@ fun CalcDateSheet(
                     ) {
                         Icon(Icons.Outlined.DarkMode, null, modifier = Modifier.size(26.dp))
                         Spacer(Modifier.height(Spacing.xs))
-                        Text("Вчора", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.date_yesterday), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Text(dFmt.format(Date(yesterdayMs)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
@@ -179,7 +181,7 @@ fun CalcDateSheet(
                     ) {
                         Icon(Icons.Outlined.WbSunny, null, modifier = Modifier.size(26.dp))
                         Spacer(Modifier.height(Spacing.xs))
-                        Text("Сьогодні", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.date_today), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                         Text(dFmt.format(Date(todayMs)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
