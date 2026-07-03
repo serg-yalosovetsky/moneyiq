@@ -65,6 +65,27 @@
     <string name="acc_type_savings">Savings</string>
     <string name="acc_type_savings_sub">Savings, goal, …</string>
 
+    <!-- Account type display names (enum) -->
+    <string name="acc_type_cash">Cash</string>
+    <string name="acc_type_card">Card</string>
+    <string name="acc_type_saving">Savings</string>
+    <string name="acc_type_investment">Investment</string>
+    <string name="acc_type_debt_item">Debt</string>
+    <string name="acc_type_other">Other</string>
+
+    <!-- Accounts screen / sheets (extra) -->
+    <string name="acc_icon_title">Account icon</string>
+    <string name="acc_type_title">Account type</string>
+    <string name="acc_color_title">Account color</string>
+    <string name="acc_desc_hint">Enter description…</string>
+    <string name="acc_default">Default</string>
+    <string name="acc_default_account">Default account</string>
+    <string name="acc_assets">ASSETS</string>
+    <string name="acc_debts">DEBTS</string>
+    <string name="acc_action_balance">Balance</string>
+    <string name="acc_action_topup">Top up</string>
+    <string name="acc_action_withdraw">Withdraw</string>
+
     <!-- Widgets -->
     <string name="widget_balance_description">Balance and transactions for the month</string>
     <string name="widget_expense_description">Quick expense entry</string>

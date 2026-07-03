@@ -51,13 +51,14 @@ fun currencySymbol(code: String): String      = CURRENCIES_ALL.find { it.code ==
 
 // ── Account type helpers (Ukrainian) ─────────────────────────────────────────
 
+@Composable
 fun accountTypeNameUA(type: AccountType): String = when (type) {
-    AccountType.CASH       -> "Готівка"
-    AccountType.CARD       -> "Карта"
-    AccountType.SAVING     -> "Заощадження"
-    AccountType.INVESTMENT -> "Інвестиції"
-    AccountType.DEBT       -> "Борговий"
-    AccountType.OTHER      -> "Інше"
+    AccountType.CASH       -> stringResource(R.string.acc_type_cash)
+    AccountType.CARD       -> stringResource(R.string.acc_type_card)
+    AccountType.SAVING     -> stringResource(R.string.acc_type_saving)
+    AccountType.INVESTMENT -> stringResource(R.string.acc_type_investment)
+    AccountType.DEBT       -> stringResource(R.string.acc_type_debt_item)
+    AccountType.OTHER      -> stringResource(R.string.acc_type_other)
 }
 
 val ACCOUNT_FORM_COLORS = listOf(

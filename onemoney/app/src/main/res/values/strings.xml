@@ -70,6 +70,27 @@
     <string name="acc_type_savings">Накопичувальний</string>
     <string name="acc_type_savings_sub">Заощадження, мета, …</string>
 
+    <!-- Account type display names (enum) -->
+    <string name="acc_type_cash">Готівка</string>
+    <string name="acc_type_card">Карта</string>
+    <string name="acc_type_saving">Заощадження</string>
+    <string name="acc_type_investment">Інвестиції</string>
+    <string name="acc_type_debt_item">Борговий</string>
+    <string name="acc_type_other">Інше</string>
+
+    <!-- Accounts screen / sheets (extra) -->
+    <string name="acc_icon_title">Значок рахунку</string>
+    <string name="acc_type_title">Тип рахунку</string>
+    <string name="acc_color_title">Колір рахунку</string>
+    <string name="acc_desc_hint">Введіть опис…</string>
+    <string name="acc_default">Основний</string>
+    <string name="acc_default_account">Основний рахунок</string>
+    <string name="acc_assets">АКТИВИ</string>
+    <string name="acc_debts">БОРГИ</string>
+    <string name="acc_action_balance">Баланс</string>
+    <string name="acc_action_topup">Поповнення</string>
+    <string name="acc_action_withdraw">Списати</string>
+
     <!-- Widgets (referenced from res/xml + widget code) -->
     <string name="widget_balance_description">Баланс і транзакції за місяць</string>
     <string name="widget_expense_description">Швидке додавання витрати</string>

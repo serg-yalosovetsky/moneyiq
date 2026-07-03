@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -30,6 +31,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.R
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
 
@@ -260,7 +262,7 @@ val ACCOUNT_COLORS_PALETTE: List<String> = listOf(
 fun IconColorPickerScreen(
     initialIconKey:  String,
     initialColorHex: String,
-    title:           String = "Значок рахунку",
+    title:           String = stringResource(R.string.acc_icon_title),
     onResult:        (iconKey: String, colorHex: String) -> Unit,
     onDismiss:       () -> Unit
 ) {
@@ -289,7 +291,7 @@ fun IconColorPickerScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, "Закрити")
+                            Icon(Icons.Default.Close, stringResource(R.string.acc_close))
                         }
                         Text(
                             title,
@@ -302,7 +304,7 @@ fun IconColorPickerScreen(
                             shape          = RoundedCornerShape(50),
                             contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = 10.dp)
                         ) {
-                            Text("Готово", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_done), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -341,7 +343,7 @@ fun IconColorPickerScreen(
                         icon     = { Icon(Icons.Outlined.StarBorder, null, modifier = Modifier.size(20.dp)) },
                         text     = {
                             Text(
-                                "Значок",
+                                stringResource(R.string.cat_icon),
                                 fontWeight = if (tab == 0) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
@@ -352,7 +354,7 @@ fun IconColorPickerScreen(
                         icon     = { Icon(Icons.Outlined.Palette, null, modifier = Modifier.size(20.dp)) },
                         text     = {
                             Text(
-                                "Колір",
+                                stringResource(R.string.cat_color),
                                 fontWeight = if (tab == 1) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }

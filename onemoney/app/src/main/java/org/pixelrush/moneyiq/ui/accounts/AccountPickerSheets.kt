@@ -20,8 +20,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorSheet
 import org.syalosovetskyi.onemoney.ui.components.icons.RoundedIconBox
@@ -52,7 +54,7 @@ fun TypePickerSheet(
     ) {
         Column(Modifier.padding(bottom = 32.dp)) {
             Text(
-                "Тип рахунку",
+                stringResource(R.string.acc_type_title),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier
@@ -98,7 +100,7 @@ fun ColorPickerSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.sm).padding(bottom = 32.dp)) {
             Text(
-                "Колір рахунку",
+                stringResource(R.string.acc_color_title),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.lg)
@@ -151,21 +153,21 @@ fun DescEditorDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title   = { Text("Опис") },
+        title   = { Text(stringResource(R.string.acc_field_description)) },
         text    = {
             OutlinedTextField(
                 value         = text,
                 onValueChange = { text = it },
                 modifier      = Modifier.fillMaxWidth(),
-                placeholder   = { Text("Введіть опис...") },
+                placeholder   = { Text(stringResource(R.string.acc_desc_hint)) },
                 maxLines      = 4
             )
         },
         confirmButton = {
-            Button(onClick = { onSave(text) }) { Text("Готово") }
+            Button(onClick = { onSave(text) }) { Text(stringResource(R.string.common_done)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Скасувати") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }
@@ -182,7 +184,7 @@ fun BalanceInputDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title   = { Text("Баланс рахунку") },
+        title   = { Text(stringResource(R.string.acc_field_balance)) },
         text    = {
             OutlinedTextField(
                 value         = text,
@@ -197,10 +199,10 @@ fun BalanceInputDialog(
             )
         },
         confirmButton = {
-            Button(onClick = { onSave(text) }) { Text("Готово") }
+            Button(onClick = { onSave(text) }) { Text(stringResource(R.string.common_done)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Скасувати") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }
@@ -276,7 +278,7 @@ fun AccountActionSheet(
                 ) {
                     Icon(
                         Icons.Default.Star,
-                        contentDescription = "Основний рахунок",
+                        contentDescription = stringResource(R.string.acc_default_account),
                         tint     = if (account.isDefault) StarGoldColor else onCard,
                         modifier = Modifier.size(22.dp)
                     )
@@ -290,7 +292,7 @@ fun AccountActionSheet(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Баланс рахунку",
+                        stringResource(R.string.acc_field_balance),
                         style = MaterialTheme.typography.bodySmall,
                         color = onCard.copy(alpha = 0.8f)
                     )
@@ -310,18 +312,18 @@ fun AccountActionSheet(
                 modifier              = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                AccountActionButton(Icons.Default.Edit,                 "Редагувати", ActionAmberColor) { onEdit(); onDismiss() }
-                AccountActionButton(Icons.Default.SwapVert,             "Баланс",     ActionGrayColor) { onAdjustBalance(); onDismiss() }
-                AccountActionButton(Icons.AutoMirrored.Filled.ReceiptLong, "Операції", ActionIndigoColor) { onTransactions(); onDismiss() }
+                AccountActionButton(Icons.Default.Edit,                 stringResource(R.string.common_edit), ActionAmberColor) { onEdit(); onDismiss() }
+                AccountActionButton(Icons.Default.SwapVert,             stringResource(R.string.acc_action_balance),     ActionGrayColor) { onAdjustBalance(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ReceiptLong, stringResource(R.string.nav_operations), ActionIndigoColor) { onTransactions(); onDismiss() }
             }
             Spacer(Modifier.height(Spacing.sm))
             Row(
                 modifier              = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                AccountActionButton(Icons.Default.ArrowUpward,              "Поповнення", ActionTealColor) { onIncome(); onDismiss() }
-                AccountActionButton(Icons.Default.ArrowDownward,            "Списати",    ActionPinkColor) { onExpense(); onDismiss() }
-                AccountActionButton(Icons.AutoMirrored.Filled.ArrowForward, "Переказ",   ActionGrayColor) { onTransfer(); onDismiss() }
+                AccountActionButton(Icons.Default.ArrowUpward,              stringResource(R.string.acc_action_topup), ActionTealColor) { onIncome(); onDismiss() }
+                AccountActionButton(Icons.Default.ArrowDownward,            stringResource(R.string.acc_action_withdraw),    ActionPinkColor) { onExpense(); onDismiss() }
+                AccountActionButton(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.tx_transfer),   ActionGrayColor) { onTransfer(); onDismiss() }
             }
         }
     }

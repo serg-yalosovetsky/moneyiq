@@ -65,6 +65,27 @@
     <string name="acc_type_savings">Накопительный</string>
     <string name="acc_type_savings_sub">Сбережения, цель, …</string>
 
+    <!-- Account type display names (enum) -->
+    <string name="acc_type_cash">Наличные</string>
+    <string name="acc_type_card">Карта</string>
+    <string name="acc_type_saving">Накопления</string>
+    <string name="acc_type_investment">Инвестиции</string>
+    <string name="acc_type_debt_item">Долговой</string>
+    <string name="acc_type_other">Другое</string>
+
+    <!-- Accounts screen / sheets (extra) -->
+    <string name="acc_icon_title">Значок счёта</string>
+    <string name="acc_type_title">Тип счёта</string>
+    <string name="acc_color_title">Цвет счёта</string>
+    <string name="acc_desc_hint">Введите описание…</string>
+    <string name="acc_default">Основной</string>
+    <string name="acc_default_account">Основной счёт</string>
+    <string name="acc_assets">АКТИВЫ</string>
+    <string name="acc_debts">ДОЛГИ</string>
+    <string name="acc_action_balance">Баланс</string>
+    <string name="acc_action_topup">Пополнение</string>
+    <string name="acc_action_withdraw">Списать</string>
+
     <!-- Widgets -->
     <string name="widget_balance_description">Баланс и транзакции за месяц</string>
     <string name="widget_expense_description">Быстрое добавление расхода</string>

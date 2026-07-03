@@ -392,7 +392,7 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.Star, "Основний",
+                    Icons.Filled.Star, stringResource(R.string.acc_default),
                     tint     = StarGoldColor,
                     modifier = Modifier.size(16.dp)
                 )
@@ -472,7 +472,7 @@ private fun MyFinancesTab(
     ) {
         item {
             Text(
-                "Мої фінанси",
+                stringResource(R.string.acc_tab_finances),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color      = MaterialTheme.colorScheme.primary,
@@ -495,9 +495,9 @@ private fun MyFinancesTab(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     ) {
                         Box(Modifier.weight(0.18f).padding(vertical = 10.dp))
-                        FinanceHeaderCell("АКТИВИ", Modifier.weight(1f))
+                        FinanceHeaderCell(stringResource(R.string.acc_assets), Modifier.weight(1f))
                         VerticalDividerLine()
-                        FinanceHeaderCell("БОРГИ", Modifier.weight(1f))
+                        FinanceHeaderCell(stringResource(R.string.acc_debts), Modifier.weight(1f))
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -601,15 +601,6 @@ internal fun accountTypeIcon(type: AccountType): ImageVector = when (type) {
     AccountType.INVESTMENT -> Icons.AutoMirrored.Outlined.TrendingUp
     AccountType.DEBT       -> Icons.Outlined.MoneyOff
     AccountType.OTHER      -> Icons.Outlined.AccountBalance
-}
-
-internal fun accountTypeName(type: AccountType) = when (type) {
-    AccountType.CASH       -> "Готівка"
-    AccountType.CARD       -> "Карта"
-    AccountType.SAVING     -> "Заощадження"
-    AccountType.INVESTMENT -> "Інвестиції"
-    AccountType.DEBT       -> "Борговий"
-    AccountType.OTHER      -> "Інше"
 }
 
 // Modifier — пунктирна рамка
