@@ -39,6 +39,7 @@ import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.CategoryScreenTokens
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.util.parseColorHex
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 
 private val FallbackCategoryColor: Color = Color(0xFFFF5722)
@@ -84,8 +85,7 @@ internal fun CategoryChip(
     }
 
     val fallbackColor = remember(category.colorHex) {
-        try { Color(category.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(category.colorHex, FallbackCategoryColor)
     }
     val style  = CategoryScreenTokens.resolve(category.name, category.type, fallbackColor, hasBudget)
     // Dark mode: the light pastel circle becomes a translucent tint of the icon accent.
@@ -254,8 +254,7 @@ internal fun SideSubcategoryPanel(
     val typo   = OneMoneyTheme.typography
 
     val parentColor = remember(parent.colorHex) {
-        try { Color(parent.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(parent.colorHex, FallbackCategoryColor)
     }
     val sortedKids = children
         .filter { (spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0 }
@@ -270,8 +269,7 @@ internal fun SideSubcategoryPanel(
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             sortedKids.forEach { child ->
                 val childColor = remember(child.colorHex) {
-                    try { Color(child.colorHex.toColorInt()) }
-                    catch (_: Exception) { FallbackCategoryColor }
+                    parseColorHex(child.colorHex, FallbackCategoryColor)
                 }
                 val childIconKey = if (child.icon == "category")
                     suggestCategoryStyle(child.name, child.type).first else child.icon
@@ -377,8 +375,7 @@ internal fun ExpandedCategoryStrip(
     val tokens = OneMoneyTheme.dimens
 
     val parentColor = remember(parent.colorHex) {
-        try { Color(parent.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(parent.colorHex, FallbackCategoryColor)
     }
     val sortedKids = children
         .filter { (spending[it.id] ?: 0.0) > 0.0 || it.budgetAmount > 0.0 }
@@ -439,8 +436,7 @@ internal fun ExpandedCategoryStrip(
         ) {
             sortedKids.take(4).forEach { child ->
                 val childColor = remember(child.colorHex) {
-                    try { Color(child.colorHex.toColorInt()) }
-                    catch (_: Exception) { FallbackCategoryColor }
+                    parseColorHex(child.colorHex, FallbackCategoryColor)
                 }
                 val childIconKey = if (child.icon == "category")
                     suggestCategoryStyle(child.name, child.type).first else child.icon
@@ -503,7 +499,7 @@ internal fun ExpandedCategoryStrip(
             modifier  = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.md, vertical = Spacing.xs),
-            shape     = RoundedCornerShape(16.dp),
+            shape     = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius),
             colors    = CardDefaults.cardColors(containerColor = parentColor.copy(alpha = 0.08f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             content   = stripContent
@@ -575,8 +571,7 @@ internal fun DonutChart(
     val tabTotal = activeSpending.sumOf { it.second }
 
     val categoryColors = activeSpending.map { (cat, _) ->
-        try { Color(cat.colorHex.toColorInt()) }
-        catch (_: Exception) { FallbackCategoryColor }
+        parseColorHex(cat.colorHex, FallbackCategoryColor)
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {

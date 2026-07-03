@@ -427,7 +427,7 @@ private fun ColorGrid(selectedHex: String, onSelect: (String) -> Unit) {
                     .clip(CircleShape)
                     .background(color)
                     .then(
-                        if (isSelected) Modifier.border(3.dp, Color.White, CircleShape)
+                        if (isSelected) Modifier.border(OneMoneyTheme.dimens.selectionRingWidth, Color.White, CircleShape)
                         else Modifier
                     )
                     .clickable { onSelect(hex) }

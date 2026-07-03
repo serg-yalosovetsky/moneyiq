@@ -2,6 +2,7 @@
 package org.syalosovetskyi.onemoney.ui.transactions
 
 import org.syalosovetskyi.onemoney.util.parseColorHex
+import org.syalosovetskyi.onemoney.util.DateFormats
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -208,7 +209,7 @@ fun TransactionsListScreen(
                 .align(Alignment.BottomEnd)
                 .padding(bottom = padding.calculateBottomPadding() + 16.dp, end = 16.dp)
                 .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(OneMoneyTheme.dimens.largeRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { showCategoryPicker = true },
             contentAlignment = Alignment.Center
@@ -468,7 +469,7 @@ private fun BalanceCardsRow(openingBalance: Double, closingBalance: Double) {
 private fun BalanceCard(label: String, amount: Double, modifier: Modifier = Modifier) {
     Card(
         modifier  = modifier,
-        shape     = RoundedCornerShape(12.dp),
+        shape     = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -542,7 +543,7 @@ private fun TransactionsList(
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = bottomPadding + 88.dp)) {
         val grouped = transactions.groupBy { tx ->
-            SimpleDateFormat("d MMMM", Locale.getDefault()).format(Date(tx.date))
+            DateFormats.dayMonthFull(Date(tx.date))
         }
         grouped.forEach { (dateLabel, txList) ->
             item {

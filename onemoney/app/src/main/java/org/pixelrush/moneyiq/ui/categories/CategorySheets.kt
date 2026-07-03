@@ -141,7 +141,7 @@ fun CategoryActionSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(16.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(OneMoneyTheme.dimens.smallRadius))
                     ) {
                         Spacer(Modifier.fillMaxSize().background(onCatColor.copy(alpha = 0.28f)))
                         if (clamped > 0f) {
@@ -407,7 +407,7 @@ fun QuickExpenseSheet(
                         .size(badgeD)
                         .align(Alignment.TopCenter)
                         .offset(x = -(badgeD / 2 + 8.dp))
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(OneMoneyTheme.dimens.cardRadius))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
@@ -475,7 +475,7 @@ fun QuickExpenseSheet(
                 textStyle = MaterialTheme.typography.bodySmall,
                 modifier   = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 singleLine = true,
-                shape      = RoundedCornerShape(12.dp)
+                shape      = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
             )
 
             Spacer(Modifier.height(6.dp))
@@ -492,7 +492,7 @@ fun QuickExpenseSheet(
                     val keyBg = MaterialTheme.colorScheme.surfaceVariant
                     Box(
                         modifier         = Modifier.weight(1f).fillMaxHeight()
-                            .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                            .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius)).background(keyBg)
                             .clickable { showDateSheet = true },
                         contentAlignment = Alignment.Center
                     ) {

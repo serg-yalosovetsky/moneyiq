@@ -283,7 +283,7 @@ internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(OneMoneyTheme.dimens.cardRadius))
                         .background(accColor),
                     contentAlignment = Alignment.Center
                 ) {

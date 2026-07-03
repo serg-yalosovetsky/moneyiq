@@ -52,6 +52,7 @@ import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 private val FallbackCategoryColor: Color = Color(0xFFFF5722)
 
@@ -219,7 +220,7 @@ fun CategoryFormSheet(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .size(64.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(OneMoneyTheme.dimens.largeRadius))
                                 .background(catColor)
                                 .clickable { showIconPicker = true },
                             contentAlignment = Alignment.Center
@@ -632,7 +633,7 @@ internal fun ColorIconPickerSheet(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .padding(7.dp)
-                                            .border(3.dp, Color.White, CircleShape)
+                                            .border(OneMoneyTheme.dimens.selectionRingWidth, Color.White, CircleShape)
                                     )
                                 }
                             }

@@ -1,6 +1,7 @@
 package org.syalosovetskyi.onemoney.ui.reports
 
 import androidx.lifecycle.ViewModel
+import org.syalosovetskyi.onemoney.util.DateFormats
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,8 +30,7 @@ class ReportsViewModel @Inject constructor(
     private val _calendar = MutableStateFlow(Calendar.getInstance())
     val state: StateFlow<ReportsUiState> = _calendar.flatMapLatest { cal ->
         val (from, to) = monthRange(cal)
-        val label = SimpleDateFormat("LLLL yyyy", Locale.getDefault())
-            .format(cal.time).replaceFirstChar { it.uppercaseChar() }
+        val label = DateFormats.monthYear(cal.time).replaceFirstChar { it.uppercaseChar() }
 
         combine(
             txRepo.getIncomeSum(from, to),

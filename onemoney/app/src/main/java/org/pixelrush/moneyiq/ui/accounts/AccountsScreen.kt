@@ -417,7 +417,7 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
         Box(
             modifier         = Modifier
                 .size(60.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt))
                 .background(accentColor),
             contentAlignment = Alignment.Center
         ) {
@@ -473,7 +473,7 @@ private fun AddAccountItem(onClick: () -> Unit) {
     Row(
         modifier          = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(OneMoneyTheme.dimens.largeRadius))
             .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -75,7 +75,7 @@ internal fun TransferQuickSheet(
                 ) {
                     Box(
                         modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                            .size(32.dp).clip(RoundedCornerShape(8.dp))
+                            .size(32.dp).clip(RoundedCornerShape(OneMoneyTheme.dimens.smallRadius))
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
@@ -90,7 +90,7 @@ internal fun TransferQuickSheet(
                 ) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
-                            .size(32.dp).clip(RoundedCornerShape(8.dp))
+                            .size(32.dp).clip(RoundedCornerShape(OneMoneyTheme.dimens.smallRadius))
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
@@ -113,7 +113,7 @@ internal fun TransferQuickSheet(
                 value = note, onValueChange = { note = it },
                 placeholder = { Text("Нотатки...") },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                singleLine = true, shape = RoundedCornerShape(12.dp)
+                singleLine = true, shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
             )
             Spacer(Modifier.height(6.dp))
 
@@ -129,7 +129,7 @@ internal fun TransferQuickSheet(
                 row2ExtraKey = {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxHeight()
-                            .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                            .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius)).background(keyBg)
                             .clickable { showDateSheet = true },
                         contentAlignment = Alignment.Center
                     ) { Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(20.dp)) }

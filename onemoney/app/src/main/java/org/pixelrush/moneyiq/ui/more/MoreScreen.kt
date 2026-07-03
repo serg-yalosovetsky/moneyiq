@@ -1,6 +1,7 @@
 ﻿package org.syalosovetskyi.onemoney.ui.more
 
 import android.content.Context
+import org.syalosovetskyi.onemoney.util.DateFormats
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -190,7 +191,7 @@ fun MoreScreen(
                 title = "Создать резервную копию",
                 subtitle = "Сохранить базу данных на устройство",
                 onClick = {
-                    val name = "onemoney_backup_${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}.db"
+                    val name = "onemoney_backup_${DateFormats.fileStampDate(Date())}.db"
                     backupLauncher.launch(name)
                 }
             )

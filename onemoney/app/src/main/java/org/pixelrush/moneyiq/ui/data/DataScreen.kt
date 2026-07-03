@@ -235,7 +235,7 @@ fun DataScreen(
                             Spacer(Modifier.height(16.dp))
                             Button(
                                 onClick = { folderLauncher.launch(null) },
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
                             ) {
                                 Icon(Icons.Default.FolderOpen, null,
                                     modifier = Modifier.size(18.dp))
@@ -489,7 +489,7 @@ fun DataScreen(
                 .background(Color.Black.copy(alpha = 0.4f)),
             contentAlignment = Alignment.Center
         ) {
-            Card(shape = RoundedCornerShape(16.dp)) {
+            Card(shape = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius)) {
                 Row(
                     modifier = Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically

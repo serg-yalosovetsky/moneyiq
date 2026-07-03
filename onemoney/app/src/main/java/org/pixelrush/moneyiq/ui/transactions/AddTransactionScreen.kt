@@ -173,7 +173,7 @@ fun AddTransactionScreen(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp)
-                            .size(34.dp).clip(RoundedCornerShape(8.dp))
+                            .size(34.dp).clip(RoundedCornerShape(OneMoneyTheme.dimens.smallRadius))
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -285,7 +285,7 @@ fun AddTransactionScreen(
                 placeholder   = { Text("Нотатки...") },
                 modifier      = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 singleLine    = true,
-                shape         = RoundedCornerShape(12.dp)
+                shape         = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
             )
 
             Spacer(Modifier.height(6.dp))
@@ -303,7 +303,7 @@ fun AddTransactionScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f).fillMaxHeight()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius))
                             .background(keyBg)
                             .clickable { showDatePicker = true },
                         contentAlignment = Alignment.Center

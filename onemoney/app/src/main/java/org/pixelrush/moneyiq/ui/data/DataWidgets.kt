@@ -132,7 +132,7 @@ internal fun MonoFlowSyncCard(
                 },
                 enabled = editUrl.isNotBlank() && editToken.isNotBlank() && !state.isSyncing,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(OneMoneyTheme.dimens.keyRadius)
             ) {
                 if (state.isSyncing) {
                     CircularProgressIndicator(

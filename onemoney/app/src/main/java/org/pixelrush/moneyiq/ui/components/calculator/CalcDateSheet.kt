@@ -132,7 +132,7 @@ fun CalcDateSheet(
 
             Surface(
                 onClick   = onPickDate,
-                shape     = RoundedCornerShape(14.dp),
+                shape     = RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt),
                 color     = MaterialTheme.colorScheme.surfaceVariant,
                 modifier  = Modifier.fillMaxWidth()
             ) {
@@ -150,7 +150,7 @@ fun CalcDateSheet(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
                     onClick  = { onDateSelected(yesterdayMs) },
-                    shape    = RoundedCornerShape(14.dp),
+                    shape    = RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt),
                     color    = if (isYesterday) MaterialTheme.colorScheme.primaryContainer
                                else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -168,7 +168,7 @@ fun CalcDateSheet(
                 }
                 Surface(
                     onClick  = { onDateSelected(todayMs) },
-                    shape    = RoundedCornerShape(14.dp),
+                    shape    = RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt),
                     color    = if (isToday) MaterialTheme.colorScheme.primaryContainer
                                else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -189,7 +189,7 @@ fun CalcDateSheet(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
                     onClick  = onRepeatClick,
-                    shape    = RoundedCornerShape(14.dp),
+                    shape    = RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt),
                     color    = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -206,7 +206,7 @@ fun CalcDateSheet(
                 }
                 Surface(
                     onClick  = onReminderClick,
-                    shape    = RoundedCornerShape(14.dp),
+                    shape    = RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt),
                     color    = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -413,7 +413,7 @@ fun AccountPickerSheet(
                 ) {
                     Box(modifier = Modifier.size(46.dp)) {
                         Box(
-                            modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(accColor),
+                            modifier = Modifier.size(42.dp).clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius)).background(accColor),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Icons.Outlined.CreditCard, null, tint = itemContentColor, modifier = Modifier.size(22.dp))

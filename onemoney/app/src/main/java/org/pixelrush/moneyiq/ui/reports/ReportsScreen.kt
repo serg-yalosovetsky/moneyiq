@@ -64,7 +64,7 @@ fun ReportsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                     )
@@ -261,7 +261,7 @@ private fun SummaryCards(income: Double, expense: Double) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
         colors = CardDefaults.cardColors(
             containerColor = if (diff >= 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
         )
@@ -288,7 +288,7 @@ private fun SummaryCards(income: Double, expense: Double) {
 private fun SummaryCard(label: String, amount: Double, color: Color, modifier: Modifier) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
         colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {

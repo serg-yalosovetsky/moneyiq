@@ -128,7 +128,7 @@ private fun AccountTypeOption(
             Box(
                 modifier            = Modifier
                     .size(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt))
                     .background(color),
                 contentAlignment = Alignment.Center
             ) {
@@ -264,7 +264,7 @@ fun AccountFormSheet(
                                 Box(
                                     modifier         = Modifier
                                         .size(56.dp)
-                                        .clip(RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(OneMoneyTheme.dimens.cardRadiusAlt))
                                         .background(accentColor)
                                         .clickable { showIconColorPicker = true },
                                     contentAlignment = Alignment.Center

@@ -50,6 +50,7 @@ import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.BudgetIncomeColor
 import org.syalosovetskyi.onemoney.ui.theme.BudgetExpenseColor
 
@@ -876,7 +877,7 @@ internal fun CategoriesGridContent(
                 modifier = Modifier
                     .offset { IntOffset(localX, localY) }
                     .size(chipW, chipHeight)
-                    .shadow(8.dp, RoundedCornerShape(12.dp))
+                    .shadow(8.dp, RoundedCornerShape(OneMoneyTheme.dimens.cardRadius))
             ) {
                 CategoryChip(
                     category       = draggingCat,

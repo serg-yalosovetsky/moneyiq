@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
+import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
 private val CalcConfirmColor: Color = Color(0xFF4CAF50)
 
@@ -39,7 +40,7 @@ private fun QKey(
         modifier = modifier
             .fillMaxHeight()
             .testTag("calc_key_$label")
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius))
             .background(bg)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -121,7 +122,7 @@ fun SharedCalcKeypad(
             QKey("9", Modifier.weight(1f), bg = keyBg) { calc.onKey("9") }
             Box(
                 modifier         = Modifier.weight(1f).fillMaxHeight()
-                    .clip(RoundedCornerShape(10.dp)).background(keyBg)
+                    .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius)).background(keyBg)
                     .clickable { calc.onKey("⌫") },
                 contentAlignment = Alignment.Center
             ) { Icon(Icons.AutoMirrored.Outlined.Backspace, null, modifier = Modifier.size(20.dp)) }
@@ -137,7 +138,7 @@ fun SharedCalcKeypad(
                 Box(
                     modifier = Modifier
                         .weight(1f).fillMaxHeight()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius))
                         .background(keyBg)
                         .clickable { calc.onKey("C") },
                     contentAlignment = Alignment.Center
@@ -181,7 +182,7 @@ fun SharedCalcKeypad(
             Box(
                 modifier = Modifier
                     .weight(1f).fillMaxHeight()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(OneMoneyTheme.dimens.keyRadius))
                     .background(confirmColor)
                     .clickable { if (hasPendingOp) calc.onKey("=") else onConfirm() },
                 contentAlignment = Alignment.Center

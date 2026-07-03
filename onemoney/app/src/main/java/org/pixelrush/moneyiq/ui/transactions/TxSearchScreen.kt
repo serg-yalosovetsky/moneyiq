@@ -116,7 +116,7 @@ internal fun TxSearchScreen(
                                 Icon(Icons.Default.Close, null)
                             }
                         }} else null,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius)
                     )
                 }
 
@@ -256,7 +256,7 @@ internal fun TypeFilterCard(
     Surface(
         onClick      = onClick,
         modifier     = modifier.height(80.dp),
-        shape        = RoundedCornerShape(16.dp),
+        shape        = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius),
         color        = if (selected) color else MaterialTheme.colorScheme.surface,
         border       = BorderStroke(
             width = 1.5.dp,

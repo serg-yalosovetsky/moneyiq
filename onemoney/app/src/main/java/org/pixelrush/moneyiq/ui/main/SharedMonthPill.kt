@@ -348,7 +348,7 @@ fun PeriodSelectorSheet(
             Surface(
                 onClick  = { showRangePicker = true },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
-                shape    = RoundedCornerShape(16.dp),
+                shape    = RoundedCornerShape(OneMoneyTheme.dimens.largeRadius),
                 color    = if (selectedId == "range") MonthRed.copy(alpha = 0.10f)
                            else MaterialTheme.colorScheme.surfaceVariant,
                 border   = if (selectedId == "range")
