@@ -95,6 +95,8 @@ private fun MainSettingsContent(
     var showNotifTimeDialog  by remember { mutableStateOf(false) }
     var showLangDialog       by remember { mutableStateOf(false) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     val currencyInfo = CURRENCIES_ALL.find { it.code == settings.defaultCurrency }
     val currencyLabel = currencyInfo?.let { "${it.name} — ${it.symbol}" } ?: settings.defaultCurrency
     val formatLabel = CURRENCY_FORMAT_EXAMPLES.getOrNull(settings.currencyFormatIndex) ?: ""
@@ -241,7 +243,13 @@ private fun MainSettingsContent(
             icon    = Icons.Default.Language,
             options = LANGUAGES.map { it.second },
             selected = LANGUAGES.indexOfFirst { it.first == settings.language }.coerceAtLeast(0),
-            onSelect = { idx -> vm.setLanguage(LANGUAGES[idx].first); showLangDialog = false },
+            onSelect = { idx ->
+                val tag = LANGUAGES[idx].first
+                vm.setLanguage(tag)
+                org.syalosovetskyi.onemoney.util.LocaleWrapper.setLang(context, tag)
+                showLangDialog = false
+                (context as? android.app.Activity)?.recreate()
+            },
             onDismiss = { showLangDialog = false }
         )
     }

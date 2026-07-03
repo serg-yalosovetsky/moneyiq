@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -87,6 +88,9 @@ internal fun CategoryChip(
         catch (_: Exception) { FallbackCategoryColor }
     }
     val style  = CategoryScreenTokens.resolve(category.name, category.type, fallbackColor, hasBudget)
+    // Dark mode: the light pastel circle becomes a translucent tint of the icon accent.
+    val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val circleBg = if (isDarkTheme) style.iconTint.copy(alpha = 0.22f) else style.circleBg
     val groupBg = remember(groupColorHex) {
         groupColorHex?.let {
             try { Color(it.toColorInt()).copy(alpha = 0.13f) }
@@ -182,7 +186,7 @@ internal fun CategoryChip(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(style.circleBg),
+                    .background(circleBg),
                 contentAlignment = Alignment.Center
             ) {
                 if (fillFraction > 0f && !CategoryScreenTokens.byName.containsKey(category.name)) {
@@ -557,6 +561,7 @@ internal fun DonutChart(
     val colors = OneMoneyTheme.colors
     val typo   = OneMoneyTheme.typography
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
     val emptyColor   = colors.centerRing
     val expenseColor = colors.expensePink
     val incomeColor  = colors.incomeTeal
@@ -586,8 +591,8 @@ internal fun DonutChart(
                 y = (size.height - minDim) / 2f + inset
             )
 
-            // White inner fill
-            drawCircle(color = Color.White, radius = (minDim / 2f) - sw)
+            // Inner fill (theme surface — white in light, dark in dark)
+            drawCircle(color = surfaceColor, radius = (minDim / 2f) - sw)
 
             if (tabTotal == 0.0) {
                 drawArc(

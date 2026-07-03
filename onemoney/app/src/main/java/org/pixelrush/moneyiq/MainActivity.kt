@@ -1,5 +1,6 @@
 package org.syalosovetskyi.onemoney
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -35,6 +36,11 @@ class MainActivity : FragmentActivity() {
     private var lastPausedAt = 0L
     private var isUnlocked   = mutableStateOf(true)
 
+    override fun attachBaseContext(newBase: Context) {
+        // Apply the user-selected app language before the activity resources are resolved.
+        super.attachBaseContext(org.syalosovetskyi.onemoney.util.LocaleWrapper.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -51,7 +57,7 @@ class MainActivity : FragmentActivity() {
             val accentColor = Color(settings.accentColorArgb)
 
             onemoneyTheme(darkTheme = darkTheme, accentColor = accentColor) {
-                OneMoneyThemeProvider {
+                OneMoneyThemeProvider(darkTheme = darkTheme) {
                     val unlocked by isUnlocked
                     if (!unlocked) {
                         LockScreen(onUnlock = { triggerBiometric() })

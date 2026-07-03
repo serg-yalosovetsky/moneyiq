@@ -20,11 +20,14 @@ object OneMoneyTheme {
 }
 
 @Composable
-fun OneMoneyThemeProvider(content: @Composable () -> Unit) {
+fun OneMoneyThemeProvider(darkTheme: Boolean = false, content: @Composable () -> Unit) {
+    val colors     = if (darkTheme) OneMoneyDarkTokens.colors     else OneMoneyLightTokens.colors
+    val typography = if (darkTheme) OneMoneyDarkTokens.typography else OneMoneyLightTokens.typography
+    val dimens     = if (darkTheme) OneMoneyDarkTokens.dimens     else OneMoneyLightTokens.dimens
     CompositionLocalProvider(
-        LocalOneMoneyColors     provides OneMoneyLightTokens.colors,
-        LocalOneMoneyTypography provides OneMoneyLightTokens.typography,
-        LocalOneMoneyDimens     provides OneMoneyLightTokens.dimens,
+        LocalOneMoneyColors     provides colors,
+        LocalOneMoneyTypography provides typography,
+        LocalOneMoneyDimens     provides dimens,
         content = content,
     )
 }

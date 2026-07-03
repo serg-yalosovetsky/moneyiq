@@ -100,6 +100,33 @@ data class OneMoneyDimens(
     val thickStroke:              Dp,
 )
 
+// Dark-mode semantic tokens. Neutrals follow the same M3 dark tonal palette as the
+// dark colorScheme (surface #121318 family); brand/money colors are kept unchanged
+// (they read fine on dark). See dark-theme design spec.
+object OneMoneyDarkTokens {
+    val colors = OneMoneyColors(
+        primaryText     = Color(0xFFE3E1EA),  // onSurface
+        secondaryText   = Color(0xFFA8A7B0),
+        tertiaryText    = Color(0xFF75747C),
+        centerRing      = Color(0xFF34353C),  // surfaceContainerHighest (donut empty ring)
+        expensePink     = ExpensePink,
+        incomeTeal      = IncomeTeal,
+        addButtonStroke = Color(0xFF45464F),
+        addButtonIcon   = Color(0xFF8F909A),
+        incomeGreen     = IncomeGreen,
+        expenseRed      = ExpenseRed,
+        transferBlue    = TransferBlue,
+        debtOrange      = DebtOrange,
+        budgetExpense   = BudgetExpenseColor,
+        budgetIncome    = BudgetIncomeColor,
+        bottomNavBg     = Color(0xFF1F2026),  // surfaceContainer
+        bottomNavPill   = Color(0xFF354378),  // primaryContainer
+        secondaryIcon   = Color(0xFFC6C5D0),
+    )
+    val typography = OneMoneyLightTokens.typography
+    val dimens     = OneMoneyLightTokens.dimens
+}
+
 object OneMoneyLightTokens {
     val colors = OneMoneyColors(
         primaryText     = Color(0xFF111111),

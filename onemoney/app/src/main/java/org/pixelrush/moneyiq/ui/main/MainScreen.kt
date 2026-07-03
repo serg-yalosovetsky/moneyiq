@@ -160,7 +160,7 @@ fun MainScreen(
         }
     ) {
     Scaffold(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             val navColors = OneMoneyTheme.colors
             NavigationBar(

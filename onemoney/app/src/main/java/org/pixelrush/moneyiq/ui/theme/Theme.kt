@@ -138,6 +138,18 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant    = md_dark_onSurfaceVariant,
     outline             = md_dark_outline,
     outlineVariant      = md_dark_outlineVariant,
+    // ── M3 surface-container elevation ladder (dark tonal palette, seed #4D5C92) ──
+    surfaceDim             = Color(0xFF121318),
+    surfaceBright          = Color(0xFF38393F),
+    surfaceContainerLowest = Color(0xFF0D0E13),
+    surfaceContainerLow    = Color(0xFF1B1C22),
+    surfaceContainer       = Color(0xFF1F2026),
+    surfaceContainerHigh   = Color(0xFF292A31),
+    surfaceContainerHighest= Color(0xFF34353C),
+    inverseSurface         = Color(0xFFE3E1EA),
+    inverseOnSurface       = Color(0xFF2F3038),
+    inversePrimary         = Color(0xFF4D5C92),
+    scrim                  = Color(0xFF000000),
 )
 
 private fun Color.lighten(factor: Float) = Color(
