@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.overview
 
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.Canvas
@@ -27,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -83,7 +86,7 @@ fun OverviewScreen(
             CategoryDetailSheet(
                 cat          = cat,
                 catColor     = catColor,
-                monthLabel   = "${OVR_MONTH_FULL[state.selectedMonth.month]} ${state.selectedMonth.year}",
+                monthLabel   = "${stringArrayResource(R.array.month_names)[state.selectedMonth.month]} ${state.selectedMonth.year}",
                 onAddExpense = { selectedCat = null; onAddTransaction() },
                 onOperations = { selectedCat = null }
             )
@@ -138,7 +141,7 @@ fun OverviewScreen(
                     dayBars     = state.dayBars,
                     daysInMonth = state.daysInMonth,
                     accentColor = accentColor,
-                    monthShort  = OVR_MONTH_SHORT[state.selectedMonth.month]
+                    monthShort  = stringArrayResource(R.array.month_names_short)[state.selectedMonth.month]
                 )
             }
 
@@ -195,7 +198,7 @@ private fun BalanceSection(balance: Double, txCount: Int) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Баланс",
+                stringResource(R.string.acc_action_balance),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -258,7 +261,7 @@ private fun ExpenseIncomeToggle(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Витрати",
+                    stringResource(R.string.common_expenses),
                     color      = if (expSel) Color.White else expenseColor,
                     style      = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
@@ -286,7 +289,7 @@ private fun ExpenseIncomeToggle(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Доходи",
+                    stringResource(R.string.common_incomes),
                     color      = if (incSel) Color.White else incomeColor,
                     style      = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
@@ -480,9 +483,9 @@ private fun StatsRow(
             .fillMaxWidth()
             .background(accentColor.copy(alpha = 0.08f))
     ) {
-        OvrStatCell("День (сер.)", dailyAvg, Modifier.weight(1f))
-        OvrStatCell("Сьогодні",   todayAmt, Modifier.weight(1f))
-        OvrStatCell("Тиждень",    weekAmt,  Modifier.weight(1f))
+        OvrStatCell(stringResource(R.string.ovr_daily_avg), dailyAvg, Modifier.weight(1f))
+        OvrStatCell(stringResource(R.string.date_today),   todayAmt, Modifier.weight(1f))
+        OvrStatCell(stringResource(R.string.period_week),    weekAmt,  Modifier.weight(1f))
     }
 }
 
@@ -597,7 +600,7 @@ private fun EmptyCategories() {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Немає категорій",
+                stringResource(R.string.cat_empty),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -638,7 +641,7 @@ private fun BudgetSummarySection(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Бюджет",
+                    stringResource(R.string.nav_budget),
                     style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -652,11 +655,11 @@ private fun BudgetSummarySection(
 
             // Витрати
             BudgetSummaryRow(
-                label       = "Витрати",
+                label       = stringResource(R.string.common_expenses),
                 amount      = monthExpense,
                 budget      = totalExpenseBudget,
-                amountLabel = "витрачено",
-                budgetLabel = "в бюджеті",
+                amountLabel = stringResource(R.string.budget_spent),
+                budgetLabel = stringResource(R.string.ovr_in_budget),
                 borderColor = expenseColor
             )
             HorizontalDivider(modifier = Modifier.padding(start = 18.dp))
@@ -664,22 +667,22 @@ private fun BudgetSummarySection(
             // Заощадження
             val savings = (totalIncomeBudget - monthExpense).coerceAtLeast(0.0)
             BudgetSummaryRow(
-                label       = "Заощадження",
+                label       = stringResource(R.string.budget_savings),
                 amount      = savings,
                 budget      = totalIncomeBudget,
-                amountLabel = "збережено",
-                budgetLabel = "в бюджеті",
+                amountLabel = stringResource(R.string.ovr_saved),
+                budgetLabel = stringResource(R.string.ovr_in_budget),
                 borderColor = savingsColor
             )
             HorizontalDivider(modifier = Modifier.padding(start = 18.dp))
 
             // Доходи
             BudgetSummaryRow(
-                label       = "Доходи",
+                label       = stringResource(R.string.common_incomes),
                 amount      = monthIncome,
                 budget      = totalIncomeBudget,
-                amountLabel = "отримано",
-                budgetLabel = "в бюджеті",
+                amountLabel = stringResource(R.string.budget_received),
+                budgetLabel = stringResource(R.string.ovr_in_budget),
                 borderColor = incomeColor
             )
         }

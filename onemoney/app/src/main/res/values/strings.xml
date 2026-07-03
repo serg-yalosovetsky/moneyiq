@@ -251,4 +251,27 @@
     <string name="tx_type_borrow">Взяти в борг</string>
     <string name="tx_type_lend">Дати в борг</string>
     <string name="tx_type_repay">Повернути борг</string>
+
+    <!-- Short month names (chart axis) -->
+    <string-array name="month_names_short">
+        <item>січ</item>
+        <item>лют</item>
+        <item>бер</item>
+        <item>кві</item>
+        <item>тра</item>
+        <item>чер</item>
+        <item>лип</item>
+        <item>сер</item>
+        <item>вер</item>
+        <item>жов</item>
+        <item>лис</item>
+        <item>гру</item>
+    </string-array>
+
+    <!-- Overview -->
+    <string name="ovr_daily_avg">День (сер.)</string>
+    <string name="ovr_in_budget">в бюджеті</string>
+    <string name="ovr_saved">збережено</string>
+    <string name="ovr_no_operations">Операцій немає</string>
+    <string name="ovr_per_month">За місяць</string>
 </resources>

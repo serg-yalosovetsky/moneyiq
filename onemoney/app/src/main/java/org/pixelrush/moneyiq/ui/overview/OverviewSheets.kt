@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.util.formatMoney
 
 // ── Category detail bottom sheet ──────────────────────────────────────────────
@@ -58,7 +60,7 @@ internal fun CategoryDetailSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text     = if (cat.amount == 0.0) "Операцій немає" else "За місяць",
+                    text     = if (cat.amount == 0.0) stringResource(R.string.ovr_no_operations) else stringResource(R.string.ovr_per_month),
                     style    = MaterialTheme.typography.bodyMedium,
                     color    = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.weight(1f)
@@ -156,7 +158,7 @@ internal fun CategoryDetailSheet(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Витрата",
+                        stringResource(R.string.tx_expense),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(0.7f)
                     )
@@ -182,7 +184,7 @@ internal fun CategoryDetailSheet(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Операції",
+                        stringResource(R.string.nav_operations),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(0.7f)
                     )

@@ -17,17 +17,6 @@ import org.syalosovetskyi.onemoney.data.repository.TransactionRepository
 import java.util.Calendar
 import javax.inject.Inject
 
-// ── Month name arrays ─────────────────────────────────────────────────────────
-
-internal val OVR_MONTH_SHORT = arrayOf(
-    "січ", "лют", "бер", "кві", "тра", "чер", "лип", "сер", "вер", "жов", "лис", "гру"
-)
-
-internal val OVR_MONTH_FULL = arrayOf(
-    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-)
-
 // ── Data classes ──────────────────────────────────────────────────────────────
 
 enum class OverviewMode { EXPENSE, INCOME }

@@ -246,4 +246,27 @@
     <string name="tx_type_borrow">Взять в долг</string>
     <string name="tx_type_lend">Дать в долг</string>
     <string name="tx_type_repay">Вернуть долг</string>
+
+    <!-- Short month names (chart axis) -->
+    <string-array name="month_names_short">
+        <item>янв</item>
+        <item>фев</item>
+        <item>мар</item>
+        <item>апр</item>
+        <item>май</item>
+        <item>июн</item>
+        <item>июл</item>
+        <item>авг</item>
+        <item>сен</item>
+        <item>окт</item>
+        <item>ноя</item>
+        <item>дек</item>
+    </string-array>
+
+    <!-- Overview -->
+    <string name="ovr_daily_avg">День (сред.)</string>
+    <string name="ovr_in_budget">в бюджете</string>
+    <string name="ovr_saved">сохранено</string>
+    <string name="ovr_no_operations">Нет операций</string>
+    <string name="ovr_per_month">За месяц</string>
 </resources>

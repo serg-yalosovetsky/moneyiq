@@ -244,4 +244,27 @@
     <string name="tx_type_borrow">Borrow</string>
     <string name="tx_type_lend">Lend</string>
     <string name="tx_type_repay">Repay</string>
+
+    <!-- Short month names (chart axis) -->
+    <string-array name="month_names_short">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Aug</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dec</item>
+    </string-array>
+
+    <!-- Overview -->
+    <string name="ovr_daily_avg">Daily (avg)</string>
+    <string name="ovr_in_budget">in budget</string>
+    <string name="ovr_saved">saved</string>
+    <string name="ovr_no_operations">No transactions</string>
+    <string name="ovr_per_month">This month</string>
 </resources>
