@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Navigation -->
-    <string name="nav_accounts">Рахунки</string>
-    <string name="nav_categories">Категорії</string>
-    <string name="nav_operations">Операції</string>
-    <string name="nav_budget">Бюджет</string>
-    <string name="nav_overview">Огляд</string>
-</resources>

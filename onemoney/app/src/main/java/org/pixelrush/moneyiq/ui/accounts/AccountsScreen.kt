@@ -25,12 +25,14 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
@@ -96,7 +98,7 @@ fun AccountsScreen(
                 icon     = { Icon(Icons.Outlined.AccountBalanceWallet, null, modifier = Modifier.size(20.dp)) },
                 text     = {
                     Text(
-                        "Рахунки",
+                        stringResource(R.string.acc_tab_accounts),
                         fontWeight = if (selectedSubTab == 0) FontWeight.SemiBold else FontWeight.Normal,
                         style      = MaterialTheme.typography.bodyMedium
                     )
@@ -108,7 +110,7 @@ fun AccountsScreen(
                 icon     = { Icon(Icons.Outlined.BarChart, null, modifier = Modifier.size(20.dp)) },
                 text     = {
                     Text(
-                        "Мої фінанси",
+                        stringResource(R.string.acc_tab_finances),
                         fontWeight = if (selectedSubTab == 1) FontWeight.SemiBold else FontWeight.Normal,
                         style      = MaterialTheme.typography.bodyMedium
                     )
@@ -177,7 +179,7 @@ fun AccountsScreen(
         org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorSheet(
             initial        = acc.balance,
             currencySymbol = currencySymbol(acc.currency),
-            title          = "Баланс рахунку",
+            title          = stringResource(R.string.acc_field_balance),
             onResult       = { newBalance ->
                 viewModel.update(acc.copy(balance = newBalance))
                 adjustAccount = null
@@ -270,7 +272,7 @@ private fun AccountsListTab(
                 verticalAlignment     = Alignment.CenterVertically
             ) {
                 Text(
-                    "Рахунки",
+                    stringResource(R.string.acc_tab_accounts),
                     style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color      = MaterialTheme.colorScheme.primary
@@ -364,13 +366,13 @@ private fun AccountListItem(
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 if (!account.isDefault) {
                     DropdownMenuItem(
-                        text        = { Text("Зробити основним") },
+                        text        = { Text(stringResource(R.string.acc_make_default)) },
                         leadingIcon = { Icon(Icons.Default.Star, null, tint = StarGoldColor) },
                         onClick     = { onSetDefault(); showMenu = false }
                     )
                 }
                 DropdownMenuItem(
-                    text        = { Text("Видалити", color = MaterialTheme.colorScheme.error) },
+                    text        = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                     leadingIcon = {
                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                     },
@@ -384,16 +386,16 @@ private fun AccountListItem(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title   = { Text("Видалити рахунок «${account.name}»?") },
-            text    = { Text("Рахунок буде видалено разом з усіма його операціями. Цю дію не можна скасувати.") },
+            title   = { Text(stringResource(R.string.acc_delete_title, account.name)) },
+            text    = { Text(stringResource(R.string.acc_delete_message)) },
             confirmButton = {
                 TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
-                    Text("Видалити", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Скасувати")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -497,7 +499,7 @@ private fun AddAccountItem(onClick: () -> Unit) {
         }
         Spacer(Modifier.width(Spacing.lg))
         Text(
-            "Додати рахунок",
+            stringResource(R.string.acc_add),
             style      = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

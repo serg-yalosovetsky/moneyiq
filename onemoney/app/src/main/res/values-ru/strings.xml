@@ -1,9 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Navigation -->
+    <string name="nav_home">Главная</string>
     <string name="nav_accounts">Счета</string>
+    <string name="nav_reports">Отчёты</string>
     <string name="nav_categories">Категории</string>
     <string name="nav_operations">Операции</string>
     <string name="nav_budget">Бюджет</string>
     <string name="nav_overview">Обзор</string>
+
+    <!-- Common actions / labels -->
+    <string name="common_done">Готово</string>
+    <string name="common_cancel">Отмена</string>
+    <string name="common_delete">Удалить</string>
+    <string name="common_save">Сохранить</string>
+    <string name="common_edit">Редактировать</string>
+    <string name="common_expenses">Расходы</string>
+    <string name="common_incomes">Доходы</string>
+
+    <!-- Budget screen -->
+    <string name="budget_savings">Сбережения</string>
+    <string name="budget_spent">потрачено</string>
+    <string name="budget_received">получено</string>
+    <string name="budget_in_budget">в бюджете %1$s ₴</string>
+    <string name="budget_month_budget">Бюджет на месяц</string>
+    <string name="budget_account_balance">Баланс счёта</string>
+    <string name="budget_forecast">прогноз</string>
+    <string name="budget_days_passed">прошло %1$d из %2$d дней</string>
+    <string name="budget_spent_to_end">расходы до конца ~%1$s ₴</string>
+    <string name="budget_saved">сохранено %1$s ₴</string>
+    <string name="budget_available">Доступно в бюджете: %1$s ₴</string>
+    <string name="budget_overspend">перерасход</string>
+    <string name="budget_income_prompt">Введите сумму ожидаемого дохода…</string>
+    <string name="budget_more">Больше…</string>
+    <string name="budget_collapse">Свернуть</string>
+
+    <!-- Accounts screen -->
+    <string name="acc_tab_accounts">Счета</string>
+    <string name="acc_tab_finances">Мои финансы</string>
+    <string name="acc_add">Добавить счёт</string>
+    <string name="acc_make_default">Сделать основным</string>
+    <string name="acc_delete_title">Удалить счёт «%1$s»?</string>
+    <string name="acc_delete_message">Счёт будет удалён вместе со всеми его операциями. Это действие нельзя отменить.</string>
+
+    <!-- Account form -->
+    <string name="acc_new_title">Новый счёт</string>
+    <string name="acc_edit_title">Редактировать счёт</string>
+    <string name="acc_name_hint">Название</string>
+    <string name="acc_section_account">Счёт</string>
+    <string name="acc_section_balance">Баланс</string>
+    <string name="acc_field_type">Тип</string>
+    <string name="acc_field_currency">Валюта счёта</string>
+    <string name="acc_field_description">Описание</string>
+    <string name="acc_field_balance">Баланс счёта</string>
+    <string name="acc_field_credit_limit">Кредитный лимит</string>
+    <string name="acc_field_include_total">Учитывать в общем балансе</string>
+    <string name="acc_close">Закрыть</string>
+
+    <!-- New-account type chooser -->
+    <string name="acc_type_regular">Обычный</string>
+    <string name="acc_type_regular_sub">Наличные, карта, …</string>
+    <string name="acc_type_debt">Долговой</string>
+    <string name="acc_type_debt_sub">Кредит, ипотека, …</string>
+    <string name="acc_type_savings">Накопительный</string>
+    <string name="acc_type_savings_sub">Сбережения, цель, …</string>
+
+    <!-- Widgets -->
+    <string name="widget_balance_description">Баланс и транзакции за месяц</string>
+    <string name="widget_expense_description">Быстрое добавление расхода</string>
+    <string name="widget_add_expense">Расход</string>
+    <string name="widget_expense">Расходы</string>
+    <string name="widget_income">Доходы</string>
 </resources>

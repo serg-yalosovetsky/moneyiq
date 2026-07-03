@@ -24,10 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorSheet
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPickerSheet
@@ -78,7 +80,7 @@ fun NewAccountTypeSheet(
     ) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
             Text(
-                "Новий рахунок",
+                stringResource(R.string.acc_new_title),
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier
@@ -89,22 +91,22 @@ fun NewAccountTypeSheet(
             AccountTypeOption(
                 color    = AccountTypeNormalColor,
                 icon     = Icons.Outlined.Wallet,
-                title    = "Звичайний",
-                subtitle = "Готівка, карта, ...",
+                title    = stringResource(R.string.acc_type_regular),
+                subtitle = stringResource(R.string.acc_type_regular_sub),
                 onClick  = { onSelect(AccountType.CASH) }
             )
             AccountTypeOption(
                 color    = AccountTypeDebtColor,
                 icon     = Icons.Outlined.MoneyOff,
-                title    = "Борговий",
-                subtitle = "Кредит, іпотека, ...",
+                title    = stringResource(R.string.acc_type_debt),
+                subtitle = stringResource(R.string.acc_type_debt_sub),
                 onClick  = { onSelect(AccountType.DEBT) }
             )
             AccountTypeOption(
                 color    = AccountTypeSavingsColor,
                 icon     = Icons.Outlined.Savings,
-                title    = "Накопичувальний",
-                subtitle = "Заощадження, мета, ...",
+                title    = stringResource(R.string.acc_type_savings),
+                subtitle = stringResource(R.string.acc_type_savings_sub),
                 onClick  = { onSelect(AccountType.SAVING) }
             )
         }
@@ -199,10 +201,10 @@ fun AccountFormSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, "Закрити")
+                            Icon(Icons.Default.Close, stringResource(R.string.acc_close))
                         }
                         Text(
-                            if (existing != null) "Редагувати рахунок" else "Новий рахунок",
+                            if (existing != null) stringResource(R.string.acc_edit_title) else stringResource(R.string.acc_new_title),
                             modifier   = Modifier
                                 .weight(1f)
                                 .padding(horizontal = Spacing.sm),
@@ -220,7 +222,7 @@ fun AccountFormSheet(
                             contentPadding  = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
                             enabled         = name.isNotBlank()
                         ) {
-                            Text("Готово", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_done), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -249,7 +251,7 @@ fun AccountFormSheet(
                                         Box {
                                             if (name.isEmpty()) {
                                                 Text(
-                                                    "Назва",
+                                                    stringResource(R.string.acc_name_hint),
                                                     style = MaterialTheme.typography.titleLarge,
                                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                                 )
@@ -278,12 +280,12 @@ fun AccountFormSheet(
                     }
 
                     // ── Section: Рахунок ─────────────────────────────────────
-                    item { FormSectionHeader("Рахунок") }
+                    item { FormSectionHeader(stringResource(R.string.acc_section_account)) }
 
                     item {
                         FormNavRow(
                             icon    = accountTypeIcon(type),
-                            label   = "Тип",
+                            label   = stringResource(R.string.acc_field_type),
                             value   = accountTypeNameUA(type),
                             onClick = { showTypePicker = true }
                         )
@@ -291,7 +293,7 @@ fun AccountFormSheet(
                     item {
                         FormNavRow(
                             icon    = Icons.Outlined.AttachMoney,
-                            label   = "Валюта рахунку",
+                            label   = stringResource(R.string.acc_field_currency),
                             value   = currencyLabel,
                             onClick = { showCurrencyPicker = true }
                         )
@@ -299,32 +301,32 @@ fun AccountFormSheet(
                     item {
                         FormNavRow(
                             icon    = Icons.AutoMirrored.Outlined.Notes,
-                            label   = "Опис",
+                            label   = stringResource(R.string.acc_field_description),
                             value   = description,
                             onClick = { showDescEditor = true }
                         )
                     }
 
                     // ── Section: Баланс ──────────────────────────────────────
-                    item { FormSectionHeader("Баланс") }
+                    item { FormSectionHeader(stringResource(R.string.acc_section_balance)) }
 
                     item {
                         FormValueRow(
-                            label   = "Баланс рахунку",
+                            label   = stringResource(R.string.acc_field_balance),
                             value   = if (balanceStr.isEmpty()) "0 $sym" else "$balanceStr $sym",
                             onClick = { showBalanceInput = true }
                         )
                     }
                     item {
                         FormValueRow(
-                            label   = "Кредитний ліміт",
+                            label   = stringResource(R.string.acc_field_credit_limit),
                             value   = if (creditLimit == 0.0) "0 $sym" else "${creditLimit.toBigDecimal().stripTrailingZeros().toPlainString()} $sym",
                             onClick = { showCreditLimitInput = true }
                         )
                     }
                     item {
                         ListItem(
-                            headlineContent   = { Text("Враховувати в загальному балансі") },
+                            headlineContent   = { Text(stringResource(R.string.acc_field_include_total)) },
                             trailingContent   = {
                                 Switch(
                                     checked         = includeInTotal,
@@ -382,7 +384,7 @@ fun AccountFormSheet(
         AmountCalculatorSheet(
             initial        = balanceStr.replace(",", ".").toDoubleOrNull() ?: 0.0,
             currencySymbol = sym,
-            title          = "Баланс рахунку",
+            title          = stringResource(R.string.acc_field_balance),
             onResult       = { v ->
                 balanceStr = if (v == 0.0) "" else v.toBigDecimal().stripTrailingZeros().toPlainString()
                 showBalanceInput = false
@@ -395,7 +397,7 @@ fun AccountFormSheet(
         AmountCalculatorSheet(
             initial        = creditLimit,
             currencySymbol = sym,
-            title          = "Кредитний ліміт",
+            title          = stringResource(R.string.acc_field_credit_limit),
             onResult       = { v -> creditLimit = v; showCreditLimitInput = false },
             onDismiss      = { showCreditLimitInput = false }
         )

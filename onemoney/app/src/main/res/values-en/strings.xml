@@ -1,9 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Navigation -->
+    <string name="nav_home">Home</string>
     <string name="nav_accounts">Accounts</string>
+    <string name="nav_reports">Reports</string>
     <string name="nav_categories">Categories</string>
     <string name="nav_operations">Operations</string>
     <string name="nav_budget">Budget</string>
     <string name="nav_overview">Overview</string>
+
+    <!-- Common actions / labels -->
+    <string name="common_done">Done</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_save">Save</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_expenses">Expenses</string>
+    <string name="common_incomes">Income</string>
+
+    <!-- Budget screen -->
+    <string name="budget_savings">Savings</string>
+    <string name="budget_spent">spent</string>
+    <string name="budget_received">received</string>
+    <string name="budget_in_budget">budget %1$s ₴</string>
+    <string name="budget_month_budget">Monthly budget</string>
+    <string name="budget_account_balance">Account balance</string>
+    <string name="budget_forecast">forecast</string>
+    <string name="budget_days_passed">%1$d of %2$d days passed</string>
+    <string name="budget_spent_to_end">spend to month-end ~%1$s ₴</string>
+    <string name="budget_saved">saved %1$s ₴</string>
+    <string name="budget_available">Available in budget: %1$s ₴</string>
+    <string name="budget_overspend">overspent</string>
+    <string name="budget_income_prompt">Enter expected income…</string>
+    <string name="budget_more">More…</string>
+    <string name="budget_collapse">Collapse</string>
+
+    <!-- Accounts screen -->
+    <string name="acc_tab_accounts">Accounts</string>
+    <string name="acc_tab_finances">My finances</string>
+    <string name="acc_add">Add account</string>
+    <string name="acc_make_default">Make default</string>
+    <string name="acc_delete_title">Delete account “%1$s”?</string>
+    <string name="acc_delete_message">The account and all its transactions will be deleted. This cannot be undone.</string>
+
+    <!-- Account form -->
+    <string name="acc_new_title">New account</string>
+    <string name="acc_edit_title">Edit account</string>
+    <string name="acc_name_hint">Name</string>
+    <string name="acc_section_account">Account</string>
+    <string name="acc_section_balance">Balance</string>
+    <string name="acc_field_type">Type</string>
+    <string name="acc_field_currency">Account currency</string>
+    <string name="acc_field_description">Description</string>
+    <string name="acc_field_balance">Account balance</string>
+    <string name="acc_field_credit_limit">Credit limit</string>
+    <string name="acc_field_include_total">Include in total balance</string>
+    <string name="acc_close">Close</string>
+
+    <!-- New-account type chooser -->
+    <string name="acc_type_regular">Regular</string>
+    <string name="acc_type_regular_sub">Cash, card, …</string>
+    <string name="acc_type_debt">Debt</string>
+    <string name="acc_type_debt_sub">Loan, mortgage, …</string>
+    <string name="acc_type_savings">Savings</string>
+    <string name="acc_type_savings_sub">Savings, goal, …</string>
+
+    <!-- Widgets -->
+    <string name="widget_balance_description">Balance and transactions for the month</string>
+    <string name="widget_expense_description">Quick expense entry</string>
+    <string name="widget_add_expense">Expense</string>
+    <string name="widget_expense">Expenses</string>
+    <string name="widget_income">Income</string>
 </resources>

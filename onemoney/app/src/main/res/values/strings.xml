@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Base locale = Ukrainian (the app's primary language). All other locales
+     (values-ru, values-en) must mirror this exact key set. Missing keys fall
+     back here, so keep this file complete and single-language. -->
 <resources>
     <string name="app_name">onemoney</string>
 
-    <!-- Navigation (default = Ukrainian, the app's primary language) -->
+    <!-- Navigation -->
     <string name="nav_home">Головна</string>
     <string name="nav_accounts">Рахунки</string>
     <string name="nav_reports">Звіти</string>
@@ -11,65 +14,66 @@
     <string name="nav_budget">Бюджет</string>
     <string name="nav_overview">Огляд</string>
 
-    <!-- Transactions -->
-    <string name="add_transaction">Добавить транзакцию</string>
-    <string name="transaction_income">Доход</string>
-    <string name="transaction_expense">Расход</string>
-    <string name="transaction_transfer">Перевод</string>
-    <string name="transaction_amount">Сумма</string>
-    <string name="transaction_note">Заметка (необязательно)</string>
-    <string name="transaction_date">Дата</string>
-    <string name="transaction_account">Счёт</string>
-    <string name="transaction_category">Категория</string>
-    <string name="transaction_to_account">Счёт назначения</string>
+    <!-- Common actions / labels -->
+    <string name="common_done">Готово</string>
+    <string name="common_cancel">Скасувати</string>
+    <string name="common_delete">Видалити</string>
+    <string name="common_save">Зберегти</string>
+    <string name="common_edit">Редагувати</string>
+    <string name="common_expenses">Витрати</string>
+    <string name="common_incomes">Доходи</string>
 
-    <!-- Accounts -->
-    <string name="accounts_title">Счета</string>
-    <string name="add_account">Добавить счёт</string>
-    <string name="edit_account">Редактировать счёт</string>
-    <string name="account_name">Название счёта</string>
-    <string name="account_balance">Начальный баланс</string>
-    <string name="account_currency">Валюта</string>
-    <string name="account_type">Тип счёта</string>
-    <string name="total_balance">Общий баланс</string>
+    <!-- Budget screen -->
+    <string name="budget_savings">Заощадження</string>
+    <string name="budget_spent">витрачено</string>
+    <string name="budget_received">отримано</string>
+    <string name="budget_in_budget">в бюджеті %1$s ₴</string>
+    <string name="budget_month_budget">Бюджет на місяць</string>
+    <string name="budget_account_balance">Баланс рахунку</string>
+    <string name="budget_forecast">прогноз</string>
+    <string name="budget_days_passed">пройшло %1$d з %2$d днів</string>
+    <string name="budget_spent_to_end">витрати до кінця ~%1$s ₴</string>
+    <string name="budget_saved">збережено %1$s ₴</string>
+    <string name="budget_available">Доступно в бюджеті: %1$s ₴</string>
+    <string name="budget_overspend">перевитрата</string>
+    <string name="budget_income_prompt">Введіть суму очікуваного доходу…</string>
+    <string name="budget_more">Більше…</string>
+    <string name="budget_collapse">Згорнути</string>
 
-    <!-- Categories -->
-    <string name="categories_title">Категории</string>
-    <string name="add_category">Добавить категорию</string>
-    <string name="edit_category">Редактировать категорию</string>
-    <string name="category_name">Название категории</string>
-    <string name="category_budget">Лимит в месяц (0 = без лимита)</string>
-    <string name="categories_expense">Расходы</string>
-    <string name="categories_income">Доходы</string>
-    <string name="no_categories">Нет категорий</string>
+    <!-- Accounts screen -->
+    <string name="acc_tab_accounts">Рахунки</string>
+    <string name="acc_tab_finances">Мої фінанси</string>
+    <string name="acc_add">Додати рахунок</string>
+    <string name="acc_make_default">Зробити основним</string>
+    <string name="acc_delete_title">Видалити рахунок «%1$s»?</string>
+    <string name="acc_delete_message">Рахунок буде видалено разом з усіма його операціями. Цю дію не можна скасувати.</string>
 
-    <!-- Reports -->
-    <string name="reports_title">Отчёты</string>
-    <string name="reports_income">Доходы</string>
-    <string name="reports_expense">Расходы</string>
-    <string name="reports_balance">Баланс</string>
-    <string name="by_category">По категориям</string>
-    <string name="no_data">Нет данных за период</string>
+    <!-- Account form -->
+    <string name="acc_new_title">Новий рахунок</string>
+    <string name="acc_edit_title">Редагувати рахунок</string>
+    <string name="acc_name_hint">Назва</string>
+    <string name="acc_section_account">Рахунок</string>
+    <string name="acc_section_balance">Баланс</string>
+    <string name="acc_field_type">Тип</string>
+    <string name="acc_field_currency">Валюта рахунку</string>
+    <string name="acc_field_description">Опис</string>
+    <string name="acc_field_balance">Баланс рахунку</string>
+    <string name="acc_field_credit_limit">Кредитний ліміт</string>
+    <string name="acc_field_include_total">Враховувати в загальному балансі</string>
+    <string name="acc_close">Закрити</string>
 
-    <!-- Widgets -->
-    <string name="widget_expense_description">Быстрое добавление расхода</string>
-    <string name="widget_balance_description">Баланс и транзакции за месяц</string>
-    <string name="widget_add_expense">Расход</string>
-    <string name="widget_tap_to_open">Нажмите, чтобы открыть</string>
-    <string name="widget_income">Доходы</string>
-    <string name="widget_expense">Расходы</string>
+    <!-- New-account type chooser -->
+    <string name="acc_type_regular">Звичайний</string>
+    <string name="acc_type_regular_sub">Готівка, карта, …</string>
+    <string name="acc_type_debt">Борговий</string>
+    <string name="acc_type_debt_sub">Кредит, іпотека, …</string>
+    <string name="acc_type_savings">Накопичувальний</string>
+    <string name="acc_type_savings_sub">Заощадження, мета, …</string>
 
-    <!-- Common -->
-    <string name="save">Сохранить</string>
-    <string name="cancel">Отмена</string>
-    <string name="delete">Удалить</string>
-    <string name="edit">Редактировать</string>
-    <string name="ok">ОК</string>
-    <string name="color">Цвет</string>
-    <string name="new_category">Новая категория</string>
-    <string name="new_account">Новый счёт</string>
-    <string name="month_income">Доходы месяца</string>
-    <string name="month_expense">Расходы месяца</string>
-    <string name="recent_transactions">Последние транзакции</string>
-    <string name="no_transactions">Транзакций пока нет</string>
+    <!-- Widgets (referenced from res/xml + widget code) -->
+    <string name="widget_balance_description">Баланс і транзакції за місяць</string>
+    <string name="widget_expense_description">Швидке додавання витрати</string>
+    <string name="widget_add_expense">Витрата</string>
+    <string name="widget_expense">Витрати</string>
+    <string name="widget_income">Доходи</string>
 </resources>

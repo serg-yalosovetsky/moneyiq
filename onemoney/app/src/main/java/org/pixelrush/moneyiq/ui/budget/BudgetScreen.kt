@@ -19,12 +19,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.data.repository.MONTH_NAMES_UA_FULL
@@ -91,8 +93,8 @@ fun BudgetScreen(
             item {
                 BudgetSectionCard(
                     data                = state.expenseSection,
-                    title               = "Витрати",
-                    amountLabel         = "витрачено",
+                    title               = stringResource(R.string.common_expenses),
+                    amountLabel         = stringResource(R.string.budget_spent),
                     accentColor         = expenseColor,
                     monthLabel          = monthLabel,
                     currentExpensesMode = currentExpensesMode,
@@ -114,8 +116,8 @@ fun BudgetScreen(
             item {
                 BudgetSectionCard(
                     data                = state.incomeSection,
-                    title               = "Доходи",
-                    amountLabel         = "отримано",
+                    title               = stringResource(R.string.common_incomes),
+                    amountLabel         = stringResource(R.string.budget_received),
                     accentColor         = incomeColor,
                     monthLabel          = monthLabel,
                     currentExpensesMode = currentExpensesMode,
@@ -155,7 +157,7 @@ fun BudgetScreen(
             catRow      = row,
             monthLabel  = monthLabel,
             accentColor = incomeColor,
-            amountLabel = "отримано",
+            amountLabel = stringResource(R.string.budget_received),
             onIconClick = { incomeCatToEdit = null; showIncomeBudgetSheet = true },
             onDismiss   = { incomeCatToEdit = null },
             onConfirm   = { newBudget, currency ->
@@ -346,7 +348,7 @@ private fun BudgetSectionCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (data.totalAmount > 0) accentColor
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
-                    Text("в бюджеті ${formatMoney(data.totalBudget)} ₴",
+                    Text(stringResource(R.string.budget_in_budget, formatMoney(data.totalBudget)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
                 }
@@ -600,7 +602,7 @@ private fun MoreLessChip(expanded: Boolean, hiddenTotal: Double = 0.0, onClick: 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            if (expanded) "Згорнути" else "Більше...",
+            if (expanded) stringResource(R.string.budget_collapse) else stringResource(R.string.budget_more),
             style     = MaterialTheme.typography.labelSmall,
             color     = onSurfVar,
             maxLines  = 2,
@@ -688,14 +690,14 @@ private fun SavingsSectionCard(
                 ) {
                     Column {
                         Text(
-                            "Заощадження",
+                            stringResource(R.string.budget_savings),
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color      = MaterialTheme.colorScheme.onSurface
                         )
                         if (hasForecast) {
                             Text(
-                                "пройшло $daysPassed з $daysInMonth днів",
+                                stringResource(R.string.budget_days_passed, daysPassed, daysInMonth),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                             )
@@ -710,7 +712,7 @@ private fun SavingsSectionCard(
                         )
                         if (hasForecast) {
                             Text(
-                                "прогноз",
+                                stringResource(R.string.budget_forecast),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = headerColor.copy(alpha = 0.7f)
                             )
@@ -726,7 +728,7 @@ private fun SavingsSectionCard(
                 ) {
                     if (incomeTotal > 0) {
                         Text(
-                            "збережено ${formatMoney(realSavings)} ₴",
+                            stringResource(R.string.budget_saved, formatMoney(realSavings)),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (realSavings >= 0) savingsColor.copy(alpha = 0.8f)
                                     else negColor.copy(alpha = 0.8f)
@@ -736,13 +738,13 @@ private fun SavingsSectionCard(
                     }
                     if (hasForecast && expenseTotal > 0) {
                         Text(
-                            "витрати до кінця ~${formatMoney(projectedExpenses)} ₴",
+                            stringResource(R.string.budget_spent_to_end, formatMoney(projectedExpenses)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )
                     } else if (budgetSavings != 0.0 && incomeBudget > 0) {
                         Text(
-                            "в бюджеті ${formatMoney(incomeBudget)} ₴",
+                            stringResource(R.string.budget_in_budget, formatMoney(incomeBudget)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )
@@ -792,7 +794,7 @@ private fun IncomeBudgetBar(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Text(
-                            "перевитрата  ",
+                            stringResource(R.string.budget_overspend) + "  ",
                             style     = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color     = overspendColor
@@ -808,7 +810,7 @@ private fun IncomeBudgetBar(
                 hasBudget -> {
                     val available = effectiveIncomeBudget - expenseTotal
                     Text(
-                        "Доступно в бюджеті: ${formatMoney(available)} ₴",
+                        stringResource(R.string.budget_available, formatMoney(available)),
                         style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         textAlign  = TextAlign.Center,
@@ -817,7 +819,7 @@ private fun IncomeBudgetBar(
                 }
                 else -> {
                     Text(
-                        "Введіть суму очікуваного доходу...",
+                        stringResource(R.string.budget_income_prompt),
                         style     = MaterialTheme.typography.bodyMedium,
                         fontStyle = FontStyle.Italic,
                         textAlign = TextAlign.Center,
