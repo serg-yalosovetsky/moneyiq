@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import org.syalosovetskyi.onemoney.workers.DriveBackupEntry
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.NegativeAmountColor
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -382,12 +383,12 @@ fun DataScreen(
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(Icons.Outlined.Warning, null,
-                        tint = Color(0xFFD32F2F), modifier = Modifier.size(18.dp))
+                        tint = NegativeAmountColor, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(
                         "Локальні копії зберігаються лише на пристрої. " +
                         "Видалення або перевстановлення застосунку призведе до їхньої втрати.",
-                        color = Color(0xFFD32F2F),
+                        color = NegativeAmountColor,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

@@ -40,11 +40,11 @@ import org.syalosovetskyi.onemoney.ui.components.form.FormValueRow
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
 
 private val AccountTypeNormalColor:  Color = Color(0xFFB07040)
 private val AccountTypeDebtColor:    Color = Color(0xFF2E7D60)
 private val AccountTypeSavingsColor: Color = Color(0xFF3D3F8F)
-private val DarkOnLightColor:        Color = Color(0xFF1C1B1F)
 
 fun currencyDisplayName(code: String): String = CURRENCIES_ALL.find { it.code == code }?.name ?: code
 fun currencySymbol(code: String): String      = CURRENCIES_ALL.find { it.code == code }?.symbol ?: code
@@ -183,7 +183,7 @@ fun AccountFormSheet(
     val accentColor = remember(colorHex) {
         parseColorHex(colorHex, appColors.budgetExpense)
     }
-    val iconTint      = if (accentColor.luminance() > 0.5f) DarkOnLightColor else Color.White
+    val iconTint      = if (accentColor.luminance() > 0.5f) OnLightColor else Color.White
     val currencyLabel = "${currencyDisplayName(currency)} – ${currencySymbol(currency)}"
     val sym           = currencySymbol(currency)
 

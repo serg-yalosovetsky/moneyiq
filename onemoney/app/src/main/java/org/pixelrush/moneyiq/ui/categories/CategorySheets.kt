@@ -43,10 +43,10 @@ import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
+import org.syalosovetskyi.onemoney.ui.theme.FallbackCategoryColor
 
-private val FallbackCategoryColor: Color = Color(0xFFFF5722)
 private val FallbackIconColor:     Color = Color(0xFF757575)
-private val DarkOnLightColor:      Color = Color(0xFF1C1B1F)
 private val CategoryDisplayColor:  Color = Color(0xFF37474F)
 
 // ── Category Action Sheet ─────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ fun CategoryActionSheet(
         parseColorHex(category.colorHex, FallbackCategoryColor)
     }
     val isLightBg  = catColor.luminance() > 0.5f
-    val onCatColor = if (isLightBg) DarkOnLightColor else Color.White
+    val onCatColor = if (isLightBg) OnLightColor else Color.White
     val percent  = if (totalInPeriod > 0.0) (spending / totalInPeriod * 100).toInt() else 0
     val progress = if (totalInPeriod > 0.0) (spending / totalInPeriod).coerceIn(0.0, 1.0).toFloat() else 0f
     val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -270,7 +270,7 @@ fun QuickExpenseSheet(
         parseColorHex(selectedCategory.colorHex, FallbackCategoryColor)
     }
     val isCatLight   = catColor.luminance() > 0.5f
-    val onCatColor   = if (isCatLight) DarkOnLightColor else Color.White
+    val onCatColor   = if (isCatLight) OnLightColor else Color.White
     val displayColor = if (isCatLight) CategoryDisplayColor else catColor
     val isIncome     = selectedCategory.type == TransactionType.INCOME
 

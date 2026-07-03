@@ -53,8 +53,7 @@ import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
 import org.syalosovetskyi.onemoney.util.suggestCategoryStyle
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
-
-private val FallbackCategoryColor: Color = Color(0xFFFF5722)
+import org.syalosovetskyi.onemoney.ui.theme.FallbackCategoryColor
 
 // ── Category Form Sheet (додавання / редагування категорії) ───────────────────
 

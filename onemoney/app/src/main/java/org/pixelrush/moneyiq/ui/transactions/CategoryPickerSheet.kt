@@ -33,6 +33,7 @@ import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.NegativeAmountColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +106,7 @@ internal fun CategoryPickerSheet(
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                             Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface)
+                                color = if (totalBal < 0) NegativeAmountColor else MaterialTheme.colorScheme.onSurface)
                         }
                         accounts.forEach { acc -> AccountPickerRow(account = acc, onClick = { onTransfer(acc) }) }
                     }
@@ -168,7 +169,7 @@ internal fun CategoryPickerSheet(
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                             Text("${formatMoney(totalBal)} ₴", style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (totalBal < 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface)
+                                color = if (totalBal < 0) NegativeAmountColor else MaterialTheme.colorScheme.onSurface)
                         }
                         accounts.forEach { acc -> AccountPickerRow(acc) { onTransfer(acc) } }
                     }
@@ -272,7 +273,7 @@ internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
         parseColorHex(account.colorHex, Color(0xFF3949AB))
     }
     val balColor = when {
-        account.balance < 0 -> Color(0xFFD32F2F)
+        account.balance < 0 -> NegativeAmountColor
         account.balance > 0 -> MaterialTheme.colorScheme.onSurface
         else                -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }

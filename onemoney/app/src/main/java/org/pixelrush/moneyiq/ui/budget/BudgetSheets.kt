@@ -33,8 +33,7 @@ import org.syalosovetskyi.onemoney.ui.components.icons.CircleIconBox
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
-
-private val DarkOnLightColor: Color = Color(0xFF1C1B1F)
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
 
 // ── Діалог введення бюджету категорії ────────────────────────────────────────
 
@@ -53,8 +52,8 @@ internal fun BudgetInputSheet(
         parseColorHex(catRow.category.colorHex, accentColor)
     }
     val isLightBg    = catColor.luminance() > 0.5f
-    val onCatColor   = if (isLightBg) DarkOnLightColor else Color.White
-    val displayColor = if (isLightBg) DarkOnLightColor else catColor
+    val onCatColor   = if (isLightBg) OnLightColor else Color.White
+    val displayColor = if (isLightBg) OnLightColor else catColor
 
     var pickedCurrency     by remember { mutableStateOf(catRow.category.currencyCode) }
     var showCurrencyPicker by remember { mutableStateOf(false) }

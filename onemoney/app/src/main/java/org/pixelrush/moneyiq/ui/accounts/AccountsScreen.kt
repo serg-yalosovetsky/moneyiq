@@ -41,10 +41,9 @@ import org.syalosovetskyi.onemoney.util.formatMoney
 import org.syalosovetskyi.onemoney.ui.main.horizontalSwipe
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
-
-private val FallbackAccountColor: Color = Color(0xFF4361EE)
-private val StarGoldColor:        Color = Color(0xFFFFD700)
-private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.ui.theme.StarGoldColor
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -410,8 +409,8 @@ private fun AccountIconBox(account: AccountEntity, accentColor: Color) {
         CURRENCIES_ALL.find { it.code == account.currency }?.symbol?.take(2) ?: account.currency.take(2)
     }
     val isLightBg  = accentColor.luminance() > 0.5f
-    val iconTint   = if (isLightBg) DarkOnLightColor else Color.White
-    val badgeColor = if (isLightBg) DarkOnLightColor else accentColor
+    val iconTint   = if (isLightBg) OnLightColor else Color.White
+    val badgeColor = if (isLightBg) OnLightColor else accentColor
 
     Box(modifier = Modifier.size(64.dp)) {
         Box(

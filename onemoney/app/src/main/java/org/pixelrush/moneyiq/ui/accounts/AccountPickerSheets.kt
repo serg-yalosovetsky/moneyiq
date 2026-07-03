@@ -27,10 +27,10 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.AmountCalculatorShee
 import org.syalosovetskyi.onemoney.ui.components.icons.RoundedIconBox
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
+import org.syalosovetskyi.onemoney.ui.theme.OnLightColor
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
+import org.syalosovetskyi.onemoney.ui.theme.StarGoldColor
 
-private val FallbackAccountColor: Color = Color(0xFF4361EE)
-private val StarGoldColor:        Color = Color(0xFFFFD700)
-private val DarkOnLightColor:     Color = Color(0xFF1C1B1F)
 private val ActionAmberColor:     Color = Color(0xFFFFAB00)
 private val ActionGrayColor:      Color = Color(0xFF9E9E9E)
 private val ActionIndigoColor:    Color = Color(0xFF5C6BC0)
@@ -224,7 +224,7 @@ fun AccountActionSheet(
         parseColorHex(account.colorHex, FallbackAccountColor)
     }
     val isLightCard = accentColor.luminance() > 0.5f
-    val onCard      = if (isLightCard) DarkOnLightColor else Color.White
+    val onCard      = if (isLightCard) OnLightColor else Color.White
     val sym = currencySymbol(account.currency)
 
     ModalBottomSheet(

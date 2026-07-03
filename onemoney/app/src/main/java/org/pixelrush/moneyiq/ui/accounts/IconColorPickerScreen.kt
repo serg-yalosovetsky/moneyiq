@@ -29,8 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
-
-private val FallbackAccountColor: Color = Color(0xFF4361EE)
+import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
 
