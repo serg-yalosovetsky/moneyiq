@@ -315,7 +315,8 @@ private fun AccountListItem(
         try { Color(account.colorHex.toColorInt()) }
         catch (_: Exception) { FallbackAccountColor }
     }
-    var showMenu by remember { mutableStateOf(false) }
+    var showMenu          by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val dimens = OneMoneyTheme.dimens
     Row(
@@ -373,10 +374,29 @@ private fun AccountListItem(
                     leadingIcon = {
                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                     },
-                    onClick = { onDelete(); showMenu = false }
+                    onClick = { showMenu = false; showDeleteConfirm = true }
                 )
             }
         }
+    }
+
+    // ── Підтвердження видалення (операції рахунку видаляються каскадно) ────────
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title   = { Text("Видалити рахунок «${account.name}»?") },
+            text    = { Text("Рахунок буде видалено разом з усіма його операціями. Цю дію не можна скасувати.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
+                    Text("Видалити", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Скасувати")
+                }
+            }
+        )
     }
 }
 
