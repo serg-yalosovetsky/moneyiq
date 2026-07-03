@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import org.syalosovetskyi.onemoney.R
 
 @Composable
 internal fun TextInputDialog(
@@ -11,7 +13,7 @@ internal fun TextInputDialog(
     label: String,
     initialValue: String = "",
     confirmText: String = "OK",
-    dismissText: String = "Скасувати",
+    dismissText: String? = null,
     allowDismiss: Boolean = true,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -37,7 +39,7 @@ internal fun TextInputDialog(
         },
         dismissButton = {
             if (allowDismiss || value.isNotBlank()) {
-                TextButton(onClick = onDismiss) { Text(dismissText) }
+                TextButton(onClick = onDismiss) { Text(dismissText ?: stringResource(R.string.common_cancel)) }
             }
         }
     )

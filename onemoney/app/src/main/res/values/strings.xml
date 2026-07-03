@@ -357,4 +357,23 @@
         <item quantity="many">%d категорій</item>
         <item quantity="other">%d категорій</item>
     </plurals>
+
+    <!-- Currency picker -->
+    <string name="curr_title">Валюта</string>
+    <string name="curr_tab_main">Основні валюти</string>
+    <string name="curr_tab_other">Інші валюти</string>
+    <string name="curr_tab_crypto">Криптовалюти</string>
+    <string name="curr_tab_main_short">Основні</string>
+    <string name="curr_tab_other_short">Інші</string>
+    <string name="curr_tab_crypto_short">Крипто</string>
+
+    <!-- Budget sheets -->
+    <string name="budget_currency">Валюта бюджету</string>
+    <string name="budget_income_title">Бюджет доходів</string>
+    <string name="budget_current_spending">Поточні витрати</string>
+    <string name="budget_delete">Видалити бюджет</string>
+
+    <!-- Calculator -->
+    <string name="calc_save_tx">Зберегти транзакцію</string>
+    <string name="calc_amount">Сума</string>
 </resources>

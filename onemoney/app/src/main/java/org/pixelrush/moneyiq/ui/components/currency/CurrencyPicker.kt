@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,6 +23,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
+import org.syalosovetskyi.onemoney.R
+import org.syalosovetskyi.onemoney.ui.accounts.currencyDisplayName
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_CRYPTO
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
@@ -38,7 +41,7 @@ internal fun CurrencyPickerSheet(
     selected:  String,
     onSelect:  (String) -> Unit,
     onDismiss: () -> Unit,
-    title:     String = "Валюта рахунку"
+    title:     String? = null
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -60,10 +63,10 @@ internal fun CurrencyPickerSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, "Закрити")
+                            Icon(Icons.Default.Close, stringResource(R.string.acc_close))
                         }
                         Text(
-                            title,
+                            title ?: stringResource(R.string.acc_field_currency),
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             modifier   = Modifier.padding(start = Spacing.xs)
@@ -73,7 +76,11 @@ internal fun CurrencyPickerSheet(
 
                 var tab by remember { mutableIntStateOf(0) }
                 val tabLists   = listOf(CURRENCIES_MAIN, CURRENCIES_OTHER, CURRENCIES_CRYPTO)
-                val tabLabels  = listOf("Основні валюти", "Інші валюти", "Криптовалюти")
+                val tabLabels  = listOf(
+                    stringResource(R.string.curr_tab_main),
+                    stringResource(R.string.curr_tab_other),
+                    stringResource(R.string.curr_tab_crypto)
+                )
                 val tabIcons   = listOf<ImageVector>(
                     Icons.Outlined.MonetizationOn,
                     Icons.Outlined.CurrencyExchange,
@@ -105,7 +112,7 @@ internal fun CurrencyPickerSheet(
                             },
                             headlineContent = {
                                 Text(
-                                    cur.name,
+                                    currencyDisplayName(cur.code),
                                     color      = if (isSelected) MaterialTheme.colorScheme.primary
                                                  else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
@@ -142,7 +149,7 @@ internal fun CurrencyBottomSheet(
     selected:  String,
     onSelect:  (String) -> Unit,
     onDismiss: () -> Unit,
-    title:     String = "Валюта"
+    title:     String? = null
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -156,10 +163,14 @@ internal fun CurrencyBottomSheet(
             Icons.Outlined.CurrencyExchange,
             Icons.Outlined.Memory
         )
-        val tabLabels = listOf("Основні", "Інші", "Крипто")
+        val tabLabels = listOf(
+            stringResource(R.string.curr_tab_main_short),
+            stringResource(R.string.curr_tab_other_short),
+            stringResource(R.string.curr_tab_crypto_short)
+        )
 
         Text(
-            text     = title,
+            text     = title ?: stringResource(R.string.curr_title),
             style    = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
@@ -186,7 +197,7 @@ internal fun CurrencyBottomSheet(
                     },
                     headlineContent = {
                         Text(
-                            cur.name,
+                            currencyDisplayName(cur.code),
                             color      = if (isSelected) MaterialTheme.colorScheme.primary
                                          else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
@@ -214,10 +225,14 @@ internal fun CurrencyPageContent(
     selected: String,
     onSelect: (String) -> Unit,
     onClose:  () -> Unit,
-    title:    String = "Валюта за замовчуванням"
+    title:    String? = null
 ) {
     var tabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Основні валюти", "Інші валюти", "Криптовалюти")
+    val tabs = listOf(
+        stringResource(R.string.curr_tab_main),
+        stringResource(R.string.curr_tab_other),
+        stringResource(R.string.curr_tab_crypto)
+    )
     val currencies = when (tabIndex) {
         0    -> CURRENCIES_MAIN
         1    -> CURRENCIES_OTHER
@@ -233,9 +248,9 @@ internal fun CurrencyPageContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.Default.Close, contentDescription = "Закрити")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.acc_close))
             }
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = Spacing.xs))
+            Text(title ?: stringResource(R.string.settings_default_currency), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = Spacing.xs))
         }
 
         TabRow(selectedTabIndex = tabIndex) {
@@ -258,7 +273,7 @@ internal fun CurrencyPageContent(
                     },
                     headlineContent = {
                         Text(
-                            currency.name,
+                            currencyDisplayName(currency.code),
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             color      = if (isSelected) MaterialTheme.colorScheme.primary
                                          else MaterialTheme.colorScheme.onSurface

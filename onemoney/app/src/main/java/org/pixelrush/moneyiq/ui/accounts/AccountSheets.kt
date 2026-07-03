@@ -46,7 +46,22 @@ private val AccountTypeNormalColor:  Color = Color(0xFFB07040)
 private val AccountTypeDebtColor:    Color = Color(0xFF2E7D60)
 private val AccountTypeSavingsColor: Color = Color(0xFF3D3F8F)
 
-fun currencyDisplayName(code: String): String = CURRENCIES_ALL.find { it.code == code }?.name ?: code
+/**
+ * Localized display name for a currency [code]. Fiat (ISO 4217) names come from
+ * ICU via [java.util.Currency], resolved against the current app locale (kept in
+ * sync by LocaleWrapper.setDefault). Crypto and unknown codes aren't ISO — ICU
+ * throws — so we fall back to the hand-written [CurrencyDef.name].
+ */
+fun currencyDisplayName(code: String): String {
+    val fallback = CURRENCIES_ALL.find { it.code == code }?.name ?: code
+    return try {
+        val icu = java.util.Currency.getInstance(code).getDisplayName()
+        if (icu.equals(code, ignoreCase = true)) fallback
+        else icu.replaceFirstChar { it.uppercase() }
+    } catch (_: IllegalArgumentException) {
+        fallback
+    }
+}
 fun currencySymbol(code: String): String      = CURRENCIES_ALL.find { it.code == code }?.symbol ?: code
 
 // ── Account type helpers (Ukrainian) ─────────────────────────────────────────

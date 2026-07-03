@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.repository.*
+import org.syalosovetskyi.onemoney.ui.accounts.currencyDisplayName
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
 import org.syalosovetskyi.onemoney.ui.settings.data.*
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
@@ -101,7 +102,7 @@ private fun MainSettingsContent(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val currencyInfo = CURRENCIES_ALL.find { it.code == settings.defaultCurrency }
-    val currencyLabel = currencyInfo?.let { "${it.name} — ${it.symbol}" } ?: settings.defaultCurrency
+    val currencyLabel = currencyInfo?.let { "${currencyDisplayName(it.code)} — ${it.symbol}" } ?: settings.defaultCurrency
     val formatLabel = CURRENCY_FORMAT_EXAMPLES.getOrNull(settings.currencyFormatIndex) ?: ""
     val weekDays    = stringArrayResource(R.array.week_days)
     val weekLabel   = weekDays.getOrElse(settings.firstDayOfWeek - 1) { weekDays[1] }

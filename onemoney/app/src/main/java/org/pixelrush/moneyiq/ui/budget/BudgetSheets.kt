@@ -1,5 +1,6 @@
 ﻿package org.syalosovetskyi.onemoney.ui.budget
 
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.util.parseColorHex
 import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.background
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,7 +45,7 @@ internal fun BudgetInputSheet(
     catRow:      BudgetCatRow,
     monthLabel:  String,
     accentColor: Color,
-    amountLabel: String = "витрачено",
+    amountLabel: String? = null,
     onIconClick: (() -> Unit)? = null,
     onDismiss:   () -> Unit,
     onConfirm:   (Double, String) -> Unit
@@ -106,7 +108,7 @@ internal fun BudgetInputSheet(
                         Text(monthLabel,
                             style = MaterialTheme.typography.bodyMedium,
                             color = onCatColor.copy(alpha = 0.9f))
-                        Text("$amountLabel ${formatMoney(catRow.amount)} ₴",
+                        Text("${amountLabel ?: stringResource(R.string.budget_spent)} ${formatMoney(catRow.amount)} ₴",
                             style = MaterialTheme.typography.labelSmall,
                             color = onCatColor.copy(alpha = 0.7f))
                     }
@@ -124,7 +126,7 @@ internal fun BudgetInputSheet(
                             )
                         }
                         Spacer(Modifier.height(2.dp))
-                        Text("в бюджеті ${formatMoney(catRow.category.budgetAmount)} ₴",
+                        Text(stringResource(R.string.budget_in_budget, formatMoney(catRow.category.budgetAmount)),
                             style = MaterialTheme.typography.labelSmall,
                             color = onCatColor.copy(alpha = 0.7f))
                     }
@@ -151,7 +153,7 @@ internal fun BudgetInputSheet(
                 ) {
                     Spacer(Modifier.height(Spacing.lg))
                     Text(
-                        "Бюджет на місяць",
+                        stringResource(R.string.budget_month_budget),
                         style = MaterialTheme.typography.labelLarge,
                         color = displayColor
                     )
@@ -204,7 +206,7 @@ internal fun BudgetInputSheet(
             properties       = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             CurrencyPageContent(
-                title    = "Валюта бюджету",
+                title    = stringResource(R.string.budget_currency),
                 selected = pickedCurrency,
                 onSelect = { code -> pickedCurrency = code; showCurrencyPicker = false },
                 onClose  = { showCurrencyPicker = false }
@@ -230,7 +232,7 @@ internal fun IncomeCategoryPickerSheet(
         containerColor   = MaterialTheme.colorScheme.surface
     ) {
         Text(
-            "Бюджет доходів",
+            stringResource(R.string.budget_income_title),
             modifier   = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.lg),
             style      = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
@@ -257,7 +259,7 @@ internal fun IncomeCategoryPickerSheet(
                     headlineContent = { Text(row.category.name) },
                     supportingContent = {
                         Text(
-                            "отримано ${formatMoney(row.amount)} ₴",
+                            "${stringResource(R.string.budget_received)} ${formatMoney(row.amount)} ₴",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (row.amount > 0) catColor
                                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
@@ -273,7 +275,7 @@ internal fun IncomeCategoryPickerSheet(
                                     color      = accentColor
                                 )
                                 Text(
-                                    "в бюджеті",
+                                    stringResource(R.string.ovr_in_budget),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                                 )
@@ -332,7 +334,7 @@ internal fun BudgetSettingsSheet(
             }
 
             Text(
-                "Операції",
+                stringResource(R.string.nav_operations),
                 modifier   = Modifier.padding(start = Spacing.lg, top = Spacing.md, bottom = Spacing.xs),
                 style      = MaterialTheme.typography.labelLarge,
                 color      = MaterialTheme.colorScheme.primary,
@@ -348,7 +350,7 @@ internal fun BudgetSettingsSheet(
                         onCheckedChange = { onToggleMode(it) }
                     )
                 },
-                headlineContent   = { Text("Поточні витрати") },
+                headlineContent   = { Text(stringResource(R.string.budget_current_spending)) },
                 supportingContent = {
                     Text(monthLabel,
                         color = MaterialTheme.colorScheme.primary,
@@ -365,7 +367,7 @@ internal fun BudgetSettingsSheet(
                     Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                 },
                 headlineContent = {
-                    Text("Видалити бюджет", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.budget_delete), color = MaterialTheme.colorScheme.error)
                 }
             )
         }

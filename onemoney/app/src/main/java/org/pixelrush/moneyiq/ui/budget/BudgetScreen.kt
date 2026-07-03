@@ -445,7 +445,7 @@ private fun BudgetCatFullRow(
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "в бюджеті ",
+                    stringResource(R.string.ovr_in_budget) + " ",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                 )

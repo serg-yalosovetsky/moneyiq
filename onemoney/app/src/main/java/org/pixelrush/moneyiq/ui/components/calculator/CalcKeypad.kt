@@ -19,10 +19,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 
@@ -192,7 +194,7 @@ fun SharedCalcKeypad(
                 } else {
                     Icon(
                         Icons.Default.Check,
-                        "Зберегти транзакцію",
+                        stringResource(R.string.calc_save_tx),
                         tint     = Color.White,
                         modifier = Modifier.size(34.dp)
                     )
@@ -207,7 +209,7 @@ fun SharedCalcKeypad(
 fun AmountCalculatorSheet(
     initial:        Double = 0.0,
     currencySymbol: String = "₴",
-    title:          String = "Сума",
+    title:          String? = null,
     onResult:       (Double) -> Unit,
     onDismiss:      () -> Unit
 ) {
@@ -224,7 +226,7 @@ fun AmountCalculatorSheet(
                 modifier            = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(title, style = MaterialTheme.typography.labelMedium, color = CalcConfirmColor)
+                Text(title ?: stringResource(R.string.calc_amount), style = MaterialTheme.typography.labelMedium, color = CalcConfirmColor)
                 Text(
                     text       = calc.displayExpr(currencySymbol),
                     fontSize   = 34.sp,

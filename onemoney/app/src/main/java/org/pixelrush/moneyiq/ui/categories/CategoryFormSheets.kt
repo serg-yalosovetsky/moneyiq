@@ -49,6 +49,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.components.calculator.*
 import org.syalosovetskyi.onemoney.ui.components.dialogs.ConfirmationDialog
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
+import org.syalosovetskyi.onemoney.ui.accounts.currencyDisplayName
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_CRYPTO
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
@@ -224,7 +225,7 @@ fun CategoryFormSheet(
                 item {
                     val allCurrencies = CURRENCIES_MAIN + CURRENCIES_OTHER + CURRENCIES_CRYPTO
                     val currencyDef = allCurrencies.firstOrNull { it.code == currencyCode }
-                    val currencyLabel = currencyDef?.let { "${it.name} – ${it.symbol}" } ?: currencyCode
+                    val currencyLabel = currencyDef?.let { "${currencyDisplayName(it.code)} – ${it.symbol}" } ?: currencyCode
                     ListItem(
                         leadingContent  = {
                             Icon(Icons.Outlined.AttachMoney, null,

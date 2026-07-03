@@ -346,4 +346,23 @@
         <item quantity="one">%d category</item>
         <item quantity="other">%d categories</item>
     </plurals>
+
+    <!-- Currency picker -->
+    <string name="curr_title">Currency</string>
+    <string name="curr_tab_main">Main currencies</string>
+    <string name="curr_tab_other">Other currencies</string>
+    <string name="curr_tab_crypto">Cryptocurrencies</string>
+    <string name="curr_tab_main_short">Main</string>
+    <string name="curr_tab_other_short">Other</string>
+    <string name="curr_tab_crypto_short">Crypto</string>
+
+    <!-- Budget sheets -->
+    <string name="budget_currency">Budget currency</string>
+    <string name="budget_income_title">Income budget</string>
+    <string name="budget_current_spending">Current spending</string>
+    <string name="budget_delete">Delete budget</string>
+
+    <!-- Calculator -->
+    <string name="calc_save_tx">Save transaction</string>
+    <string name="calc_amount">Amount</string>
 </resources>

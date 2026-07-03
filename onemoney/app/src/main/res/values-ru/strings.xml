@@ -352,4 +352,23 @@
         <item quantity="many">%d категорий</item>
         <item quantity="other">%d категорий</item>
     </plurals>
+
+    <!-- Currency picker -->
+    <string name="curr_title">Валюта</string>
+    <string name="curr_tab_main">Основные валюты</string>
+    <string name="curr_tab_other">Другие валюты</string>
+    <string name="curr_tab_crypto">Криптовалюты</string>
+    <string name="curr_tab_main_short">Основные</string>
+    <string name="curr_tab_other_short">Другие</string>
+    <string name="curr_tab_crypto_short">Крипто</string>
+
+    <!-- Budget sheets -->
+    <string name="budget_currency">Валюта бюджета</string>
+    <string name="budget_income_title">Бюджет доходов</string>
+    <string name="budget_current_spending">Текущие расходы</string>
+    <string name="budget_delete">Удалить бюджет</string>
+
+    <!-- Calculator -->
+    <string name="calc_save_tx">Сохранить транзакцию</string>
+    <string name="calc_amount">Сумма</string>
 </resources>

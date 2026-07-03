@@ -131,7 +131,7 @@ val CURRENCIES_OTHER: List<CurrencyDef> = listOf(
 )
 
 val CURRENCIES_CRYPTO: List<CurrencyDef> = listOf(
-    CurrencyDef("BTC",  "Біткоїн",          "₿"),
+    CurrencyDef("BTC",  "Bitcoin",          "₿"),
     CurrencyDef("ETH",  "Ethereum",         "Ξ"),
     CurrencyDef("USDT", "Tether",           "₮"),
     CurrencyDef("BNB",  "BNB",              "BNB"),
