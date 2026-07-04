@@ -12,6 +12,7 @@ data class TransactionWithDetails(
     val accountId: Long,
     val accountName: String,
     val accountColor: String,
+    val accountCurrency: String,
     val toAccountId: Long?,
     val toAccountName: String?,
     val categoryId: Long?,
@@ -37,6 +38,7 @@ interface TransactionDao {
     @Query("""
         SELECT t.id, t.type, t.amount, t.accountId,
                a.name AS accountName, a.colorHex AS accountColor,
+               a.currency AS accountCurrency,
                t.toAccountId, ta.name AS toAccountName,
                t.categoryId, c.name AS categoryName,
                c.colorHex AS categoryColor, c.icon AS categoryIcon,
@@ -53,6 +55,7 @@ interface TransactionDao {
     @Query("""
         SELECT t.id, t.type, t.amount, t.accountId,
                a.name AS accountName, a.colorHex AS accountColor,
+               a.currency AS accountCurrency,
                t.toAccountId, ta.name AS toAccountName,
                t.categoryId, c.name AS categoryName,
                c.colorHex AS categoryColor, c.icon AS categoryIcon,
@@ -112,6 +115,7 @@ interface TransactionDao {
     @Query("""
         SELECT t.id, t.type, t.amount, t.accountId,
                a.name AS accountName, a.colorHex AS accountColor,
+               a.currency AS accountCurrency,
                t.toAccountId, ta.name AS toAccountName,
                t.categoryId, c.name AS categoryName,
                c.colorHex AS categoryColor, c.icon AS categoryIcon,

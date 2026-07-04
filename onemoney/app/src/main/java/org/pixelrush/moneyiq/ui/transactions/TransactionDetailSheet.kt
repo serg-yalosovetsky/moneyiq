@@ -33,6 +33,7 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.SharedCalcKeypad
 import org.syalosovetskyi.onemoney.ui.components.calculator.rememberCalcState
 import org.syalosovetskyi.onemoney.ui.components.calculator.txDateLabelPublic
 import org.syalosovetskyi.onemoney.util.formatMoney
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.AccentIndigo
@@ -167,7 +168,7 @@ internal fun TransactionDetailSheet(
                     color = accentColor
                 )
                 Text(
-                    if (showCalc) calc.displayExpr("₴") else "${formatMoney(tx.amount)} ₴",
+                    if (showCalc) calc.displayExpr(currencySymbol(tx.accountCurrency)) else "${formatMoney(tx.amount)} ${currencySymbol(tx.accountCurrency)}",
                     fontSize   = 34.sp,
                     fontWeight = FontWeight.Bold,
                     color      = accentColor,

@@ -285,7 +285,7 @@ private fun AccountListItem(
                 else                   -> MaterialTheme.colorScheme.onSurface
             }
             Text(
-                "${formatMoney(account.balance)} ${account.currency}",
+                "${formatMoney(account.balance)} ${currencySymbol(account.currency)}",
                 style      = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color      = balColor

@@ -33,6 +33,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.accounts.accountTypeIcon
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.util.formatMoney
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.NegativeAmountColor
@@ -314,7 +315,7 @@ internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
         },
         supportingContent = {
             Text(
-                "${formatMoney(account.balance)} ${account.currency}",
+                "${formatMoney(account.balance)} ${currencySymbol(account.currency)}",
                 color = balColor,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (account.balance != 0.0) FontWeight.Bold else FontWeight.Normal

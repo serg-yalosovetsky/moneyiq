@@ -60,6 +60,7 @@ import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.transactions.TransactionsListScreen
 import org.syalosovetskyi.onemoney.util.DateFormats
 import org.syalosovetskyi.onemoney.util.formatMoney
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.util.parseColorHex
 import java.util.*
 
@@ -578,7 +579,7 @@ fun TransactionListItem(tx: TransactionWithDetails, onClick: () -> Unit) {
         },
         trailingContent = {
             Text(
-                "$amountPrefix${formatMoney(tx.amount)}",
+                "$amountPrefix${formatMoney(tx.amount, currencySymbol(tx.accountCurrency))}",
                 color = amountColor,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium

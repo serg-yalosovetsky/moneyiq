@@ -55,6 +55,7 @@ class OverviewViewModelTest {
         accountId = 1L,
         accountName = "Гаманець",
         accountColor = "#4CAF50",
+        accountCurrency = "UAH",
         toAccountId = null,
         toAccountName = null,
         categoryId = categoryId,

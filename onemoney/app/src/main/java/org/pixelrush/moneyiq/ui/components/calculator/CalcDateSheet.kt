@@ -28,6 +28,7 @@ import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_ALL
 import org.syalosovetskyi.onemoney.util.formatMoney
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.ui.theme.Spacing
 import org.syalosovetskyi.onemoney.ui.theme.OneMoneyTheme
 import org.syalosovetskyi.onemoney.ui.theme.FallbackAccountColor
@@ -378,7 +379,7 @@ fun AccountPickerSheet(
                     Text(label ?: stringResource(R.string.acc_from), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
                     Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                     Text(
-                        stringResource(R.string.acc_balance, "${formatMoney(selected?.balance ?: 0.0)} ${selected?.currency ?: "UAH"}"),
+                        stringResource(R.string.acc_balance, "${formatMoney(selected?.balance ?: 0.0)} ${currencySymbol(selected?.currency ?: "UAH")}"),
                         style = MaterialTheme.typography.bodySmall,
                         color = contentColor.copy(alpha = 0.8f)
                     )
@@ -439,7 +440,7 @@ fun AccountPickerSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(acc.name, fontWeight = FontWeight.Medium)
                         Text(
-                            "${formatMoney(acc.balance)} ${acc.currency}",
+                            "${formatMoney(acc.balance)} ${currencySymbol(acc.currency)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )
