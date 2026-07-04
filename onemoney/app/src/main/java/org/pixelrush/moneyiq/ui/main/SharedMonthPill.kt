@@ -117,6 +117,14 @@ fun SharedMonthNavPill(
     val isCurrentMonth = appMonth.mode == PeriodMode.MONTH &&
         appMonth.month == today.get(Calendar.MONTH) &&
         appMonth.year  == today.get(Calendar.YEAR)
+    // Малиновим підсвічується стрілка, що веде В БІК поточного місяця:
+    // обраний місяць у минулому (раніше за сьогодні) → права (next);
+    // обраний місяць у майбутньому (пізніше за сьогодні) → ліва (prev);
+    // поточний місяць → жодна.
+    val todayOrd   = today.get(Calendar.YEAR) * 12 + today.get(Calendar.MONTH)
+    val selOrd     = appMonth.year * 12 + appMonth.month
+    val nextIsHot  = appMonth.mode == PeriodMode.MONTH && selOrd < todayOrd
+    val prevIsHot  = appMonth.mode == PeriodMode.MONTH && selOrd > todayOrd
     val pillColor = if (isCurrentMonth) Color(0xFF111111) else MonthRed
     val pillBg    = Color(0xFFD5D6EC)
     val dimens    = OneMoneyTheme.dimens
@@ -157,7 +165,7 @@ fun SharedMonthNavPill(
     ) {
         Icon(
             DoubleChevronLeft, stringResource(R.string.period_prev),
-            tint     = Color(0xFF111111),
+            tint     = if (prevIsHot) MonthRed else Color(0xFF111111),
             modifier = Modifier
                 .size(dimens.pillArrowSize)
                 .testTag("month_pill_prev")
@@ -222,7 +230,7 @@ fun SharedMonthNavPill(
 
         Icon(
             DoubleChevronRight, stringResource(R.string.period_next),
-            tint     = if (isCurrentMonth) Color(0xFF111111) else MonthRed,
+            tint     = if (nextIsHot) MonthRed else Color(0xFF111111),
             modifier = Modifier
                 .size(dimens.pillArrowSize)
                 .testTag("month_pill_next")
