@@ -185,11 +185,15 @@ private fun onColorFor(bg: Color): Color =
     if (bg.luminance() > 0.4f) Color.Black else Color.White
 
 private fun applyAccent(base: ColorScheme, accent: Color, dark: Boolean): ColorScheme {
+    // On dark backgrounds the raw accent (often a mid/dark hue) has poor contrast
+    // and is used as text colour for subtitles/labels — lighten it into a legible
+    // tonal primary, matching the hand-tuned dark primary (#B6C4FF) design intent.
+    val primary     = if (dark) accent.lighten(0.55f) else accent
     val container   = if (dark) accent.darken(0.35f) else accent.lighten(0.72f)
     val onContainer = onColorFor(container)
     return base.copy(
-        primary            = accent,
-        onPrimary          = onColorFor(accent),
+        primary            = primary,
+        onPrimary          = onColorFor(primary),
         primaryContainer   = container,
         onPrimaryContainer = onContainer,
         inversePrimary     = if (dark) accent.lighten(0.4f) else accent.darken(0.3f)
@@ -224,6 +228,12 @@ fun onemoneyTheme(
             // mode on a light-mode system.
             window.statusBarColor     = android.graphics.Color.TRANSPARENT
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            // The XML window background is a fixed white shell (no values-night); with
+            // transparent system bars that white leaks through behind the status/nav
+            // bars in dark mode. Paint the window with the themed background instead.
+            window.setBackgroundDrawable(
+                android.graphics.drawable.ColorDrawable(colorScheme.background.toArgb())
+            )
             val controller = WindowCompat.getInsetsController(window, view)
             controller.isAppearanceLightStatusBars     = !darkTheme
             controller.isAppearanceLightNavigationBars = !darkTheme

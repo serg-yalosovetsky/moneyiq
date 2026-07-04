@@ -49,7 +49,12 @@ internal fun ThemePageContent(
     }
     var showThemeModeDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
+    ) {
         SettingsTopBar(title = stringResource(R.string.settings_theme), onBack = onBack)
 
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
@@ -152,11 +157,16 @@ internal fun SettingsTopBar(title: String, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.common_back),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
         Text(
             title,
             style    = MaterialTheme.typography.titleLarge,
+            color    = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = 4.dp)
         )
     }
@@ -300,7 +310,12 @@ internal fun RadioListDialog(
 
 @Composable
 internal fun AboutPageContent(onBack: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
+    ) {
         SettingsTopBar(title = stringResource(R.string.settings_about), onBack = onBack)
 
         Column(

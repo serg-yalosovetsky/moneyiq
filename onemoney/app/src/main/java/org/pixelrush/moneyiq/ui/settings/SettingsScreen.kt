@@ -115,7 +115,12 @@ private fun MainSettingsContent(
     val langLabel = LANGUAGES.find { it.first == settings.language }
         ?.let { if (it.first == "default") defaultLangLabel else it.second } ?: defaultLangLabel
 
-    Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
+    ) {
         SettingsTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
 
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
