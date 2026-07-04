@@ -224,39 +224,6 @@ class SelectedMonthRepositoryTest {
         assertEquals(3, days) // +1 inclusive
     }
 
-    // ── pillLabel ────────────────────────────────────────────────────────────
-
-    @Test
-    fun `pillLabel MONTH returns uppercase Ukrainian month name with year`() {
-        val label = repo.pillLabel(AppMonth(2025, 4)) // May = index 4
-        assertEquals("ТРАВЕНЬ 2025", label)
-    }
-
-    @Test
-    fun `pillLabel YEAR returns year as string`() {
-        val label = repo.pillLabel(AppMonth(2025, 0, PeriodMode.YEAR))
-        assertEquals("2025", label)
-    }
-
-    @Test
-    fun `pillLabel ALL returns fixed Ukrainian string`() {
-        val label = repo.pillLabel(AppMonth(2025, 0, PeriodMode.ALL))
-        assertEquals("ВІД ПОЧАТКУ", label)
-    }
-
-    @Test
-    fun `pillLabel MONTH for January returns correct name`() {
-        val label = repo.pillLabel(AppMonth(2025, 0))
-        assertTrue(label.contains("СІЧЕНЬ"))
-        assertTrue(label.contains("2025"))
-    }
-
-    @Test
-    fun `pillLabel MONTH for December returns correct name`() {
-        val label = repo.pillLabel(AppMonth(2025, 11))
-        assertTrue(label.contains("ГРУДЕНЬ"))
-    }
-
     // ── pillBadge ────────────────────────────────────────────────────────────
 
     @Test

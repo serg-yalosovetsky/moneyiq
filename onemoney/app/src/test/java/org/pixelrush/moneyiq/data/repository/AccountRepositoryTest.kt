@@ -5,6 +5,7 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -16,11 +17,12 @@ import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 class AccountRepositoryTest {
 
     private val dao: AccountDao = mockk(relaxed = true)
+    private val ratesRepo: CurrencyRatesRepository = mockk(relaxed = true)
     private lateinit var repo: AccountRepository
 
     @Before
     fun setup() {
-        repo = AccountRepository(dao)
+        repo = AccountRepository(dao, ratesRepo)
     }
 
     @Test
@@ -77,11 +79,27 @@ class AccountRepositoryTest {
     }
 
     @Test
-    fun `getTotalBalance returns flow from dao`() {
-        val flow = flowOf(500.0)
-        every { dao.getTotalBalance() } returns flow
-        val result = repo.getTotalBalance()
-        assertEquals(flow, result)
+    fun `getTotalBalance converts balances to UAH via NBU rates`() = runTest {
+        val accounts = listOf(
+            AccountEntity(id = 1L, name = "UAH", balance = 100.0, currency = "UAH"),
+            AccountEntity(id = 2L, name = "USD", balance = 10.0,  currency = "USD")
+        )
+        every { dao.getAllAccounts() } returns flowOf(accounts)
+        every { ratesRepo.rates } returns flowOf(mapOf("UAH" to 1.0, "USD" to 40.0))
+        val result = repo.getTotalBalance().first()
+        assertEquals(100.0 + 10.0 * 40.0, result!!, 0.001)
+    }
+
+    @Test
+    fun `getTotalBalance excludes accounts with includeInTotal false`() = runTest {
+        val accounts = listOf(
+            AccountEntity(id = 1L, name = "In",  balance = 100.0, currency = "UAH", includeInTotal = true),
+            AccountEntity(id = 2L, name = "Out", balance = 999.0, currency = "UAH", includeInTotal = false)
+        )
+        every { dao.getAllAccounts() } returns flowOf(accounts)
+        every { ratesRepo.rates } returns flowOf(mapOf("UAH" to 1.0))
+        val result = repo.getTotalBalance().first()
+        assertEquals(100.0, result!!, 0.001)
     }
 
     @Test

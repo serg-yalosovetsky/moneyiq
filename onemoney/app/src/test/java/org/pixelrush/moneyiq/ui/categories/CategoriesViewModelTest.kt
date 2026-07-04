@@ -42,7 +42,6 @@ class CategoriesViewModelTest {
         every { monthRepo.month } returns monthFlow
         every { monthRepo.computeRange(any()) } returns (0L to Long.MAX_VALUE / 2)
         every { monthRepo.daysInPeriod(any()) } returns 31
-        every { monthRepo.pillLabel(any()) } returns "ТРАВЕНЬ 2025"
         every { monthRepo.pillBadge(any()) } returns "31"
 
         every { catRepo.getByType(TransactionType.EXPENSE) } returns flowOf(emptyList())
@@ -265,16 +264,4 @@ class CategoriesViewModelTest {
         }
     }
 
-    @Test
-    fun `pillLabel comes from monthRepo`() = runTest {
-        every { monthRepo.pillLabel(any()) } returns "ЧЕРВЕНЬ 2025"
-        monthFlow.value = AppMonth(2025, 5)
-
-        vm = CategoriesViewModel(catRepo, txRepo, monthRepo, accountRepo)
-        vm.state.test {
-            val state = awaitItem()
-            assertEquals("ЧЕРВЕНЬ 2025", state.pillLabel)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 }

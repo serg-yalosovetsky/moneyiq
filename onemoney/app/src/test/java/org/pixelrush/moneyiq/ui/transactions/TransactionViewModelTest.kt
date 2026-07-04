@@ -48,7 +48,7 @@ class TransactionViewModelTest {
             vm.save()
             val state = awaitItem()
             assertNotNull(state.error)
-            assertTrue(state.error!!.contains("сумм", ignoreCase = true))
+            assertTrue(state.error!!.contains("суму", ignoreCase = true))
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -104,7 +104,7 @@ class TransactionViewModelTest {
             vm.save()
             val state = awaitItem()
             assertNotNull(state.error)
-            assertTrue(state.error!!.contains("счёт", ignoreCase = true))
+            assertTrue(state.error!!.contains("рахунок", ignoreCase = true))
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -121,7 +121,7 @@ class TransactionViewModelTest {
             vm.save()
             val state = awaitItem()
             assertNotNull(state.error)
-            assertTrue(state.error!!.contains("назнач", ignoreCase = true))
+            assertTrue(state.error!!.contains("призначенн", ignoreCase = true))
             cancelAndIgnoreRemainingEvents()
         }
     }
