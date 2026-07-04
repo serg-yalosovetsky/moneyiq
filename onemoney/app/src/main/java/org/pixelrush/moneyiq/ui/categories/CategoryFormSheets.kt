@@ -50,6 +50,7 @@ import org.syalosovetskyi.onemoney.ui.components.calculator.*
 import org.syalosovetskyi.onemoney.ui.components.dialogs.ConfirmationDialog
 import org.syalosovetskyi.onemoney.ui.components.currency.CurrencyPageContent
 import org.syalosovetskyi.onemoney.ui.accounts.currencyDisplayName
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_CRYPTO
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_MAIN
 import org.syalosovetskyi.onemoney.ui.settings.data.CURRENCIES_OTHER
@@ -507,10 +508,11 @@ private fun CategoryFormDialogs(
 
     if (showBudgetCalc) {
         AmountCalculatorSheet(
-            initial   = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
-            title     = stringResource(R.string.cat_budget),
-            onResult  = onBudgetResult,
-            onDismiss = onBudgetDismiss
+            initial        = budget.replace(",", ".").toDoubleOrNull() ?: 0.0,
+            currencySymbol = currencySymbol(currencyCode),
+            title          = stringResource(R.string.cat_budget),
+            onResult       = onBudgetResult,
+            onDismiss      = onBudgetDismiss
         )
     }
 

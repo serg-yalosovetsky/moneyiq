@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
+import org.syalosovetskyi.onemoney.ui.accounts.currencySymbol
 import org.syalosovetskyi.onemoney.ui.components.calculator.AccountPickerSheet
 import org.syalosovetskyi.onemoney.ui.components.calculator.CalcDateSheet
 import org.syalosovetskyi.onemoney.ui.components.calculator.FullDatePickerDialog
@@ -54,6 +55,8 @@ internal fun TransferQuickSheet(
     var showToAccSheet   by remember { mutableStateOf(false) }
 
     val calc = rememberCalcState()
+
+    val fromSymbol = remember(selectedFrom.currency) { currencySymbol(selectedFrom.currency) }
 
     val fromColor = remember(selectedFrom.colorHex) {
         parseColorHex(selectedFrom.colorHex, FallbackAccountColor)
@@ -110,7 +113,7 @@ internal fun TransferQuickSheet(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(stringResource(R.string.tx_transfer), style = MaterialTheme.typography.labelMedium, color = transferColor)
-                Text(calc.displayExpr("₴"), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = transferColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(calc.displayExpr(fromSymbol), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = transferColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
 
             OutlinedTextField(
@@ -122,9 +125,10 @@ internal fun TransferQuickSheet(
             Spacer(Modifier.height(6.dp))
 
             SharedCalcKeypad(
-                calc         = calc,
-                modifier     = Modifier.weight(1f).fillMaxWidth(),
-                confirmColor = transferColor,
+                calc           = calc,
+                modifier       = Modifier.weight(1f).fillMaxWidth(),
+                currencySymbol = fromSymbol,
+                confirmColor   = transferColor,
                 onConfirm    = {
                     val amt   = calc.result()
                     val toAcc = selectedTo ?: return@SharedCalcKeypad
