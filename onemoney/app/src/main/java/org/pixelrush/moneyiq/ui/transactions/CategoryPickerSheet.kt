@@ -314,7 +314,7 @@ internal fun AccountPickerRow(account: AccountEntity, onClick: () -> Unit) {
         },
         supportingContent = {
             Text(
-                "${formatMoney(account.balance)} ₴",
+                "${formatMoney(account.balance)} ${account.currency}",
                 color = balColor,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (account.balance != 0.0) FontWeight.Bold else FontWeight.Normal

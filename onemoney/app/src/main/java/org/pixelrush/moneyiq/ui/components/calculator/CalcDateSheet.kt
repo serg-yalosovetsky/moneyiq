@@ -378,7 +378,7 @@ fun AccountPickerSheet(
                     Text(label ?: stringResource(R.string.acc_from), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
                     Text(selected?.name ?: "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = contentColor)
                     Text(
-                        stringResource(R.string.acc_balance, formatMoney(selected?.balance ?: 0.0)),
+                        stringResource(R.string.acc_balance, "${formatMoney(selected?.balance ?: 0.0)} ${selected?.currency ?: "UAH"}"),
                         style = MaterialTheme.typography.bodySmall,
                         color = contentColor.copy(alpha = 0.8f)
                     )
@@ -439,7 +439,7 @@ fun AccountPickerSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(acc.name, fontWeight = FontWeight.Medium)
                         Text(
-                            "${formatMoney(acc.balance)} ₴",
+                            "${formatMoney(acc.balance)} ${acc.currency}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                         )

@@ -396,7 +396,7 @@
     <string name="rem_7_days">7 days before</string>
     <!-- Account picker -->
     <string name="acc_from">From account</string>
-    <string name="acc_balance">Balance: %1$s ₴</string>
+    <string name="acc_balance">Balance: %1$s</string>
     <!-- Byte size units -->
     <string name="unit_b">B</string>
     <string name="unit_kb">KB</string>

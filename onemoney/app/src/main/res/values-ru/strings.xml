@@ -402,7 +402,7 @@
     <string name="rem_7_days">за 7 дней</string>
     <!-- Account picker -->
     <string name="acc_from">Со счёта</string>
-    <string name="acc_balance">Баланс: %1$s ₴</string>
+    <string name="acc_balance">Баланс: %1$s</string>
     <!-- Byte size units -->
     <string name="unit_b">Б</string>
     <string name="unit_kb">КБ</string>
