@@ -123,123 +123,116 @@ private fun MainSettingsContent(
     ) {
         SettingsTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
 
-        LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
-            // ── Група 1: Мова / Тема ─────────────────────────────────────────
+        LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)) {
+            // ── Картка 1: Мова / Тема / Дані ─────────────────────────────────
             item {
-                SettingsRow(
-                    icon        = Icons.Default.Language,
-                    title       = stringResource(R.string.settings_language),
-                    subtitle    = langLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick     = { showLangDialog = true }
-                )
+                SettingsCard {
+                    SettingsRow(
+                        icon        = Icons.Default.Language,
+                        title       = stringResource(R.string.settings_language),
+                        subtitle    = langLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick     = { showLangDialog = true }
+                    )
+                    SettingsRow(
+                        icon        = Icons.Default.Palette,
+                        title       = stringResource(R.string.settings_theme),
+                        subtitle    = themeLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick     = onTheme
+                    )
+                    SettingsRow(
+                        icon    = Icons.Default.Storage,
+                        title   = stringResource(R.string.settings_data),
+                        showDivider = false,
+                        onClick = onData
+                    )
+                }
             }
-            item {
-                SettingsRow(
-                    icon        = Icons.Default.Palette,
-                    title       = stringResource(R.string.settings_theme),
-                    subtitle    = themeLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick     = onTheme
-                )
-            }
-            item {
-                SettingsRow(
-                    icon    = Icons.Default.Storage,
-                    title   = stringResource(R.string.settings_data),
-                    onClick = onData
-                )
-            }
-            item { SettingsDivider() }
 
-            // ── Група 2: Екран / Перемикачі ──────────────────────────────────
+            // ── Картка 2: Екран / Перемикачі ─────────────────────────────────
             item {
-                SettingsRow(
-                    icon      = Icons.Default.Home,
-                    title     = stringResource(R.string.settings_home_screen),
-                    subtitle  = stringResource(settings.homeScreen.labelRes),
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = { showHomeDialog = true }
-                )
+                SettingsCard {
+                    SettingsRow(
+                        icon      = Icons.Default.Home,
+                        title     = stringResource(R.string.settings_home_screen),
+                        subtitle  = stringResource(settings.homeScreen.labelRes),
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick   = { showHomeDialog = true }
+                    )
+                    SettingsToggleRow(
+                        icon    = Icons.Default.PieChart,
+                        title   = stringResource(R.string.nav_budget),
+                        checked = settings.budgetVisible,
+                        onToggle = { vm.setBudgetVisible(it) }
+                    )
+                    SettingsToggleRow(
+                        icon      = Icons.Default.Fingerprint,
+                        title     = stringResource(R.string.settings_login_protection),
+                        subtitle  = if (settings.loginProtectionEnabled) stringResource(R.string.settings_after_30s) else null,
+                        checked   = settings.loginProtectionEnabled,
+                        onToggle  = { vm.setLoginProtection(it) }
+                    )
+                    SettingsToggleRow(
+                        icon      = Icons.Default.Notifications,
+                        title     = stringResource(R.string.settings_notifications),
+                        subtitle  = if (settings.notificationsEnabled)
+                            "%02d:%02d".format(settings.notificationHour, settings.notificationMinute)
+                            else null,
+                        subtitleClickable = settings.notificationsEnabled,
+                        showDivider = false,
+                        checked   = settings.notificationsEnabled,
+                        onToggle  = { vm.setNotifications(it, settings.notificationHour, settings.notificationMinute) },
+                        onSubtitleClick = { showNotifTimeDialog = true }
+                    )
+                }
             }
-            item {
-                SettingsToggleRow(
-                    icon    = Icons.Default.PieChart,
-                    title   = stringResource(R.string.nav_budget),
-                    checked = settings.budgetVisible,
-                    onToggle = { vm.setBudgetVisible(it) }
-                )
-            }
-            item {
-                SettingsToggleRow(
-                    icon      = Icons.Default.Fingerprint,
-                    title     = stringResource(R.string.settings_login_protection),
-                    subtitle  = if (settings.loginProtectionEnabled) stringResource(R.string.settings_after_30s) else null,
-                    checked   = settings.loginProtectionEnabled,
-                    onToggle  = { vm.setLoginProtection(it) }
-                )
-            }
-            item {
-                SettingsToggleRow(
-                    icon      = Icons.Default.Notifications,
-                    title     = stringResource(R.string.settings_notifications),
-                    subtitle  = if (settings.notificationsEnabled)
-                        "%02d:%02d".format(settings.notificationHour, settings.notificationMinute)
-                        else null,
-                    subtitleClickable = settings.notificationsEnabled,
-                    checked   = settings.notificationsEnabled,
-                    onToggle  = { vm.setNotifications(it, settings.notificationHour, settings.notificationMinute) },
-                    onSubtitleClick = { showNotifTimeDialog = true }
-                )
-            }
-            item { SettingsDivider() }
 
-            // ── Група 3: Валюта / Формат / Дні ───────────────────────────────
+            // ── Картка 3: Валюта / Формат / Дні ──────────────────────────────
             item {
-                SettingsRow(
-                    icon      = Icons.Default.AttachMoney,
-                    title     = stringResource(R.string.settings_default_currency),
-                    subtitle  = currencyLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = onCurrency
-                )
+                SettingsCard {
+                    SettingsRow(
+                        icon      = Icons.Default.AttachMoney,
+                        title     = stringResource(R.string.settings_default_currency),
+                        subtitle  = currencyLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick   = onCurrency
+                    )
+                    SettingsRow(
+                        icon      = Icons.Default.FormatListNumbered,
+                        title     = stringResource(R.string.settings_currency_format),
+                        subtitle  = formatLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick   = { showFormatDialog = true }
+                    )
+                    SettingsRow(
+                        icon      = Icons.Default.CalendarToday,
+                        title     = stringResource(R.string.settings_first_day_week),
+                        subtitle  = weekLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        onClick   = { showWeekDialog = true }
+                    )
+                    SettingsRow(
+                        icon      = Icons.Default.Event,
+                        title     = stringResource(R.string.settings_first_day_month),
+                        subtitle  = settings.firstDayOfMonth.toString(),
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        showDivider = false,
+                        onClick   = { showMonthDialog = true }
+                    )
+                }
             }
-            item {
-                SettingsRow(
-                    icon      = Icons.Default.FormatListNumbered,
-                    title     = stringResource(R.string.settings_currency_format),
-                    subtitle  = formatLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = { showFormatDialog = true }
-                )
-            }
-            item {
-                SettingsRow(
-                    icon      = Icons.Default.CalendarToday,
-                    title     = stringResource(R.string.settings_first_day_week),
-                    subtitle  = weekLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = { showWeekDialog = true }
-                )
-            }
-            item {
-                SettingsRow(
-                    icon      = Icons.Default.Event,
-                    title     = stringResource(R.string.settings_first_day_month),
-                    subtitle  = settings.firstDayOfMonth.toString(),
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = { showMonthDialog = true }
-                )
-            }
-            item { SettingsDivider() }
 
-            // ── Про додаток ──────────────────────────────────────────────────
+            // ── Картка 4: Про додаток ────────────────────────────────────────
             item {
-                SettingsRow(
-                    icon     = Icons.Default.Info,
-                    title    = stringResource(R.string.settings_about),
-                    onClick  = onAbout
-                )
+                SettingsCard {
+                    SettingsRow(
+                        icon     = Icons.Default.Info,
+                        title    = stringResource(R.string.settings_about),
+                        showDivider = false,
+                        onClick  = onAbout
+                    )
+                }
             }
         }
     }

@@ -57,34 +57,27 @@ internal fun ThemePageContent(
     ) {
         SettingsTopBar(title = stringResource(R.string.settings_theme), onBack = onBack)
 
-        LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
+        LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)) {
+            // Єдина строка вибору теми: Системна (за системою) / Світла / Темна.
             item {
-                SettingsRow(
-                    icon      = Icons.Default.Brightness6,
-                    title     = stringResource(R.string.settings_theme),
-                    subtitle  = themeLabel,
-                    subtitleColor = MaterialTheme.colorScheme.primary,
-                    onClick   = { showThemeModeDialog = true }
-                )
+                SettingsCard {
+                    SettingsRow(
+                        icon      = Icons.Default.Brightness6,
+                        title     = stringResource(R.string.settings_theme),
+                        subtitle  = themeLabel,
+                        subtitleColor = MaterialTheme.colorScheme.primary,
+                        showDivider = false,
+                        onClick   = { showThemeModeDialog = true }
+                    )
+                }
             }
-            item {
-                SettingsToggleRow(
-                    icon    = Icons.Default.DarkMode,
-                    title   = stringResource(R.string.settings_dark_theme),
-                    checked = settings.themeMode == ThemeMode.DARK,
-                    onToggle = { dark ->
-                        vm.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
-                    }
-                )
-            }
-            item { SettingsDivider() }
 
             item {
                 Text(
                     stringResource(R.string.cat_color),
-                    modifier  = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp),
+                    modifier  = Modifier.padding(start = 24.dp, top = 20.dp, bottom = 12.dp),
                     style     = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color     = MaterialTheme.colorScheme.primary
                 )
             }
@@ -120,7 +113,7 @@ internal fun ThemePageContent(
 
 @Composable
 internal fun ColorPalette(selected: Color, onSelect: (Color) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
         ACCENT_COLORS.chunked(5).forEach { row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -178,12 +171,14 @@ internal fun SettingsRow(
     title:         String,
     subtitle:      String?       = null,
     subtitleColor: Color         = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+    showDivider:   Boolean       = true,
     onClick:       () -> Unit
 ) {
     ListItem(
+        colors         = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier       = Modifier.clickable(onClick = onClick),
         leadingContent = { SettingsIcon(icon) },
-        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        headlineContent = { Text(title, fontWeight = FontWeight.Normal) },
         supportingContent = subtitle?.let {
             { Text(it, style = MaterialTheme.typography.bodySmall, color = subtitleColor) }
         },
@@ -194,7 +189,7 @@ internal fun SettingsRow(
             )
         }
     )
-    ItemDivider()
+    if (showDivider) ItemDivider()
 }
 
 @Composable
@@ -203,14 +198,16 @@ internal fun SettingsToggleRow(
     title:              String,
     subtitle:           String?   = null,
     subtitleClickable:  Boolean   = false,
+    showDivider:        Boolean   = true,
     checked:            Boolean,
     onToggle:           (Boolean) -> Unit,
     onSubtitleClick:    () -> Unit = {}
 ) {
     ListItem(
+        colors         = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier       = Modifier.clickable { onToggle(!checked) },
         leadingContent = { SettingsIcon(icon) },
-        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        headlineContent = { Text(title, fontWeight = FontWeight.Normal) },
         supportingContent = subtitle?.let {
             {
                 Text(
@@ -225,7 +222,7 @@ internal fun SettingsToggleRow(
             Switch(checked = checked, onCheckedChange = onToggle)
         }
     )
-    ItemDivider()
+    if (showDivider) ItemDivider()
 }
 
 @Composable
@@ -242,13 +239,18 @@ internal fun SettingsIcon(icon: ImageVector) {
     }
 }
 
+/** Група налаштувань як картка на dark surface (замість білих смуг-роздільників). */
 @Composable
-internal fun SettingsDivider() {
-    HorizontalDivider(
-        modifier  = Modifier.padding(vertical = 4.dp),
-        thickness = 1.dp,
-        color     = MaterialTheme.colorScheme.outlineVariant
-    )
+internal fun SettingsCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column(content = content)
+    }
 }
 
 @Composable
