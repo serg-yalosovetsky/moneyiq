@@ -147,6 +147,11 @@
     <string name="cat_no_limit">No limit</string>
     <string name="cat_detach">Remove from subcategories</string>
     <string name="cat_add_sub">Add subcategory</string>
+    <string name="cat_delete_sub">Delete subcategory</string>
+    <string name="cat_delete_sub_title">Delete subcategory?</string>
+    <string name="cat_parent">Parent category</string>
+    <string name="cat_select_parent">Select parent category</string>
+    <string name="cat_parent_none">No parent (top level)</string>
     <string name="cat_archived">Archived category</string>
     <string name="cat_delete">Delete category</string>
     <string name="cat_delete_title">Delete category?</string>

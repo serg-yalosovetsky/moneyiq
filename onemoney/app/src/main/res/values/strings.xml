@@ -152,6 +152,11 @@
     <string name="cat_no_limit">Без ліміту</string>
     <string name="cat_detach">Прибрати з підкатегорій</string>
     <string name="cat_add_sub">Додати підкатегорію</string>
+    <string name="cat_delete_sub">Видалити підкатегорію</string>
+    <string name="cat_delete_sub_title">Видалити підкатегорію?</string>
+    <string name="cat_parent">Батьківська категорія</string>
+    <string name="cat_select_parent">Оберіть батьківську категорію</string>
+    <string name="cat_parent_none">Без батьківської (верхній рівень)</string>
     <string name="cat_archived">Архівна категорія</string>
     <string name="cat_delete">Видалити категорію</string>
     <string name="cat_delete_title">Видалити категорію?</string>

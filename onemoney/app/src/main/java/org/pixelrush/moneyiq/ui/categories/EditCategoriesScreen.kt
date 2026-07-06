@@ -156,6 +156,13 @@ fun EditCategoriesScreen(
                        child.budgetAmount, child.budgetPeriod, child.archived,
                        child.currencyCode, child.copy(parentId = null))
             }) else null,
+            onDeleteSubcategory  = if (cat.parentId == null) ({ child -> onDelete(child) }) else null,
+            parentOptions        = allCategoriesForTab.filter { it.parentId == null && it.id != cat.id },
+            onChangeParent       = if (cat.parentId != null) ({ newParentId ->
+                onSave(cat.name, cat.type, cat.colorHex, cat.icon,
+                       cat.budgetAmount, cat.budgetPeriod, cat.archived,
+                       cat.currencyCode, cat.copy(parentId = newParentId))
+            }) else null,
             onSave    = { name, type, color, icon, budget, period, archived, currency ->
                 onSave(name, type, color, icon, budget, period, archived, currency, cat)
                 editCategory = null

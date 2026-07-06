@@ -69,6 +69,9 @@ fun CategoryFormSheet(
     children:              List<CategoryEntity>       = emptyList(),
     onAddSubcategory:      (() -> Unit)?              = null,
     onDetachSubcategory:   ((CategoryEntity) -> Unit)? = null,
+    onDeleteSubcategory:   ((CategoryEntity) -> Unit)? = null,
+    parentOptions:         List<CategoryEntity>       = emptyList(),
+    onChangeParent:        ((Long?) -> Unit)?         = null,
     defaultType:           TransactionType            = TransactionType.EXPENSE,
     onSave:                (name: String, type: TransactionType, color: String, icon: String, budget: Double, period: String, archived: Boolean, currencyCode: String) -> Unit,
     onDelete:              (() -> Unit)?              = null,
@@ -92,6 +95,8 @@ fun CategoryFormSheet(
     var showDeleteConfirm  by remember { mutableStateOf(false) }
     var showBudgetCalc     by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showParentPicker   by remember { mutableStateOf(false) }
+    var deleteChildTarget  by remember { mutableStateOf<CategoryEntity?>(null) }
     val nameFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -302,14 +307,35 @@ fun CategoryFormSheet(
                                 }
                             },
                             headlineContent = { Text(child.name) },
-                            trailingContent = if (onDetachSubcategory != null) ({
-                                IconButton(onClick = { onDetachSubcategory(child) }) {
-                                    Icon(
-                                        Icons.Outlined.LinkOff,
-                                        contentDescription = stringResource(R.string.cat_detach),
-                                        tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                                        modifier = Modifier.size(22.dp)
-                                    )
+                            trailingContent = if (onDetachSubcategory != null || onDeleteSubcategory != null) ({
+                                var menuOpen by remember { mutableStateOf(false) }
+                                Box {
+                                    IconButton(onClick = { menuOpen = true }) {
+                                        Icon(
+                                            Icons.Default.MoreVert,
+                                            contentDescription = null,
+                                            tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                        if (onDetachSubcategory != null) {
+                                            DropdownMenuItem(
+                                                text        = { Text(stringResource(R.string.cat_detach)) },
+                                                leadingIcon = { Icon(Icons.Outlined.LinkOff, null) },
+                                                onClick     = { menuOpen = false; onDetachSubcategory(child) }
+                                            )
+                                        }
+                                        if (onDeleteSubcategory != null) {
+                                            DropdownMenuItem(
+                                                text        = { Text(stringResource(R.string.cat_delete_sub),
+                                                                    color = MaterialTheme.colorScheme.error) },
+                                                leadingIcon = { Icon(Icons.Default.Delete, null,
+                                                                    tint = MaterialTheme.colorScheme.error) },
+                                                onClick     = { menuOpen = false; deleteChildTarget = child }
+                                            )
+                                        }
+                                    }
                                 }
                             }) else null
                         )
@@ -332,6 +358,27 @@ fun CategoryFormSheet(
                             )
                             HorizontalDivider()
                         }
+                    }
+                }
+
+                // ── Батьківська категорія (тільки для підкатегорій) ──────────
+                if (existing != null && existing.parentId != null && onChangeParent != null) {
+                    item {
+                        val parentName = parentOptions.firstOrNull { it.id == existing.parentId }?.name
+                            ?: stringResource(R.string.cat_parent_none)
+                        ListItem(
+                            leadingContent   = {
+                                Icon(Icons.Outlined.Category, null,
+                                    tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                    modifier = Modifier.size(22.dp))
+                            },
+                            headlineContent  = { Text(stringResource(R.string.cat_parent)) },
+                            supportingContent = {
+                                Text(parentName, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                            },
+                            modifier = Modifier.clickable { showParentPicker = true }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     }
                 }
 
@@ -390,6 +437,108 @@ fun CategoryFormSheet(
         currencyCode       = currencyCode,
         onCurrencySelect   = { code -> currencyCode = code; showCurrencyPicker = false },
         onCurrencyDismiss  = { showCurrencyPicker = false },
+    )
+
+    // Вибір нового батька для підкатегорії
+    if (showParentPicker && existing != null) {
+        ParentPickerDialog(
+            options       = parentOptions,
+            currentParent = existing.parentId,
+            onSelect      = { newParentId ->
+                showParentPicker = false
+                onChangeParent?.invoke(newParentId)
+                onDismiss()
+            },
+            onDismiss     = { showParentPicker = false }
+        )
+    }
+
+    // Підтвердження видалення підкатегорії
+    deleteChildTarget?.let { child ->
+        ConfirmationDialog(
+            title       = stringResource(R.string.cat_delete_sub_title),
+            message     = stringResource(R.string.cat_delete_message),
+            icon        = Icons.Default.Delete,
+            confirmText = stringResource(R.string.cat_delete_sub),
+            onConfirm   = { deleteChildTarget = null; onDeleteSubcategory?.invoke(child) },
+            onDismiss   = { deleteChildTarget = null }
+        )
+    }
+}
+
+// ── Пікер батьківської категорії (для зміни батька підкатегорії) ──────────────
+
+@Composable
+private fun ParentPickerDialog(
+    options:       List<CategoryEntity>,
+    currentParent: Long?,
+    onSelect:      (Long?) -> Unit,
+    onDismiss:     () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title            = { Text(stringResource(R.string.cat_select_parent)) },
+        text             = {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                // Варіант «без батьківської» (зробити верхнім рівнем)
+                item {
+                    ParentPickerRow(
+                        label      = stringResource(R.string.cat_parent_none),
+                        color      = null,
+                        icon       = null,
+                        selected   = currentParent == null,
+                        onClick    = { onSelect(null) }
+                    )
+                }
+                items(options) { opt ->
+                    ParentPickerRow(
+                        label    = opt.name,
+                        color    = parseColorHex(opt.colorHex, Color.Gray),
+                        icon     = categoryIconFor(opt.icon),
+                        selected = opt.id == currentParent,
+                        onClick  = { onSelect(opt.id) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun ParentPickerRow(
+    label:    String,
+    color:    Color?,
+    icon:     ImageVector?,
+    selected: Boolean,
+    onClick:  () -> Unit
+) {
+    ListItem(
+        colors          = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier        = Modifier.clickable(onClick = onClick),
+        leadingContent  = {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(color ?: MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (icon != null) {
+                    Icon(icon, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Icon(Icons.Outlined.LinkOff, null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        headlineContent = { Text(label) },
+        trailingContent = if (selected) ({
+            Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+        }) else null
     )
 }
 

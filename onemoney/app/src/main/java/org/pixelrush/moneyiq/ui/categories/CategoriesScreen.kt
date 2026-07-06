@@ -225,6 +225,13 @@ fun CategoriesScreen(
             onDetachSubcategory  = if (cat.parentId == null) ({ child ->
                 viewModel.update(child.copy(parentId = null))
             }) else null,
+            onDeleteSubcategory  = if (cat.parentId == null) ({ child ->
+                viewModel.delete(child)
+            }) else null,
+            parentOptions        = allCategoriesForTab.filter { it.parentId == null && it.id != cat.id },
+            onChangeParent       = if (cat.parentId != null) ({ newParentId ->
+                viewModel.update(cat.copy(parentId = newParentId))
+            }) else null,
             defaultType          = cat.type,
             onSave               = { name, type, color, icon, budget, period, archived, currency ->
                 viewModel.update(cat.copy(
