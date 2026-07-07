@@ -329,19 +329,13 @@ internal fun AboutPageContent(onBack: () -> Unit) {
         ) {
             Spacer(Modifier.height(48.dp))
 
-            Surface(
-                shape  = CircleShape,
-                color  = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(96.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter            = painterResource(R.drawable.ic_launcher_foreground),
-                        contentDescription = null,
-                        modifier           = Modifier.size(80.dp)
-                    )
-                }
-            }
+            Image(
+                painter            = painterResource(R.drawable.ic_launcher_full),
+                contentDescription = null,
+                modifier           = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(22.dp))
+            )
 
             Spacer(Modifier.height(20.dp))
 
