@@ -40,7 +40,6 @@ jobs:
         with:
           name: test-results
           path: onemoney/app/build/reports/tests/
-          retention-days: 7
 
   # ── Release APK + GitHub Release (only on version tags v*.*.*) ───────────────
   release:
