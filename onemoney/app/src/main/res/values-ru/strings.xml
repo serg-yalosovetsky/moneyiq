@@ -414,4 +414,7 @@
     <string name="unit_mb">МБ</string>
     <string name="tx_convert_transfer_title">Перевод станет обычной операцией</string>
     <string name="tx_convert_transfer_message">Операция получит категорию «%1$s» и перестанет быть переводом. Баланс счёта назначения будет пересчитан.</string>
+    <string name="common_confirm">Подтвердить</string>
+    <string name="tx_convert_transfer_confirm">Преобразовать</string>
+    <string name="data_monoflow_pending_edits">Синхронизация отложена: %1$d правок ещё не отданы серверу</string>
 </resources>

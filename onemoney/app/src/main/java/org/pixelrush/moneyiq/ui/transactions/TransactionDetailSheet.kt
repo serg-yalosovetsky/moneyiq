@@ -339,6 +339,7 @@ internal fun TransactionDetailSheet(
             title     = stringResource(R.string.tx_convert_transfer_title),
             message   = stringResource(R.string.tx_convert_transfer_message, cat.name),
             icon        = Icons.Outlined.SwapHoriz,
+            confirmText = stringResource(R.string.tx_convert_transfer_confirm),
             destructive = false,
             onConfirm = {
                 categoryId = cat.id

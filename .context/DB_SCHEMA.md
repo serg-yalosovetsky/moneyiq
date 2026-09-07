@@ -2,7 +2,7 @@
 
 Room database: `AppDatabase`
 
-Current version: `31`
+Current version: `32`
 
 Entities:
 
@@ -91,6 +91,10 @@ Indices:
 - `txType: String` — `EXPENSE` / `INCOME` / `TRANSFER`
 - `updatedAt: Long`
 - `synced: Boolean`, default `false` — снимается только после подтверждения сервером
+- `attempts: Int`, default `0` (added migration 31→32) — сколько раз сервер ОТКАЗАЛСЯ принять
+  правку; сетевые сбои не считаются. После `TxOverrideRepository.MAX_ATTEMPTS` правка
+  перестаёт блокировать синк, но остаётся в таблице
+- `lastError: String?` (added migration 31→32) — причина последнего отказа
 
 Строки с id меньше 10^12 сюда не попадают: такая операция заведена локально, сервер
 её не знает (см. `TxOverrideRepository.SERVER_ID_THRESHOLD`).
@@ -129,3 +133,4 @@ Indices:
 
 Any schema change must add a migration and update this file.
 - `30 -> 31`: adds table `tx_overrides` (очередь правок операций для mono-flow)
+- `31 -> 32`: adds `tx_overrides.attempts` and `tx_overrides.lastError`

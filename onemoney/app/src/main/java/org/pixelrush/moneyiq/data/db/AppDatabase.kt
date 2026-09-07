@@ -316,6 +316,15 @@ val MIGRATION_30_31 = object : Migration(30, 31) {
     }
 }
 
+// Лічильник відмов сервера для правки: відхилена правка не має зупиняти синк назавжди,
+// але й зникати мовчки не повинна — причина лишається в рядку.
+val MIGRATION_31_32 = object : Migration(31, 32) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE tx_overrides ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE tx_overrides ADD COLUMN lastError TEXT")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -346,7 +355,8 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_27_28,
     MIGRATION_28_29,
     MIGRATION_29_30,
-    MIGRATION_30_31
+    MIGRATION_30_31,
+    MIGRATION_31_32
 )
 
 @Database(
@@ -356,7 +366,7 @@ val ALL_MIGRATIONS = arrayOf(
         TransactionEntity::class,
         TxOverrideEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

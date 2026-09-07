@@ -32,13 +32,25 @@ class TxOverrideRepository @Inject constructor(
     private val dao: TxOverrideDao,
     private val settingsRepo: SettingsRepository
 ) {
-    /** Результат спроби віддати чергу. `skipped` — сервер не налаштований (це не успіх). */
+    /**
+     * Результат спроби віддати чергу.
+     * `skipped` — сервер не налаштований (це НЕ успіх відправки, просто нічого не робимо);
+     * `pendingLeft` — скільки правок ще чекають відправки і тому блокують тягнення даних.
+     */
     data class PushResult(
         val sent: Int = 0,
         val failed: Int = 0,
         val skipped: Boolean = false,
-        val networkError: Boolean = false
+        val networkError: Boolean = false,
+        val pendingLeft: Int = 0
     )
+
+    /**
+     * Відмова, яка мине сама: невірний токен, ліміт запитів, збій сервера. Спроба не
+     * рахується — інакше протермінований токен за п'ять пробуджень воркера «вбив» би
+     * цілком правильну правку.
+     */
+    private class TransientServerException(message: String) : IOException(message)
 
     /**
      * Ставить правку в чергу. Операції, заведені в застосунку вручну, серверу невідомі —
@@ -68,12 +80,20 @@ class TxOverrideRepository @Inject constructor(
         TxOverridePushWorker.scheduleOneTime(context)
     }
 
-    suspend fun pendingCount(): Int = dao.pendingCount()
+    suspend fun pendingCount(): Int = dao.pendingCount(MAX_ATTEMPTS)
 
     /** Віддає всі непідтверджені правки. Мережеву помилку повідомляє, а не ковтає. */
     suspend fun pushPending(): PushResult = withContext(Dispatchers.IO) {
-        val pending = dao.getPending()
-        if (pending.isEmpty()) return@withContext PushResult()
+        val pending = dao.getPending(MAX_ATTEMPTS)
+        if (pending.isEmpty()) {
+            val dead = dao.deadCount(MAX_ATTEMPTS)
+            if (dead > 0) {
+                // Правки нікуди не поділися, але сервер їх не бере. Синк далі не блокуємо,
+                // інакше одна зіпсована правка зупинила б синхронізацію назавжди.
+                Log.e(TAG, "$dead правок сервер відхилив $MAX_ATTEMPTS разів поспіль; наступний синк перезапише ці операції серверною версією")
+            }
+            return@withContext PushResult()
+        }
 
         val settings = settingsRepo.settings.first()
         val url   = settings.monoflowUrl.trimEnd('/')
@@ -92,17 +112,20 @@ class TxOverrideRepository @Inject constructor(
                 dao.markSynced(row.txId, row.updatedAt)
                 sent++
             } catch (e: IOException) {
-                // мережа/таймаут — правка лишається в черзі, воркер спробує ще раз
-                Log.w(TAG, "правка операції ${row.txId} не доїхала (мережа): ${e.message}")
+                // мережа, таймаут або тимчасова відмова сервера — рядок лишається як є
+                Log.w(TAG, "правка операції ${row.txId} не доїхала: ${e.message}")
                 failed++
                 networkError = true
             } catch (e: Exception) {
+                // відмова сервера — рахуємо спробу і зберігаємо причину в рядку
                 Log.e(TAG, "правка операції ${row.txId} відхилена сервером: ${e.message}", e)
+                dao.markRejected(row.txId, row.updatedAt, e.message?.take(300) ?: e.javaClass.simpleName)
                 failed++
             }
         }
-        Log.i(TAG, "правки операцій: віддано $sent, не вдалося $failed")
-        PushResult(sent = sent, failed = failed, networkError = networkError)
+        val left = dao.pendingCount(MAX_ATTEMPTS)
+        Log.i(TAG, "правки операцій: віддано $sent, не вдалося $failed, лишилось у черзі $left")
+        PushResult(sent = sent, failed = failed, networkError = networkError, pendingLeft = left)
     }
 
     private fun postOverride(baseUrl: String, token: String, row: TxOverrideEntity) {
@@ -127,7 +150,11 @@ class TxOverrideRepository @Inject constructor(
             val code = conn.responseCode
             if (code != 200) {
                 val detail = conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                throw IllegalStateException("HTTP $code from mono-flow: ${detail.take(200)}")
+                val message = "HTTP $code from mono-flow: ${detail.take(200)}"
+                // 401/403 — токен, 429 — ліміт, 5xx — сервер: усе це тимчасове.
+                // Решта 4xx означає, що з правкою щось не так і повтори не допоможуть.
+                if (code in TRANSIENT_CODES || code >= 500) throw TransientServerException(message)
+                throw IllegalStateException(message)
             }
             conn.inputStream.use { it.readBytes() }   // дочитуємо, щоб з'єднання пішло в пул
         } finally {
@@ -145,5 +172,14 @@ class TxOverrideRepository @Inject constructor(
          * а автоінкремент Room стільки не набирає.
          */
         private const val SERVER_ID_THRESHOLD = 1_000_000_000_000L
+
+        /** Коди, після яких повторити варто: токен, ліміт запитів. 5xx перевіряється окремо. */
+        private val TRANSIENT_CODES = setOf(401, 403, 408, 429)
+
+        /**
+         * Скільки разів пробуємо віддати правку, яку сервер відхиляє. Після цього вона
+         * перестає блокувати синк, але лишається в таблиці з причиною відмови.
+         */
+        const val MAX_ATTEMPTS = 5
     }
 }

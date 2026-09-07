@@ -408,4 +408,7 @@
     <string name="unit_mb">MB</string>
     <string name="tx_convert_transfer_title">Transfer will become a regular operation</string>
     <string name="tx_convert_transfer_message">The operation will get the category “%1$s” and stop being a transfer. The destination account balance will be recalculated.</string>
+    <string name="common_confirm">Confirm</string>
+    <string name="tx_convert_transfer_confirm">Convert</string>
+    <string name="data_monoflow_pending_edits">Sync postponed: %1$d edits not yet sent to the server</string>
 </resources>

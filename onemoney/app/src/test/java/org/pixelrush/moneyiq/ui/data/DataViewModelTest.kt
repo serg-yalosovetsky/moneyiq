@@ -17,6 +17,7 @@ import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.data.repository.SettingsRepository
+import org.syalosovetskyi.onemoney.data.repository.TxOverrideRepository
 import org.syalosovetskyi.onemoney.util.BackupSerializer
 import org.syalosovetskyi.onemoney.util.MainDispatcherRule
 
@@ -30,8 +31,9 @@ class DataViewModelTest {
     private val accountDao: AccountDao = mockk(relaxed = true)
     private val categoryDao: CategoryDao = mockk(relaxed = true)
     private val settingsRepo: SettingsRepository = mockk(relaxed = true)
+    private val overrideRepo: TxOverrideRepository = mockk(relaxed = true)
 
-    private fun buildVm() = DataViewModel(txDao, accountDao, categoryDao, settingsRepo)
+    private fun buildVm() = DataViewModel(txDao, accountDao, categoryDao, settingsRepo, overrideRepo)
 
     @Test
     fun `buildExportJson serializes all dao data`() = runTest {

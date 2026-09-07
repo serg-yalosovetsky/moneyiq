@@ -133,6 +133,11 @@ internal fun TransactionDetailSheet(
 **Rule:** Каждая правка ставится в очередь `TxOverrideRepository.enqueue` и уезжает на
 mono-flow. Без этого следующий синк перезапишет операцию серверной версией.
 
+**Rule:** У недеструктивного `ConfirmationDialog` обязателен `confirmText` либо расчёт на
+дефолт `common_confirm` — дефолт `common_delete` оставлен только для `destructive = true`.
+Кнопка «Видалити» под вопросом «Перетворити переказ?» — это не косметика, а неверное
+обещание пользователю.
+
 ## Overview Screen
 
 `OverviewScreen` (`Огляд` tab) — monthly totals, daily bar chart, stats row, list section.

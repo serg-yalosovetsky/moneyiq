@@ -20,5 +20,9 @@ data class TxOverrideEntity(
     val categoryName: String? = null,
     val txType: String,                              // EXPENSE / INCOME / TRANSFER
     val updatedAt: Long = System.currentTimeMillis(),
-    val synced: Boolean = false
+    val synced: Boolean = false,
+    /** Скільки разів сервер відмовився прийняти цю правку (мережеві збої не рахуються). */
+    val attempts: Int = 0,
+    /** Остання відмова сервера — щоб причина була видима, а не лише в лозі. */
+    val lastError: String? = null
 )

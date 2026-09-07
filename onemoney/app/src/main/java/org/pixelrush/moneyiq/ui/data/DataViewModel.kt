@@ -17,6 +17,7 @@ import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
 import org.syalosovetskyi.onemoney.data.repository.SettingsRepository
+import org.syalosovetskyi.onemoney.data.repository.TxOverrideRepository
 import org.syalosovetskyi.onemoney.util.BackupData
 import org.syalosovetskyi.onemoney.util.BackupSerializer
 import org.syalosovetskyi.onemoney.util.CsvExporter
@@ -61,7 +62,8 @@ class DataViewModel @Inject constructor(
     private val txDao:       TransactionDao,
     private val accountDao:  AccountDao,
     private val categoryDao: CategoryDao,
-    private val settingsRepo: SettingsRepository
+    private val settingsRepo: SettingsRepository,
+    private val overrideRepo: TxOverrideRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DataUiState())
@@ -330,6 +332,16 @@ class DataViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isSyncing = true)
             try {
+                // Спершу віддаємо свої правки. Тягнення перезаписує операції за id,
+                // тож невіддана правка була б тут мовчки затерта — і ручний синк
+                // з'їдав би її так само, як фоновий.
+                val pushed = overrideRepo.pushPending()
+                if (pushed.pendingLeft > 0) {
+                    showMessage(
+                        context.getString(R.string.data_monoflow_pending_edits, pushed.pendingLeft)
+                    )
+                    return@launch
+                }
                 val since = _state.value.monoflowLastSyncMs
                 val json  = withContext(Dispatchers.IO) {
                     val base = if (url.endsWith("/api/sync")) url else "$url/api/sync"

@@ -19,7 +19,16 @@ internal fun ConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon  = icon?.let { { Icon(it, null, tint = MaterialTheme.colorScheme.error) } },
+        // колір іконки за семантикою дії: червоний лише там, де щось справді видаляють
+        icon  = icon?.let {
+            {
+                Icon(
+                    it, null,
+                    tint = if (destructive) MaterialTheme.colorScheme.error
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         title = { Text(title) },
         text  = { Text(message) },
         confirmButton = {
@@ -28,7 +37,14 @@ internal fun ConfirmationDialog(
                 colors  = if (destructive)
                     ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 else ButtonDefaults.textButtonColors()
-            ) { Text(confirmText ?: stringResource(R.string.common_delete)) }
+            ) {
+                // «Видалити» лише для destructive: підпис кнопки мусить збігатися з дією
+                Text(
+                    confirmText ?: stringResource(
+                        if (destructive) R.string.common_delete else R.string.common_confirm
+                    )
+                )
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismissText ?: stringResource(R.string.common_cancel)) } }
     )

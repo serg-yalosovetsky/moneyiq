@@ -1,6 +1,7 @@
 package org.syalosovetskyi.onemoney.workers
 
 import android.content.Context
+import android.util.Log
 import androidx.work.*
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -55,7 +56,12 @@ class MonoFlowSyncWorker(
             // СПЕРШУ віддаємо свої правки, і лише потім тягнемо: тягнення перезаписує
             // операції за id, тож невіддана правка була б тут мовчки затерта.
             val pushed = ep.txOverrideRepository().pushPending()
-            if (pushed.networkError) return@withContext Result.retry()
+            if (pushed.networkError || pushed.pendingLeft > 0) {
+                // Тягнути зараз не можна: REPLACE за id перезапише операцію серверною
+                // версією і невіддана правка зникне без сліду. Відкладаємо весь синк.
+                Log.w(TAG, "синк відкладено: ${pushed.pendingLeft} правок ще не віддано серверу")
+                return@withContext Result.retry()
+            }
 
             // Отримуємо JSON з сервера
             val json = fetchJson(url, token, since)
@@ -68,6 +74,11 @@ class MonoFlowSyncWorker(
             val normalizedCats = data.categories.map { normalizeImportedCategory(it) }
             ep.categoryDao().insertCategories(normalizedCats)
             ep.transactionDao().insertTransactions(data.transactions)
+            Log.i(
+                TAG,
+                "синк: ${data.accounts.size} рахунків, ${data.categories.size} категорій, " +
+                    "${data.transactions.size} операцій"
+            )
 
             // Оновлюємо час останньої синхронізації
             ep.settingsRepository().update {
@@ -76,12 +87,16 @@ class MonoFlowSyncWorker(
 
             Result.success()
         } catch (e: Exception) {
-            // Retry при мережевих помилках, failure при parse-помилках
+            // Retry при мережевих помилках, failure при parse-помилках.
+            // Мовчазного провалу тут бути не може: невдалий синк ззовні виглядає
+            // точно як «нових даних немає», і причина має лишитися в лозі.
             if (e is java.net.SocketTimeoutException ||
                 e is java.net.ConnectException ||
                 e is java.io.IOException) {
+                Log.w(TAG, "синк не вдався (мережа), спробуємо ще раз: ${e.message}")
                 Result.retry()
             } else {
+                Log.e(TAG, "синк провалено: ${e.javaClass.simpleName}: ${e.message}", e)
                 Result.failure()
             }
         }
@@ -106,6 +121,7 @@ class MonoFlowSyncWorker(
     // ── Companion ─────────────────────────────────────────────────────────────
 
     companion object {
+        private const val TAG = "MonoFlowSync"
         const val WORK_NAME = "monoflow_auto_sync"
 
         fun schedule(context: Context) {
