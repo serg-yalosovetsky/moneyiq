@@ -617,10 +617,16 @@ internal fun QuickCategoryPickerSheet(
         )
         val expensesLabel = stringResource(R.string.common_expenses)
         val incomesLabel  = stringResource(R.string.common_incomes)
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        // weight(fill = false) обмежує список тим, що лишилось на екрані: без цього
+        // LazyColumn міряється по вмісту, хвіст списку йде за край і прокрутити його
+        // неможливо — жест перехоплює сам аркуш. Видно лише на довгих списках
+        // (з підкатегоріями), тому у швидкому вводі баг не проявлявся.
+        LazyColumn(
+            modifier       = Modifier.fillMaxWidth().weight(1f, fill = false),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
             quickCatSection(expensesLabel, expCats, selectedCategoryId, onSelect)
             quickCatSection(incomesLabel,  incCats, selectedCategoryId, onSelect)
-            item { Spacer(Modifier.height(32.dp)) }
         }
     }
 }

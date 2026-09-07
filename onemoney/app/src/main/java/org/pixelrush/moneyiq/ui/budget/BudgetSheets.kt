@@ -243,7 +243,12 @@ internal fun IncomeCategoryPickerSheet(
             style    = MaterialTheme.typography.bodySmall,
             color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
         )
-        LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
+        // Той самий дефект, що і в QuickCategoryPickerSheet: без weight(fill = false)
+        // список міряється по вмісту і його хвіст неможливо прокрутити.
+        LazyColumn(
+            modifier       = Modifier.weight(1f, fill = false),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
             items(rows) { row ->
                 val catColor = remember(row.category.colorHex) {
                     parseColorHex(row.category.colorHex, accentColor)

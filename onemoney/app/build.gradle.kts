@@ -23,8 +23,8 @@ android {
         applicationId = "org.syalosovetskyi.onemoney"
         minSdk = 26
         targetSdk = 36
-        versionCode = 13
-        versionName = "1.2.8"
+        versionCode = 14
+        versionName = "1.2.9"
         testInstrumentationRunner = "org.syalosovetskyi.onemoney.HiltTestRunner"
         multiDexKeepProguard = file("multidex-keep.pro")
     }
