@@ -2,13 +2,14 @@
 
 Room database: `AppDatabase`
 
-Current version: `30`
+Current version: `31`
 
 Entities:
 
 - `accounts`
 - `categories`
 - `transactions`
+- `tx_overrides`
 
 ## Accounts
 
@@ -77,6 +78,23 @@ Indices:
 - `categoryId`
 - `date`
 
+## Tx Overrides
+
+`TxOverrideEntity` — очередь правок операций, которые надо отдать на mono-flow.
+Синк тянет операции с сервера и перезаписывает их по id (REPLACE), поэтому правка
+операции, пришедшей с сервера, живёт до следующего синка, если не доехала обратно.
+
+- `txId: Long` primary key — id операции (тот же, что пришёл с сервера)
+- `note: String` — новое имя операции
+- `categoryName: String?` — ИМЯ категории, не id: id категории на сервере производится
+  от имени, имя переживает пересборку выдачи
+- `txType: String` — `EXPENSE` / `INCOME` / `TRANSFER`
+- `updatedAt: Long`
+- `synced: Boolean`, default `false` — снимается только после подтверждения сервером
+
+Строки с id меньше 10^12 сюда не попадают: такая операция заведена локально, сервер
+её не знает (см. `TxOverrideRepository.SERVER_ID_THRESHOLD`).
+
 ## Migrations
 
 - `1 -> 2`: adds `accounts.isDefault`
@@ -110,3 +128,4 @@ Indices:
 - `29 -> 30`: data migration — one-time `sortOrder` fix for 9 root expense categories: продукти→1, ресторація→2, дозвілля→3, транспорт→4, здоров'я→5, подарунки→6, сім'я→7, покупки→8, робота→9. Uses LIKE for apostrophe names. After this migration `sortOrder` is user-controlled and never reset on startup.
 
 Any schema change must add a migration and update this file.
+- `30 -> 31`: adds table `tx_overrides` (очередь правок операций для mono-flow)

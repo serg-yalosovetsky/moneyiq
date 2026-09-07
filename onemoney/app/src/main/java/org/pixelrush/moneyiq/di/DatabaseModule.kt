@@ -12,6 +12,7 @@ import org.syalosovetskyi.onemoney.data.db.AppDatabase
 import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
+import org.syalosovetskyi.onemoney.data.db.dao.TxOverrideDao
 import javax.inject.Singleton
 
 @Module
@@ -29,4 +30,5 @@ object DatabaseModule {
     @Provides fun provideAccountDao(db: AppDatabase): AccountDao = db.accountDao()
     @Provides fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
     @Provides fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
+    @Provides fun provideTxOverrideDao(db: AppDatabase): TxOverrideDao = db.txOverrideDao()
 }

@@ -1415,3 +1415,30 @@ Icon(DoubleChevronRight, tint = if (isCurrentMonth) Color(0xFF111111) else Month
 **Rule:** Left navigation arrow is always `Color(0xFF111111)`. Right arrow uses `pillColor` logic — red when not on current month, dark when on current month. This makes the right arrow a visual "return to current" cue.
 
 **Rule:** Do not make both arrows follow `pillColor` — a red left arrow has no semantic purpose and clutters the UI when in a past month.
+
+## ADR-070: Правки операций уезжают на mono-flow отдельной очередью (2026-09-07)
+
+**Problem:** `MonoFlowSyncWorker` тянет `/api/sync` и делает `INSERT OR REPLACE` по id.
+Любая локальная правка операции, пришедшей с сервера (переименование, смена категории),
+выглядела применённой ровно до следующего пробуждения воркера, после чего молча
+затиралась серверной версией.
+
+**Decision:** Синхронизация становится двусторонней.
+
+- На сервере (`mono-flow`) заведена таблица `miq_overrides` и `POST /api/tx/override`
+  (контракт — `iface.mono-flow`). Правка хранится ОТДЕЛЬНО от транзакции, потому что
+  строки транзакций пересобираются из данных Монобанка при каждой отдаче, и накладывается
+  в `build_moneyiq_json`.
+- В приложении заведена таблица `tx_overrides` (migration 30→31) — очередь правок, и
+  `TxOverridePushWorker`, который её дожимает. Правка переживает офлайн: `synced`
+  снимается только после ответа сервера.
+- `MonoFlowSyncWorker` СНАЧАЛА отдаёт очередь и только потом тянет данные.
+
+**Rule:** Категория адресуется на сервер ИМЕНЕМ, не id: id категории на сервере
+производится от имени (`_sid("cat", name)`), а локальный id к серверному отношения не имеет.
+
+**Rule:** Всё, что правится локально и приходит с сервера, обязано иметь путь обратно.
+Правка без пути назад — это не фича, а отложенная потеря данных.
+
+**Rule:** Операции, заведённые в приложении вручную (id < 10^12), на сервер не уезжают —
+он их не знает. Это логируется, а не пропускается молча.

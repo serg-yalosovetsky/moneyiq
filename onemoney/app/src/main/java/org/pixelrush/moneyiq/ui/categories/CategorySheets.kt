@@ -583,20 +583,27 @@ fun QuickExpenseSheet(
 }
 
 /** Аркуш вибору категорії для швидкого запису (секції Витрати/Доходи).
- *  Раніше ~73 рядки inline у QuickExpenseSheet з дублюванням exp/inc гілок. */
+ *  Раніше ~73 рядки inline у QuickExpenseSheet з дублюванням exp/inc гілок.
+ *  `includeSubcategories` — показати ще й підкатегорії (потрібно при зміні
+ *  категорії вже записаної операції: підкатегорія там осмислений вибір). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickCategoryPickerSheet(
-    categories:         List<CategoryEntity>,
-    selectedCategoryId: Long,
-    onSelect:           (CategoryEntity) -> Unit,
-    onDismiss:          () -> Unit,
+internal fun QuickCategoryPickerSheet(
+    categories:           List<CategoryEntity>,
+    selectedCategoryId:   Long,
+    includeSubcategories: Boolean = false,
+    onSelect:             (CategoryEntity) -> Unit,
+    onDismiss:            () -> Unit,
 ) {
-    val expCats = remember(categories) {
-        categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.EXPENSE }
+    val expCats = remember(categories, includeSubcategories) {
+        categories.filter {
+            (includeSubcategories || it.parentId == null) && !it.archived && it.type == TransactionType.EXPENSE
+        }
     }
-    val incCats = remember(categories) {
-        categories.filter { it.parentId == null && !it.archived && it.type == TransactionType.INCOME }
+    val incCats = remember(categories, includeSubcategories) {
+        categories.filter {
+            (includeSubcategories || it.parentId == null) && !it.archived && it.type == TransactionType.INCOME
+        }
     }
     ModalBottomSheet(
         onDismissRequest = onDismiss,

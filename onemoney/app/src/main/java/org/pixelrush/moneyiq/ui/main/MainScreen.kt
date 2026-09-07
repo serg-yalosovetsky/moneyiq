@@ -281,7 +281,11 @@ fun MainScreen(
                     4 -> OverviewScreen(
                              padding          = bottomPadding,
                              onAddTransaction = onAddTransaction,
-                             embeddedMode     = true
+                             embeddedMode     = true,
+                             onViewCategoryTx = { catId ->
+                                 filterByCategoryId = catId
+                                 scope.launch { pagerState.animateScrollToPage(txTabIndex) }
+                             }
                          )
                     else -> Unit
                 }

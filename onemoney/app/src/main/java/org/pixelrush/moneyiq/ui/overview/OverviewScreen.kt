@@ -51,6 +51,8 @@ fun OverviewScreen(
     padding:          PaddingValues = PaddingValues(),
     onAddTransaction: () -> Unit    = {},
     embeddedMode:     Boolean       = false,
+    /** Перехід на вкладку «Операції» з фільтром по цій категорії. */
+    onViewCategoryTx: (Long) -> Unit = {},
     viewModel:        OverviewViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -88,7 +90,7 @@ fun OverviewScreen(
                 catColor     = catColor,
                 monthLabel   = "${stringArrayResource(R.array.month_names)[state.selectedMonth.month]} ${state.selectedMonth.year}",
                 onAddExpense = { selectedCat = null; onAddTransaction() },
-                onOperations = { selectedCat = null }
+                onOperations = { selectedCat = null; onViewCategoryTx(cat.categoryId) }
             )
         }
     }

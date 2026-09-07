@@ -24,6 +24,7 @@ import org.syalosovetskyi.onemoney.data.repository.AppMonth
 import org.syalosovetskyi.onemoney.data.repository.CategoryRepository
 import org.syalosovetskyi.onemoney.data.repository.SelectedMonthRepository
 import org.syalosovetskyi.onemoney.data.repository.TransactionRepository
+import org.syalosovetskyi.onemoney.data.repository.TxOverrideRepository
 import org.syalosovetskyi.onemoney.util.MainDispatcherRule
 import java.util.Calendar
 
@@ -36,6 +37,7 @@ class TransactionsListViewModelTest {
     private val txRepo: TransactionRepository = mockk(relaxed = true)
     private val accountRepo: AccountRepository = mockk(relaxed = true)
     private val categoryRepo: CategoryRepository = mockk(relaxed = true)
+    private val overrideRepo: TxOverrideRepository = mockk(relaxed = true)
     private lateinit var monthRepo: SelectedMonthRepository
 
     private fun millis(day: Int): Long = Calendar.getInstance().apply {
@@ -89,7 +91,7 @@ class TransactionsListViewModelTest {
         )
     }
 
-    private fun buildVm() = TransactionsListViewModel(txRepo, accountRepo, categoryRepo, monthRepo)
+    private fun buildVm() = TransactionsListViewModel(txRepo, accountRepo, categoryRepo, monthRepo, overrideRepo)
 
     @Test
     fun `state computes income expense and opening balance from visible transactions`() = runTest {
@@ -228,6 +230,72 @@ class TransactionsListViewModelTest {
                     it.categoryId == 2L &&
                     it.date > 0L
             })
+        }
+    }
+
+    @Test
+    fun `assigning a category to a transfer turns it into an expense`() = runTest {
+        val vm = buildVm()
+        val original = TransactionEntity(
+            id = 6L,
+            type = TransactionType.TRANSFER,
+            amount = 7_500.0,
+            accountId = 1L,
+            toAccountId = 2L,
+            note = "",
+            date = millis(1)
+        )
+        coEvery { txRepo.getById(6L) } returns original
+        coEvery { categoryRepo.getById(2L) } returns
+            CategoryEntity(id = 2L, name = "Продукти", type = TransactionType.EXPENSE)
+
+        vm.updateTransaction(
+            tx(6L, TransactionType.TRANSFER, 7_500.0),
+            note = "заказ подкрилка",
+            amount = 7_500.0,
+            date = millis(1),
+            categoryId = 2L
+        )
+
+        coVerify {
+            txRepo.updateTransaction(
+                original,
+                match {
+                    it.type == TransactionType.EXPENSE &&
+                        it.toAccountId == null &&
+                        it.categoryId == 2L &&
+                        it.note == "заказ подкрилка"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `edited transaction is queued for the server`() = runTest {
+        val vm = buildVm()
+        val original = TransactionEntity(
+            id = 6L,
+            type = TransactionType.TRANSFER,
+            amount = 7_500.0,
+            accountId = 1L,
+            toAccountId = 2L,
+            note = "",
+            date = millis(1)
+        )
+        coEvery { txRepo.getById(6L) } returns original
+        coEvery { categoryRepo.getById(2L) } returns
+            CategoryEntity(id = 2L, name = "Продукти", type = TransactionType.EXPENSE)
+
+        vm.updateTransaction(
+            tx(6L, TransactionType.TRANSFER, 7_500.0),
+            note = "заказ подкрилка",
+            amount = 7_500.0,
+            date = millis(1),
+            categoryId = 2L
+        )
+
+        coVerify {
+            overrideRepo.enqueue(6L, "заказ подкрилка", "Продукти", TransactionType.EXPENSE)
         }
     }
 

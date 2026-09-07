@@ -102,6 +102,37 @@ Composables split from `TransactionSheets.kt` (deleted) into:
 
 All `internal`. Do not mark `private`.
 
+## TransactionDetailSheet — Category Change
+
+Правая половина шапки листа кликабельна и открывает `QuickCategoryPickerSheet`
+(`CategorySheets.kt`, `internal`, `includeSubcategories = true` — у записанной операции
+подкатегория осмысленный выбор). Иконка карандаша в углу показывает, что элемент
+редактируемый; при пустом списке категорий клик отключён.
+
+```kotlin
+internal fun TransactionDetailSheet(
+    tx:          TransactionWithDetails,
+    categories:  List<CategoryEntity> = emptyList(),
+    onDismiss:   () -> Unit,
+    onDelete:    () -> Unit,
+    onDuplicate: () -> Unit,
+    onSave:      (note: String, amount: Double, date: Long, categoryId: Long?) -> Unit
+)
+```
+
+**Rule:** Перевод, которому назначили категорию, перестаёт быть переводом: тип берётся
+из категории, `toAccountId` отвязывается, балансы обоих счетов пересчитываются
+(`TransactionRepository.updateTransaction` делает это сам). Перед этим показывается
+подтверждение `tx_convert_transfer_title` / `tx_convert_transfer_message` — действие
+необратимо для баланса второго счёта.
+
+**Rule:** Заголовок суммы и её цвет считаются от `effectiveType` (тип с учётом только
+что выбранной категории), а не от `tx.type` — иначе перевод продолжал бы выглядеть
+переводом до перезагрузки листа.
+
+**Rule:** Каждая правка ставится в очередь `TxOverrideRepository.enqueue` и уезжает на
+mono-flow. Без этого следующий синк перезапишет операцию серверной версией.
+
 ## Overview Screen
 
 `OverviewScreen` (`Огляд` tab) — monthly totals, daily bar chart, stats row, list section.
@@ -130,3 +161,16 @@ Tapping a fallback transaction row is a no-op. `OverviewUiState.transactions` ho
 **Fallback:** If `segments.isEmpty()` (income with no category, or uncategorised transactions) → single `accentColor` bar.
 
 **Rule:** `SpendingChart` draws segments in the order they arrive in `DayBar.segments`. Do not re-sort in the composable — sorting is the ViewModel's responsibility.
+
+## Overview → Операції
+
+Кнопка «Операції» в листе категории (`CategoryDetailSheet`) не закрывает лист впустую:
+она переключает пейджер на вкладку «Операції» и ставит фильтр по этой категории.
+
+- `OverviewScreen(onViewCategoryTx: (Long) -> Unit)` — колбэк с `categoryId`.
+- `MainScreen` ставит `filterByCategoryId` и делает `animateScrollToPage(txTabIndex)` —
+  ровно тот же механизм, что у `CategoriesScreen.onViewCategoryTx`.
+- Фильтр раскрывается в подкатегории на стороне `TransactionsListScreen`.
+
+**Rule:** Не заводить для этого отдельный маршрут навигации — вкладки живут в одном
+`HorizontalPager`, и новый `composable` разорвал бы общий выбранный месяц.

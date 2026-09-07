@@ -24,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionWithDetails
+import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+import org.syalosovetskyi.onemoney.ui.categories.QuickCategoryPickerSheet
 import org.syalosovetskyi.onemoney.ui.categories.categoryIconFor
 import org.syalosovetskyi.onemoney.ui.components.calculator.CalcDateSheet
 import org.syalosovetskyi.onemoney.ui.components.dialogs.ConfirmationDialog
@@ -48,20 +50,25 @@ import org.syalosovetskyi.onemoney.ui.theme.TransferBlue
 @Composable
 internal fun TransactionDetailSheet(
     tx:          TransactionWithDetails,
+    categories:  List<CategoryEntity> = emptyList(),
     onDismiss:   () -> Unit,
     onDelete:    () -> Unit,
     onDuplicate: () -> Unit,
-    onSave:      (note: String, amount: Double, date: Long) -> Unit
+    onSave:      (note: String, amount: Double, date: Long, categoryId: Long?) -> Unit
 ) {
     val calc = rememberCalcState()
 
     var note         by remember(tx.id) { mutableStateOf(tx.note) }
     var selectedDate by remember(tx.id) { mutableStateOf(tx.date) }
+    var categoryId   by remember(tx.id) { mutableStateOf(tx.categoryId) }
     var isDirty      by remember(tx.id) { mutableStateOf(false) }
     var showCalc     by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDateSheet    by remember { mutableStateOf(false) }
     var showFullDate     by remember { mutableStateOf(false) }
+    var showCatPicker    by remember { mutableStateOf(false) }
+    // Переказ + категорія = операція стане витратою/доходом → питаємо підтвердження
+    var pendingTransferCat by remember { mutableStateOf<CategoryEntity?>(null) }
 
     LaunchedEffect(tx.id) {
         val v = tx.amount
@@ -74,19 +81,31 @@ internal fun TransactionDetailSheet(
     val accountColor = remember(tx.accountColor) {
         parseColorHex(tx.accountColor, FallbackAccountColor)
     }
-    val catColor = remember(tx.categoryColor) {
-        tx.categoryColor?.let {
+    // Обрана категорія: спершу локальний вибір, інакше та, що прийшла з транзакцією
+    val selectedCat = remember(categoryId, categories) {
+        categories.firstOrNull { it.id == categoryId }
+    }
+    val catColor = remember(tx.categoryColor, selectedCat) {
+        val hex = selectedCat?.colorHex ?: tx.categoryColor
+        hex?.let {
             try { Color(it.toColorInt()) } catch (_: Exception) { null }
         }
     }
-    val isTransfer  = tx.type == TransactionType.TRANSFER
+    // Категорія на переказі означає, що операцію перекласифіковано у витрату/дохід
+    val isTransfer  = tx.type == TransactionType.TRANSFER && categoryId == null
+    val effectiveType = when {
+        tx.type != TransactionType.TRANSFER -> tx.type
+        selectedCat != null                 -> selectedCat.type
+        categoryId != null                  -> TransactionType.EXPENSE
+        else                                -> TransactionType.TRANSFER
+    }
     val leftColor   = if (isTransfer) AccentTeal else accountColor
     val rightColor  = when {
         isTransfer       -> AccentIndigo
         catColor != null -> catColor
         else             -> FallbackIconColor
     }
-    val accentColor = when (tx.type) {           // колір суми — уніфіковано до семантики
+    val accentColor = when (effectiveType) {     // колір суми — уніфіковано до семантики
         TransactionType.TRANSFER -> TransferBlue
         TransactionType.INCOME   -> IncomeGreen
         else                     -> ExpenseRed
@@ -96,7 +115,7 @@ internal fun TransactionDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = {
-            if (isDirty) onSave(note, tx.amount, selectedDate)
+            if (isDirty) onSave(note, tx.amount, selectedDate, categoryId)
             else onDismiss()
         },
         sheetState     = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -117,7 +136,10 @@ internal fun TransactionDetailSheet(
                         Text(tx.accountName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                Box(modifier = Modifier.weight(1f).fillMaxHeight().background(rightColor)) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight().background(rightColor)
+                        .clickable(enabled = categories.isNotEmpty()) { showCatPicker = true }
+                ) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
                             .size(32.dp).clip(CircleShape)
@@ -126,11 +148,19 @@ internal fun TransactionDetailSheet(
                     ) {
                         Icon(
                             when {
-                                isTransfer           -> Icons.Outlined.CreditCard
-                                tx.categoryIcon != null -> categoryIconFor(tx.categoryIcon)
-                                else                 -> Icons.Outlined.Category
+                                isTransfer                  -> Icons.Outlined.CreditCard
+                                selectedCat != null         -> categoryIconFor(selectedCat.icon)
+                                tx.categoryIcon != null     -> categoryIconFor(tx.categoryIcon)
+                                else                        -> Icons.Outlined.Category
                             },
                             null, tint = Color.White, modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    if (categories.isNotEmpty()) {
+                        Icon(
+                            Icons.Outlined.Edit, null,
+                            tint     = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(16.dp)
                         )
                     }
                     Column(
@@ -144,6 +174,7 @@ internal fun TransactionDetailSheet(
                         Text(
                             when {
                                 isTransfer              -> tx.toAccountName ?: "—"
+                                selectedCat != null     -> selectedCat.name
                                 tx.categoryName != null -> tx.categoryName
                                 else                    -> stringResource(R.string.tx_no_category)
                             },
@@ -159,7 +190,7 @@ internal fun TransactionDetailSheet(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    when (tx.type) {
+                    when (effectiveType) {
                         TransactionType.TRANSFER -> stringResource(R.string.tx_transfer)
                         TransactionType.INCOME   -> stringResource(R.string.tx_income)
                         else                     -> stringResource(R.string.tx_expense)
@@ -231,7 +262,7 @@ internal fun TransactionDetailSheet(
                     confirmColor = accentColor,
                     onConfirm    = {
                         val amt = calc.result()
-                        if (amt > 0) onSave(note, amt, selectedDate)
+                        if (amt > 0) onSave(note, amt, selectedDate, categoryId)
                     },
                     row2ExtraKey = {
                         Box(
@@ -280,6 +311,41 @@ internal fun TransactionDetailSheet(
             initial        = selectedDate,
             onDateSelected = { selectedDate = it; isDirty = true; showFullDate = false },
             onDismiss      = { showFullDate = false }
+        )
+    }
+
+    // ── Вибір категорії операції ──────────────────────────────────────────────
+    if (showCatPicker && categories.isNotEmpty()) {
+        QuickCategoryPickerSheet(
+            categories           = categories,
+            selectedCategoryId   = categoryId ?: -1L,
+            includeSubcategories = true,
+            onSelect             = { cat ->
+                showCatPicker = false
+                if (tx.type == TransactionType.TRANSFER) {
+                    // Переказ стане витратою/доходом і перерахує баланси обох рахунків
+                    pendingTransferCat = cat
+                } else {
+                    categoryId = cat.id
+                    isDirty    = true
+                }
+            },
+            onDismiss            = { showCatPicker = false }
+        )
+    }
+
+    pendingTransferCat?.let { cat ->
+        ConfirmationDialog(
+            title     = stringResource(R.string.tx_convert_transfer_title),
+            message   = stringResource(R.string.tx_convert_transfer_message, cat.name),
+            icon        = Icons.Outlined.SwapHoriz,
+            destructive = false,
+            onConfirm = {
+                categoryId = cat.id
+                isDirty    = true
+                pendingTransferCat = null
+            },
+            onDismiss = { pendingTransferCat = null }
         )
     }
 }

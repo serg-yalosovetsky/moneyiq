@@ -13,6 +13,7 @@ import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
 import org.syalosovetskyi.onemoney.data.repository.SettingsRepository
+import org.syalosovetskyi.onemoney.data.repository.TxOverrideRepository
 import org.syalosovetskyi.onemoney.util.BackupSerializer
 import org.syalosovetskyi.onemoney.util.NetworkTimeouts
 import org.syalosovetskyi.onemoney.util.normalizeImportedCategory
@@ -27,6 +28,7 @@ interface MonoFlowSyncEntryPoint {
     fun categoryDao(): CategoryDao
     fun transactionDao(): TransactionDao
     fun settingsRepository(): SettingsRepository
+    fun txOverrideRepository(): TxOverrideRepository
 }
 
 // ── Worker ────────────────────────────────────────────────────────────────────
@@ -49,6 +51,11 @@ class MonoFlowSyncWorker(
             if (url.isBlank() || token.isBlank()) return@withContext Result.success()
 
             val since = settings.monoflowLastSyncMs
+
+            // СПЕРШУ віддаємо свої правки, і лише потім тягнемо: тягнення перезаписує
+            // операції за id, тож невіддана правка була б тут мовчки затерта.
+            val pushed = ep.txOverrideRepository().pushPending()
+            if (pushed.networkError) return@withContext Result.retry()
 
             // Отримуємо JSON з сервера
             val json = fetchJson(url, token, since)

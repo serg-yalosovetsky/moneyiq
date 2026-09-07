@@ -16,6 +16,7 @@ import org.syalosovetskyi.onemoney.data.repository.AppMonth
 import org.syalosovetskyi.onemoney.data.repository.CategoryRepository
 import org.syalosovetskyi.onemoney.data.repository.SelectedMonthRepository
 import org.syalosovetskyi.onemoney.data.repository.TransactionRepository
+import org.syalosovetskyi.onemoney.data.repository.TxOverrideRepository
 import org.syalosovetskyi.onemoney.util.calculateNextRepeatDate
 import java.util.Calendar
 import javax.inject.Inject
@@ -46,7 +47,8 @@ class TransactionsListViewModel @Inject constructor(
     private val txRepo:       TransactionRepository,
     private val accountRepo:  AccountRepository,
     private val categoryRepo: CategoryRepository,
-    private val monthRepo:    SelectedMonthRepository
+    private val monthRepo:    SelectedMonthRepository,
+    private val overrideRepo: TxOverrideRepository
 ) : ViewModel() {
 
     val state: StateFlow<TxListUiState> = monthRepo.month.flatMapLatest { am ->
@@ -133,10 +135,48 @@ class TransactionsListViewModel @Inject constructor(
         }
     }
 
-    fun updateTransaction(tx: TransactionWithDetails, note: String, amount: Double, date: Long) {
+    /**
+     * Зберігає правки операції. `categoryId` = null означає «без категорії».
+     *
+     * Переказ, якому призначили категорію, перестає бути переказом: тип береться
+     * з категорії (витрата/дохід), рахунок призначення відв'язується, а
+     * [TransactionRepository.updateTransaction] перераховує баланси обох рахунків.
+     */
+    fun updateTransaction(
+        tx:         TransactionWithDetails,
+        note:       String,
+        amount:     Double,
+        date:       Long,
+        categoryId: Long? = tx.categoryId
+    ) {
         viewModelScope.launch {
             val orig = txRepo.getById(tx.id) ?: return@launch
-            txRepo.updateTransaction(orig, orig.copy(note = note, amount = amount, date = date))
+            val newType = if (orig.type == TransactionType.TRANSFER && categoryId != null) {
+                categoryRepo.getById(categoryId)?.type ?: TransactionType.EXPENSE
+            } else {
+                orig.type
+            }
+            val newToAccountId =
+                if (newType == TransactionType.TRANSFER) orig.toAccountId else null
+            txRepo.updateTransaction(
+                orig,
+                orig.copy(
+                    note        = note,
+                    amount      = amount,
+                    date        = date,
+                    categoryId  = categoryId,
+                    type        = newType,
+                    toAccountId = newToAccountId
+                )
+            )
+            // Правку треба віддати на mono-flow, інакше наступний синк перезапише
+            // операцію серверною версією і перейменування зникне.
+            overrideRepo.enqueue(
+                txId         = orig.id,
+                note         = note,
+                categoryName = categoryId?.let { categoryRepo.getById(it)?.name },
+                type         = newType
+            )
         }
     }
 

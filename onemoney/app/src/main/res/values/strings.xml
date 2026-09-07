@@ -417,4 +417,6 @@
     <string name="unit_b">Б</string>
     <string name="unit_kb">КБ</string>
     <string name="unit_mb">МБ</string>
+    <string name="tx_convert_transfer_title">Переказ стане звичайною операцією</string>
+    <string name="tx_convert_transfer_message">Операція отримає категорію «%1$s» і перестане бути переказом. Баланс рахунку призначення буде перераховано.</string>
 </resources>

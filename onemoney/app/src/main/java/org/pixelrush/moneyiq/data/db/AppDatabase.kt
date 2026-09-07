@@ -9,11 +9,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import org.syalosovetskyi.onemoney.data.db.dao.AccountDao
 import org.syalosovetskyi.onemoney.data.db.dao.CategoryDao
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionDao
+import org.syalosovetskyi.onemoney.data.db.dao.TxOverrideDao
 import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.AccountType
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
+import org.syalosovetskyi.onemoney.data.db.entities.TxOverrideEntity
 
 class Converters {
     @TypeConverter fun accountTypeToString(v: AccountType): String = v.name
@@ -295,6 +297,25 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
     }
 }
 
+// Черга правок операцій для mono-flow: синк тільки зливає дані з сервера, тому
+// перейменування/зміна категорії мусить мати шлях назад, інакше її зітре наступний синк.
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS tx_overrides (
+                txId         INTEGER NOT NULL PRIMARY KEY,
+                note         TEXT    NOT NULL,
+                categoryName TEXT,
+                txType       TEXT    NOT NULL,
+                updatedAt    INTEGER NOT NULL,
+                synced       INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -324,12 +345,18 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_26_27,
     MIGRATION_27_28,
     MIGRATION_28_29,
-    MIGRATION_29_30
+    MIGRATION_29_30,
+    MIGRATION_30_31
 )
 
 @Database(
-    entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 30,
+    entities = [
+        AccountEntity::class,
+        CategoryEntity::class,
+        TransactionEntity::class,
+        TxOverrideEntity::class
+    ],
+    version = 31,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -337,4 +364,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun txOverrideDao(): TxOverrideDao
 }
