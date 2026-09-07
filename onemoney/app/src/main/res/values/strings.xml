@@ -422,4 +422,5 @@
     <string name="common_confirm">Підтвердити</string>
     <string name="tx_convert_transfer_confirm">Перетворити</string>
     <string name="data_monoflow_pending_edits">Синхронізацію відкладено: %1$d правок ще не віддано серверу</string>
+    <string name="cat_search_empty">Нічого не знайдено за запитом «%1$s»</string>
 </resources>

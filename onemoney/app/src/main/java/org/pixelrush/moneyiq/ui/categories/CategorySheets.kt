@@ -23,6 +23,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import kotlinx.coroutines.delay
@@ -596,12 +601,20 @@ internal fun QuickCategoryPickerSheet(
     onSelect:             (CategoryEntity) -> Unit,
     onDismiss:            () -> Unit,
 ) {
-    val expCats = remember(categories, includeSubcategories) {
+    var query by remember { mutableStateOf("") }
+
+    val allExp = remember(categories, includeSubcategories) {
         groupedByParent(categories, TransactionType.EXPENSE, includeSubcategories)
     }
-    val incCats = remember(categories, includeSubcategories) {
+    val allInc = remember(categories, includeSubcategories) {
         groupedByParent(categories, TransactionType.INCOME, includeSubcategories)
     }
+    // Пошук шукає і по батьківській категорії: «машина» має знаходити АЗС і Автозапчастини,
+    // навіть якщо цих слів немає в їхніх назвах.
+    val parentNames = remember(categories) { categories.associate { it.id to it.name } }
+    val expCats = remember(allExp, query, parentNames) { filterByQuery(allExp, query, parentNames) }
+    val incCats = remember(allInc, query, parentNames) { filterByQuery(allInc, query, parentNames) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -612,20 +625,84 @@ internal fun QuickCategoryPickerSheet(
             fontWeight = FontWeight.SemiBold,
             modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
+        OutlinedTextField(
+            value         = query,
+            onValueChange = { query = it },
+            placeholder   = { Text(stringResource(R.string.tx_search)) },
+            leadingIcon   = { Icon(Icons.Default.Search, null) },
+            trailingIcon  = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, null) }
+                }
+            },
+            singleLine = true,
+            shape      = RoundedCornerShape(OneMoneyTheme.dimens.cardRadius),
+            modifier   = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+        )
         val expensesLabel = stringResource(R.string.common_expenses)
         val incomesLabel  = stringResource(R.string.common_incomes)
+        if (expCats.isEmpty() && incCats.isEmpty()) {
+            Text(
+                stringResource(R.string.cat_search_empty, query),
+                style     = MaterialTheme.typography.bodyMedium,
+                color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                modifier  = Modifier.fillMaxWidth().padding(24.dp)
+            )
+        }
         // weight(fill = false) обмежує список тим, що лишилось на екрані: без цього
         // LazyColumn міряється по вмісту, хвіст списку йде за край і прокрутити його
         // неможливо — жест перехоплює сам аркуш. Видно лише на довгих списках
         // (з підкатегоріями), тому у швидкому вводі баг не проявлявся.
         LazyColumn(
-            modifier       = Modifier.fillMaxWidth().weight(1f, fill = false),
+            modifier       = Modifier.fillMaxWidth()
+                .weight(1f, fill = false)
+                .nestedScroll(SheetDragBlocker),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             quickCatSection(expensesLabel, expCats, selectedCategoryId, onSelect)
             quickCatSection(incomesLabel,  incCats, selectedCategoryId, onSelect)
         }
     }
+}
+
+/**
+ * Фільтр пошуку. Порядок (глобальна → її підкатегорії) зберігається, тому знайдене
+ * лишається на своєму місці в дереві. Збіг у назві батька залишає всю групу: шукаючи
+ * «транспорт», людина хоче побачити і АЗС, і Таксі.
+ */
+internal fun filterByQuery(
+    ordered:     List<CategoryEntity>,
+    query:       String,
+    parentNames: Map<Long, String>,
+): List<CategoryEntity> {
+    val q = query.trim()
+    if (q.isEmpty()) return ordered
+    return ordered.filter { cat ->
+        cat.name.contains(q, ignoreCase = true) ||
+            cat.parentId?.let { parentNames[it]?.contains(q, ignoreCase = true) } == true
+    }
+}
+
+/**
+ * З'їдає залишок вертикальної прокрутки, щоб він не діставався аркушу.
+ *
+ * За замовчуванням ModalBottomSheet тягнеться від будь-якого жесту всередині себе:
+ * ведеш пальцем по списку — і аркуш поїхав закриватися замість того, щоб гортати.
+ * З цим блокувальником тіло аркуша тільки гортає список, а закривається аркуш
+ * жестом по шапці (там nested scroll не діє) або тапом по затемненню.
+ *
+ * `sheetGesturesEnabled` з'явився лише в material3 1.4; у нас 1.3.1.
+ */
+private val SheetDragBlocker = object : NestedScrollConnection {
+    override fun onPostScroll(
+        consumed: Offset,
+        available: Offset,
+        source: NestedScrollSource,
+    ): Offset = available.copy(x = 0f)
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+        available.copy(x = 0f)
 }
 
 /**
@@ -638,7 +715,7 @@ internal fun QuickCategoryPickerSheet(
  * Абетка — за правилами мови (`Collator`), а не за кодами символів: інакше «Їжа» поїде
  * в кінець списку.
  */
-private fun groupedByParent(
+internal fun groupedByParent(
     categories:           List<CategoryEntity>,
     type:                 TransactionType,
     includeSubcategories: Boolean,
