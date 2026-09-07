@@ -112,7 +112,11 @@ internal fun CategoryChip(
 
     Column(
         modifier = Modifier
-            .size(width = chipW, height = chipH)
+            // heightIn(min), а не size: при збільшеному системному шрифті три текстові
+            // рядки чипа перестають вміщатися у фіксовану висоту, і нижня сума
+            // обрізалася. Тепер чип росте, а не ріже вміст.
+            .width(chipW)
+            .heightIn(min = chipH)
             .let { m ->
                 when {
                     isExpanded  -> m.clip(
@@ -154,6 +158,7 @@ internal fun CategoryChip(
                     budgetText,
                     style      = typo.categoryTopAmount,
                     fontWeight = FontWeight.Medium,
+                    overflow   = TextOverflow.Ellipsis,
                     color      = if (overBudget) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
                     maxLines   = 1,
                     textAlign  = TextAlign.Center
@@ -165,6 +170,7 @@ internal fun CategoryChip(
                 style     = typo.categoryTopAmount,
                 color     = colors.tertiaryText,
                 maxLines  = 1,
+                overflow  = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
                 modifier  = Modifier.fillMaxWidth()
             )
@@ -231,6 +237,7 @@ internal fun CategoryChip(
             style     = typo.categoryBottomAmount,
             color     = if (spending > 0.0) iconTint else colors.secondaryText,
             maxLines  = 1,
+            overflow  = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier  = Modifier.fillMaxWidth()
         )
@@ -516,6 +523,12 @@ internal fun AddCategoryChip(onClick: () -> Unit) {
     val tokens = OneMoneyTheme.dimens
     val colors = OneMoneyTheme.colors
 
+    // Зона натискання 48dp за рекомендацією Material, кружечок лишається 40dp:
+    // клік навішений просто на розмір кружечка давав хітбокс рівно 40dp.
+    Box(
+        modifier = Modifier.size(48.dp),
+        contentAlignment = Alignment.Center
+    ) {
     Box(
         modifier = Modifier
             .size(tokens.addButtonSize)
@@ -534,6 +547,7 @@ internal fun AddCategoryChip(onClick: () -> Unit) {
             tint     = colors.addButtonIcon,
             modifier = Modifier.size(tokens.addButtonIconSize)
         )
+    }
     }
 }
 

@@ -632,7 +632,9 @@ internal fun QuickCategoryPickerSheet(
             leadingIcon   = { Icon(Icons.Default.Search, null) },
             trailingIcon  = {
                 if (query.isNotEmpty()) {
-                    IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, null) }
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Default.Close, stringResource(R.string.cat_search_clear))
+                    }
                 }
             },
             singleLine = true,
@@ -660,8 +662,9 @@ internal fun QuickCategoryPickerSheet(
                 .nestedScroll(SheetDragBlocker),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            quickCatSection(expensesLabel, expCats, selectedCategoryId, onSelect)
-            quickCatSection(incomesLabel,  incCats, selectedCategoryId, onSelect)
+            val searching = query.isNotBlank()
+            quickCatSection(expensesLabel, expCats, selectedCategoryId, parentNames, searching, onSelect)
+            quickCatSection(incomesLabel,  incCats, selectedCategoryId, parentNames, searching, onSelect)
         }
     }
 }
@@ -746,6 +749,8 @@ private fun LazyListScope.quickCatSection(
     title:              String,
     cats:               List<CategoryEntity>,
     selectedCategoryId: Long,
+    parentNames:        Map<Long, String>,
+    searching:          Boolean,
     onSelect:           (CategoryEntity) -> Unit,
 ) {
     if (cats.isEmpty()) return
@@ -756,8 +761,12 @@ private fun LazyListScope.quickCatSection(
     }
     items(cats) { cat ->
         val color = parseColorHex(cat.colorHex, FallbackIconColor)
-        // Підкатегорія зсунута вправо — так видно, до якої глобальної вона належить
-        val isChild = cat.parentId != null
+        // Підкатегорія зсунута вправо — так видно, до якої глобальної вона належить.
+        // Під час пошуку дерева на екрані немає: батько міг не потрапити у знайдене,
+        // і відступ стверджував би належність до рядка, якого не видно. Тому замість
+        // відступу пишемо назву батька під рядком.
+        val parentName = cat.parentId?.let { parentNames[it] }
+        val isChild = cat.parentId != null && !searching
         ListItem(
             modifier        = Modifier.clickable { onSelect(cat) },
             leadingContent  = {
@@ -782,6 +791,15 @@ private fun LazyListScope.quickCatSection(
                     fontWeight = if (isChild) FontWeight.Normal else FontWeight.Medium
                 )
             },
+            supportingContent = if (searching && parentName != null) {
+                {
+                    Text(
+                        parentName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            } else null,
             trailingContent = {
                 if (cat.id == selectedCategoryId)
                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)

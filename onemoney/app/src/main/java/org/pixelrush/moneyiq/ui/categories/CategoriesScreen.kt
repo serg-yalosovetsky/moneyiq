@@ -645,7 +645,9 @@ internal fun CategoriesGridContent(
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
-                            modifier          = Modifier.height(chipHeight)
+                            // без фіксованої висоти: ряд міряється по найвищому чипу,
+                            // інакше чип, що виріс під великий шрифт, знову обрізало б
+                            modifier          = Modifier
                         )
                         if (topStripShown) {
                             ExpandedCategoryStrip(
@@ -666,7 +668,11 @@ internal fun CategoriesGridContent(
             item(key = "mid_section") {
                 Column {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        // IntrinsicSize.Min: висота ряду = висота колонок з чипами, тож
+                        // бублик підлаштовується під них, а не тримає власну формулу
+                        // «два чипи + проміжок», яка при великому шрифті вже не сходилась
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                            .height(IntrinsicSize.Min),
                         verticalAlignment = Alignment.Top
                     ) {
                         Column(
@@ -674,7 +680,7 @@ internal fun CategoriesGridContent(
                             verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
                         ) {
                             midLeft.forEach { cat ->
-                                Box(Modifier.height(chipHeight)) {
+                                Box {
                                     CategoryGridSlot(
                                         category          = cat,
                                         spending          = spending,
@@ -702,7 +708,6 @@ internal fun CategoriesGridContent(
                             expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalExpense
                         val donutIncome  = if (hasExpandedStrip && selectedTab == 1)
                             expandedChildren.sumOf { spending[it.id] ?: 0.0 } else totalIncome
-                        val donutH = chipHeight * 2 + CATEGORY_VERTICAL_GAP
                         DonutChart(
                             categories   = donutCats,
                             spending     = spending,
@@ -710,14 +715,14 @@ internal fun CategoriesGridContent(
                             totalIncome  = donutIncome,
                             selectedTab  = selectedTab,
                             onToggle     = onToggleTab,
-                            modifier     = Modifier.weight(1f).height(donutH).padding(4.dp)
+                            modifier     = Modifier.weight(1f).fillMaxHeight().padding(4.dp)
                         )
                         Column(
                             modifier            = Modifier.width(chipW),
                             verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
                         ) {
                             midRight.forEach { cat ->
-                                Box(Modifier.height(chipHeight)) {
+                                Box {
                                     CategoryGridSlot(
                                         category          = cat,
                                         spending          = spending,
@@ -778,7 +783,9 @@ internal fun CategoriesGridContent(
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
-                            modifier          = Modifier.height(chipHeight)
+                            // без фіксованої висоти: ряд міряється по найвищому чипу,
+                            // інакше чип, що виріс під великий шрифт, знову обрізало б
+                            modifier          = Modifier
                         )
                         if (rowStripShown) {
                             ExpandedCategoryStrip(

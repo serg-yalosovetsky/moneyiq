@@ -3,19 +3,33 @@
 ## Chip Dimensions (CRITICAL — do not change without audit)
 
 ```
-CHIP_WIDTH              = 116.dp
-CHIP_HEIGHT             = 136.dp   // must stay ≥136dp; reducing clips spending text
-CHIP_CIRCLE_SIZE        = 60.dp
+CHIP_WIDTH              = 84.dp    // фактическая ширина; реальный размер считает
+                                   // BoxWithConstraints в CategoriesGridContent
+CHIP_HEIGHT             = 136.dp   // МИНИМУМ, не фиксированная высота (см. правило ниже)
+CHIP_CIRCLE_SIZE        = 50.dp
 CHIP_WIDTH_COMPACT      = 82.dp
 CHIP_HEIGHT_COMPACT     = 112.dp
 CHIP_CIRCLE_COMPACT     = 40.dp
 CATEGORY_VERTICAL_GAP   = 20.dp
-DONUT_SECTION_HEIGHT    = CHIP_HEIGHT * 2 + CATEGORY_VERTICAL_GAP  // = 228dp
 SUBCATEGORY_PANEL_WIDTH  = 150.dp
 SUBCATEGORY_PANEL_HEIGHT = 76.dp
 ```
 
-**CRITICAL spacing rule:** Never use `Modifier.height(N).padding(bottom = K)` on chip rows. Use `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))` and `Modifier.height(chipHeight)` with no bottom padding.
+**Rule (2026-09-08):** чип задаётся как `width(chipW).heightIn(min = chipH)`, а НЕ
+`size(w, h)`. Тексты в чипе измеряются в sp и растут вместе с системным размером шрифта,
+а фиксированная высота не растёт — при увеличенном шрифте нижняя сумма обрезалась
+(жалоба Сержа на релизе 1.2.10). Ряды сетки и обёртки чипов в средних колонках тоже
+НЕ должны фиксировать высоту: они меряются по самому высокому чипу.
+
+**Rule:** высота секции с бубликом больше не считается формулой `CHIP_HEIGHT * 2 + GAP`.
+Ряд `midLeft | DonutChart | midRight` обёрнут в `Modifier.height(IntrinsicSize.Min)`, а
+сам бублик берёт `fillMaxHeight()` — так он всегда совпадает с фактической высотой чипов
+рядом, при любом fontScale. Константы `DONUT_SECTION_HEIGHT` больше нет.
+
+**Rule:** у всех сумм в чипе `maxLines = 1` И `overflow = TextOverflow.Ellipsis`. Ширина
+чипа от fontScale не зависит, поэтому длинная сумма без многоточия обрезалась посимвольно.
+
+**CRITICAL spacing rule:** Never use `Modifier.height(N).padding(bottom = K)` on chip rows. Use `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))` — и БЕЗ `Modifier.height(chipHeight)` на рядах: фиксированная высота ряда снова обрежет чип, выросший под крупный шрифт.
 
 The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, max=32.dp`), not a fixed height.
 

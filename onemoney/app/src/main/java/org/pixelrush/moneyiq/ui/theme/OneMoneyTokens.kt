@@ -110,7 +110,7 @@ object OneMoneyDarkTokens {
     val colors = OneMoneyColors(
         primaryText     = Color(0xFFE3E1EA),  // onSurface
         secondaryText   = Color(0xFFA8A7B0),
-        tertiaryText    = Color(0xFF75747C),
+        tertiaryText    = Color(0xFF8B8A93),   // контраст на темному тлі: було ~4.0:1, стало ~4.8:1
         centerRing      = Color(0xFF34353C),  // surfaceContainerHighest (donut empty ring)
         expensePink     = ExpensePink,
         incomeTeal      = IncomeTeal,
