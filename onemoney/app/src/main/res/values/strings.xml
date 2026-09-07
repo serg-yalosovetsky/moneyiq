@@ -424,4 +424,7 @@
     <string name="data_monoflow_pending_edits">Синхронізацію відкладено: %1$d правок ще не віддано серверу</string>
     <string name="cat_search_empty">Нічого не знайдено за запитом «%1$s»</string>
     <string name="cat_search_clear">Очистити пошук</string>
+    <string name="tx_convert_move_title">Операція стане переказом</string>
+    <string name="tx_convert_move_message">Гроші не витрачені, а переміщені на «%1$s». Операція перестане бути витратою, категорію буде знято, баланси обох рахунків перераховано.</string>
+    <string name="tx_convert_move_confirm">Перемістити</string>
 </resources>

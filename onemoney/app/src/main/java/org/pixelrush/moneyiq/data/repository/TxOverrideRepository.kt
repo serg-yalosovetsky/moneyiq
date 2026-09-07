@@ -61,7 +61,8 @@ class TxOverrideRepository @Inject constructor(
         txId: Long,
         note: String,
         categoryName: String?,
-        type: TransactionType
+        type: TransactionType,
+        toAccountId: Long? = null
     ) {
         if (txId < SERVER_ID_THRESHOLD) {
             Log.i(TAG, "правка операції $txId не їде на сервер: операція локальна, сервер її не знає")
@@ -73,6 +74,7 @@ class TxOverrideRepository @Inject constructor(
                 note         = note,
                 categoryName = categoryName,
                 txType       = type.name,
+                toAccountId  = toAccountId,
                 updatedAt    = System.currentTimeMillis(),
                 synced       = false
             )
@@ -134,6 +136,9 @@ class TxOverrideRepository @Inject constructor(
             put("note", row.note)
             if (row.categoryName != null) put("category", row.categoryName)
             put("type", row.txType)
+            // рахунок адресуємо ідентифікатором: його id похідний від внутрішнього
+            // ключа і переживає перейменування рахунку людиною (на відміну від категорії)
+            if (row.toAccountId != null) put("to_account_id", row.toAccountId)
         }.toString()
 
         val conn = (URL("$baseUrl$OVERRIDE_PATH").openConnection() as HttpURLConnection).apply {

@@ -19,6 +19,8 @@ data class TxOverrideEntity(
     val note: String,
     val categoryName: String? = null,
     val txType: String,                              // EXPENSE / INCOME / TRANSFER
+    /** Рахунок-отримувач: операція стає переміщенням своїх грошей, а не витратою. */
+    val toAccountId: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
     val synced: Boolean = false,
     /** Скільки разів сервер відмовився прийняти цю правку (мережеві збої не рахуються). */

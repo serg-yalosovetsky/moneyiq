@@ -138,33 +138,43 @@ class TransactionsListViewModel @Inject constructor(
     /**
      * Зберігає правки операції. `categoryId` = null означає «без категорії».
      *
-     * Переказ, якому призначили категорію, перестає бути переказом: тип береться
-     * з категорії (витрата/дохід), рахунок призначення відв'язується, а
-     * [TransactionRepository.updateTransaction] перераховує баланси обох рахунків.
+     * Дві перекласифікації, обидві через [TransactionRepository.updateTransaction], який
+     * відкочує балансовий ефект старої версії і застосовує новий:
+     * - переказу призначили категорію → він стає витратою/доходом, рахунок-отримувач
+     *   відв'язується;
+     * - витраті призначили рахунок-отримувач (`moveToAccountId`) → вона стає переказом,
+     *   категорія знімається. Так переказ на свій IBKR перестає рахуватись витратою.
      */
     fun updateTransaction(
-        tx:         TransactionWithDetails,
-        note:       String,
-        amount:     Double,
-        date:       Long,
-        categoryId: Long? = tx.categoryId
+        tx:              TransactionWithDetails,
+        note:            String,
+        amount:          Double,
+        date:            Long,
+        categoryId:      Long? = tx.categoryId,
+        moveToAccountId: Long? = null
     ) {
         viewModelScope.launch {
             val orig = txRepo.getById(tx.id) ?: return@launch
-            val newType = if (orig.type == TransactionType.TRANSFER && categoryId != null) {
-                categoryRepo.getById(categoryId)?.type ?: TransactionType.EXPENSE
-            } else {
-                orig.type
+            val newType = when {
+                moveToAccountId != null -> TransactionType.TRANSFER
+                orig.type == TransactionType.TRANSFER && categoryId != null ->
+                    categoryRepo.getById(categoryId)?.type ?: TransactionType.EXPENSE
+                else -> orig.type
             }
-            val newToAccountId =
-                if (newType == TransactionType.TRANSFER) orig.toAccountId else null
+            // У переказу категорії немає: інакше застосунок вважатиме операцію витратою
+            val newCategoryId = if (newType == TransactionType.TRANSFER) null else categoryId
+            val newToAccountId = when {
+                moveToAccountId != null                -> moveToAccountId
+                newType == TransactionType.TRANSFER    -> orig.toAccountId
+                else                                   -> null
+            }
             txRepo.updateTransaction(
                 orig,
                 orig.copy(
                     note        = note,
                     amount      = amount,
                     date        = date,
-                    categoryId  = categoryId,
+                    categoryId  = newCategoryId,
                     type        = newType,
                     toAccountId = newToAccountId
                 )
@@ -174,8 +184,9 @@ class TransactionsListViewModel @Inject constructor(
             overrideRepo.enqueue(
                 txId         = orig.id,
                 note         = note,
-                categoryName = categoryId?.let { categoryRepo.getById(it)?.name },
-                type         = newType
+                categoryName = newCategoryId?.let { categoryRepo.getById(it)?.name },
+                type         = newType,
+                toAccountId  = if (newType == TransactionType.TRANSFER) newToAccountId else null
             )
         }
     }

@@ -598,6 +598,9 @@ internal fun QuickCategoryPickerSheet(
     categories:           List<CategoryEntity>,
     selectedCategoryId:   Long,
     includeSubcategories: Boolean = false,
+    /** Рахунки для розділу «Переказ». Порожній список — розділу не буде. */
+    transferAccounts:     List<AccountEntity> = emptyList(),
+    onSelectAccount:      (AccountEntity) -> Unit = {},
     onSelect:             (CategoryEntity) -> Unit,
     onDismiss:            () -> Unit,
 ) {
@@ -643,7 +646,13 @@ internal fun QuickCategoryPickerSheet(
         )
         val expensesLabel = stringResource(R.string.common_expenses)
         val incomesLabel  = stringResource(R.string.common_incomes)
-        if (expCats.isEmpty() && incCats.isEmpty()) {
+        val transferLabel = stringResource(R.string.tx_transfer)
+        val shownAccounts = remember(transferAccounts, query) {
+            val q = query.trim()
+            if (q.isEmpty()) transferAccounts
+            else transferAccounts.filter { it.name.contains(q, ignoreCase = true) }
+        }
+        if (expCats.isEmpty() && incCats.isEmpty() && shownAccounts.isEmpty()) {
             Text(
                 stringResource(R.string.cat_search_empty, query),
                 style     = MaterialTheme.typography.bodyMedium,
@@ -665,6 +674,9 @@ internal fun QuickCategoryPickerSheet(
             val searching = query.isNotBlank()
             quickCatSection(expensesLabel, expCats, selectedCategoryId, parentNames, searching, onSelect)
             quickCatSection(incomesLabel,  incCats, selectedCategoryId, parentNames, searching, onSelect)
+            // Розділ «Переказ»: гроші не витрачені, а переміщені на власний рахунок
+            // (IBKR, готівка, інша картка). Без нього такий переказ лишався витратою.
+            transferSection(transferLabel, shownAccounts, onSelectAccount)
         }
     }
 }
@@ -742,6 +754,41 @@ internal fun groupedByParent(
     val shown = ordered.mapTo(mutableSetOf()) { it.id }
     ordered += visible.filter { it.id !in shown }.sortedWith { a, b -> byName.compare(a.name, b.name) }
     return ordered
+}
+
+/** Секція «Переказ»: рахунки, на які можна перемістити операцію. */
+private fun LazyListScope.transferSection(
+    title:    String,
+    accounts: List<AccountEntity>,
+    onSelect: (AccountEntity) -> Unit,
+) {
+    if (accounts.isEmpty()) return
+    item {
+        Text(title, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+    }
+    items(accounts) { acc ->
+        val color = parseColorHex(acc.colorHex, FallbackIconColor)
+        ListItem(
+            modifier        = Modifier.clickable { onSelect(acc) },
+            leadingContent  = {
+                Box(
+                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Outlined.SwapHoriz, null,
+                        tint = if (color.luminance() > 0.5f) OnLightColor else Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            },
+            headlineContent = {
+                Text(acc.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            }
+        )
+    }
 }
 
 /** Секція пікера категорій (заголовок + рядки). Прибирає дубль exp/inc гілок. */

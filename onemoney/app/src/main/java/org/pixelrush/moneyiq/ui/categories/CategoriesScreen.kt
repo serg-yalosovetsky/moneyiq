@@ -583,11 +583,17 @@ internal fun CategoriesGridContent(
             maxWidth < 420.dp -> 50.dp
             else              -> 54.dp
         }
-        val chipHeight  = when {
+        // Тексти в чипі — у sp, тож ростуть разом із системним шрифтом, а висота
+        // раніше залежала лише від екрана: при збільшеному шрифті нижню суму зрізало.
+        // Прибрати фіксовану висоту не можна — усередині чипа розпірки weight(1f),
+        // і без верхньої межі чип розтягується на всю секцію, з'їдаючи місце сусіда.
+        val fontScale   = LocalDensity.current.fontScale
+        val chipBase    = when {
             maxHeight < 700.dp -> 136.dp
             maxHeight < 800.dp -> 142.dp
             else               -> 148.dp
         }
+        val chipHeight  = chipBase + 45.dp * (fontScale - 1f).coerceIn(0f, 1f)
     LazyColumn(
         modifier              = Modifier.fillMaxSize(),
         contentPadding        = PaddingValues(top = Spacing.sm, bottom = bottomPadding + Spacing.lg),
@@ -647,7 +653,7 @@ internal fun CategoriesGridContent(
                             onChipDoubleClick = onChipDoubleClick,
                             // без фіксованої висоти: ряд міряється по найвищому чипу,
                             // інакше чип, що виріс під великий шрифт, знову обрізало б
-                            modifier          = Modifier
+                            modifier          = Modifier.height(chipHeight)
                         )
                         if (topStripShown) {
                             ExpandedCategoryStrip(
@@ -668,11 +674,7 @@ internal fun CategoriesGridContent(
             item(key = "mid_section") {
                 Column {
                     Row(
-                        // IntrinsicSize.Min: висота ряду = висота колонок з чипами, тож
-                        // бублик підлаштовується під них, а не тримає власну формулу
-                        // «два чипи + проміжок», яка при великому шрифті вже не сходилась
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-                            .height(IntrinsicSize.Min),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.Top
                     ) {
                         Column(
@@ -680,7 +682,7 @@ internal fun CategoriesGridContent(
                             verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
                         ) {
                             midLeft.forEach { cat ->
-                                Box {
+                                Box(Modifier.height(chipHeight)) {
                                     CategoryGridSlot(
                                         category          = cat,
                                         spending          = spending,
@@ -715,14 +717,14 @@ internal fun CategoriesGridContent(
                             totalIncome  = donutIncome,
                             selectedTab  = selectedTab,
                             onToggle     = onToggleTab,
-                            modifier     = Modifier.weight(1f).fillMaxHeight().padding(4.dp)
+                            modifier     = Modifier.weight(1f).height(chipHeight * 2 + CATEGORY_VERTICAL_GAP).padding(4.dp)
                         )
                         Column(
                             modifier            = Modifier.width(chipW),
                             verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP)
                         ) {
                             midRight.forEach { cat ->
-                                Box {
+                                Box(Modifier.height(chipHeight)) {
                                     CategoryGridSlot(
                                         category          = cat,
                                         spending          = spending,
@@ -785,7 +787,7 @@ internal fun CategoriesGridContent(
                             onChipDoubleClick = onChipDoubleClick,
                             // без фіксованої висоти: ряд міряється по найвищому чипу,
                             // інакше чип, що виріс під великий шрифт, знову обрізало б
-                            modifier          = Modifier
+                            modifier          = Modifier.height(chipHeight)
                         )
                         if (rowStripShown) {
                             ExpandedCategoryStrip(

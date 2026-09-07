@@ -325,6 +325,14 @@ val MIGRATION_31_32 = object : Migration(31, 32) {
     }
 }
 
+// Рахунок-отримувач у правці: переказ на свій зовнішній рахунок (IBKR) — це
+// переміщення грошей, а не витрата, і сервер має дізнатися, КУДИ саме.
+val MIGRATION_32_33 = object : Migration(32, 33) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE tx_overrides ADD COLUMN toAccountId INTEGER")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -356,7 +364,8 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_28_29,
     MIGRATION_29_30,
     MIGRATION_30_31,
-    MIGRATION_31_32
+    MIGRATION_31_32,
+    MIGRATION_32_33
 )
 
 @Database(
@@ -366,7 +375,7 @@ val ALL_MIGRATIONS = arrayOf(
         TransactionEntity::class,
         TxOverrideEntity::class
     ],
-    version = 32,
+    version = 33,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

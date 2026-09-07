@@ -296,11 +296,12 @@ fun TransactionsListScreen(
         TransactionDetailSheet(
             tx          = tx,
             categories  = state.expenseCategories + state.incomeCategories,
+            accounts    = state.accounts,
             onDismiss   = { selectedDetailTx = null },
             onDelete    = { viewModel.deleteTransaction(tx); selectedDetailTx = null },
             onDuplicate = { viewModel.duplicateTransaction(tx); selectedDetailTx = null },
-            onSave      = { note, amount, date, categoryId ->
-                viewModel.updateTransaction(tx, note, amount, date, categoryId)
+            onSave      = { note, amount, date, categoryId, moveToAccountId ->
+                viewModel.updateTransaction(tx, note, amount, date, categoryId, moveToAccountId)
                 selectedDetailTx = null
             }
         )

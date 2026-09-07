@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.syalosovetskyi.onemoney.R
 import org.syalosovetskyi.onemoney.data.db.dao.TransactionWithDetails
+import org.syalosovetskyi.onemoney.data.db.entities.AccountEntity
 import org.syalosovetskyi.onemoney.data.db.entities.CategoryEntity
 import org.syalosovetskyi.onemoney.data.db.entities.TransactionType
 import org.syalosovetskyi.onemoney.ui.categories.QuickCategoryPickerSheet
@@ -51,10 +52,12 @@ import org.syalosovetskyi.onemoney.ui.theme.TransferBlue
 internal fun TransactionDetailSheet(
     tx:          TransactionWithDetails,
     categories:  List<CategoryEntity> = emptyList(),
+    /** Рахунки, на які операцію можна перемістити (переказ замість витрати). */
+    accounts:    List<AccountEntity> = emptyList(),
     onDismiss:   () -> Unit,
     onDelete:    () -> Unit,
     onDuplicate: () -> Unit,
-    onSave:      (note: String, amount: Double, date: Long, categoryId: Long?) -> Unit
+    onSave:      (note: String, amount: Double, date: Long, categoryId: Long?, moveToAccountId: Long?) -> Unit
 ) {
     val calc = rememberCalcState()
 
@@ -69,6 +72,9 @@ internal fun TransactionDetailSheet(
     var showCatPicker    by remember { mutableStateOf(false) }
     // Переказ + категорія = операція стане витратою/доходом → питаємо підтвердження
     var pendingTransferCat by remember { mutableStateOf<CategoryEntity?>(null) }
+    // Витрата + рахунок = переміщення своїх грошей; теж питаємо підтвердження
+    var pendingMoveAccount by remember { mutableStateOf<AccountEntity?>(null) }
+    var moveToAccountId    by remember(tx.id) { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(tx.id) {
         val v = tx.amount
@@ -115,7 +121,7 @@ internal fun TransactionDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = {
-            if (isDirty) onSave(note, tx.amount, selectedDate, categoryId)
+            if (isDirty) onSave(note, tx.amount, selectedDate, categoryId, moveToAccountId)
             else onDismiss()
         },
         sheetState     = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -262,7 +268,7 @@ internal fun TransactionDetailSheet(
                     confirmColor = accentColor,
                     onConfirm    = {
                         val amt = calc.result()
-                        if (amt > 0) onSave(note, amt, selectedDate, categoryId)
+                        if (amt > 0) onSave(note, amt, selectedDate, categoryId, moveToAccountId)
                     },
                     row2ExtraKey = {
                         Box(
@@ -320,6 +326,12 @@ internal fun TransactionDetailSheet(
             categories           = categories,
             selectedCategoryId   = categoryId ?: -1L,
             includeSubcategories = true,
+            // Рахунок-джерело у списку не показуємо: переказ сам на себе безглуздий
+            transferAccounts     = accounts.filter { it.id != tx.accountId },
+            onSelectAccount      = { acc ->
+                showCatPicker = false
+                pendingMoveAccount = acc
+            },
             onSelect             = { cat ->
                 showCatPicker = false
                 if (tx.type == TransactionType.TRANSFER) {
@@ -331,6 +343,25 @@ internal fun TransactionDetailSheet(
                 }
             },
             onDismiss            = { showCatPicker = false }
+        )
+    }
+
+    // Витрата стає переміщенням на власний рахунок: гроші не витрачені, а переїхали.
+    // Баланси обох рахунків перераховуються, тому питаємо підтвердження.
+    pendingMoveAccount?.let { acc ->
+        ConfirmationDialog(
+            title       = stringResource(R.string.tx_convert_move_title),
+            message     = stringResource(R.string.tx_convert_move_message, acc.name),
+            icon        = Icons.Outlined.SwapHoriz,
+            confirmText = stringResource(R.string.tx_convert_move_confirm),
+            destructive = false,
+            onConfirm   = {
+                moveToAccountId = acc.id
+                categoryId      = null
+                isDirty         = true
+                pendingMoveAccount = null
+            },
+            onDismiss   = { pendingMoveAccount = null }
         )
     }
 

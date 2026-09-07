@@ -413,4 +413,7 @@
     <string name="data_monoflow_pending_edits">Sync postponed: %1$d edits not yet sent to the server</string>
     <string name="cat_search_empty">Nothing found for “%1$s”</string>
     <string name="cat_search_clear">Clear search</string>
+    <string name="tx_convert_move_title">The operation will become a transfer</string>
+    <string name="tx_convert_move_message">The money was moved to “%1$s”, not spent. The operation will stop being an expense, its category will be cleared and both account balances recalculated.</string>
+    <string name="tx_convert_move_confirm">Move</string>
 </resources>
