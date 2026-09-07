@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.core.graphics.toColorInt
+import java.text.Collator
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -596,14 +597,10 @@ internal fun QuickCategoryPickerSheet(
     onDismiss:            () -> Unit,
 ) {
     val expCats = remember(categories, includeSubcategories) {
-        categories.filter {
-            (includeSubcategories || it.parentId == null) && !it.archived && it.type == TransactionType.EXPENSE
-        }
+        groupedByParent(categories, TransactionType.EXPENSE, includeSubcategories)
     }
     val incCats = remember(categories, includeSubcategories) {
-        categories.filter {
-            (includeSubcategories || it.parentId == null) && !it.archived && it.type == TransactionType.INCOME
-        }
+        groupedByParent(categories, TransactionType.INCOME, includeSubcategories)
     }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -631,6 +628,42 @@ internal fun QuickCategoryPickerSheet(
     }
 }
 
+/**
+ * Категорії одного типу в порядку показу: кожна глобальна (коренева) категорія, одразу
+ * за нею — її підкатегорії за абеткою. Витрати на машину мають стояти поруч, а не бути
+ * розкидані по списку.
+ *
+ * Порядок самих глобальних — `sortOrder`: він налаштований людиною на екрані категорій,
+ * і переставляти його за абеткою тут означало б сперечатися з тим порядком.
+ * Абетка — за правилами мови (`Collator`), а не за кодами символів: інакше «Їжа» поїде
+ * в кінець списку.
+ */
+private fun groupedByParent(
+    categories:           List<CategoryEntity>,
+    type:                 TransactionType,
+    includeSubcategories: Boolean,
+): List<CategoryEntity> {
+    val visible = categories.filter { !it.archived && it.type == type }
+    val roots = visible.filter { it.parentId == null }.sortedWith(
+        compareBy<CategoryEntity> { it.sortOrder }.thenBy { it.name }
+    )
+    if (!includeSubcategories) return roots
+
+    val byName = Collator.getInstance()
+    val children = visible.filter { it.parentId != null }.groupBy { it.parentId }
+
+    val ordered = mutableListOf<CategoryEntity>()
+    roots.forEach { root ->
+        ordered += root
+        ordered += children[root.id].orEmpty().sortedWith { a, b -> byName.compare(a.name, b.name) }
+    }
+    // Підкатегорії, чий батько не показується (архівний або іншого типу), інакше зникли б
+    // із пікера зовсім — вони йдуть у кінці, теж за абеткою.
+    val shown = ordered.mapTo(mutableSetOf()) { it.id }
+    ordered += visible.filter { it.id !in shown }.sortedWith { a, b -> byName.compare(a.name, b.name) }
+    return ordered
+}
+
 /** Секція пікера категорій (заголовок + рядки). Прибирає дубль exp/inc гілок. */
 private fun LazyListScope.quickCatSection(
     title:              String,
@@ -646,15 +679,32 @@ private fun LazyListScope.quickCatSection(
     }
     items(cats) { cat ->
         val color = parseColorHex(cat.colorHex, FallbackIconColor)
+        // Підкатегорія зсунута вправо — так видно, до якої глобальної вона належить
+        val isChild = cat.parentId != null
         ListItem(
             modifier        = Modifier.clickable { onSelect(cat) },
             leadingContent  = {
-                Box(
-                    modifier = Modifier.size(36.dp).clip(CircleShape).background(color),
-                    contentAlignment = Alignment.Center
-                ) { Icon(categoryIconFor(cat.icon), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isChild) Spacer(Modifier.width(24.dp))
+                    Box(
+                        modifier = Modifier.size(if (isChild) 30.dp else 36.dp).clip(CircleShape).background(color),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            categoryIconFor(cat.icon), null, tint = Color.White,
+                            modifier = Modifier.size(if (isChild) 17.dp else 20.dp)
+                        )
+                    }
+                }
             },
-            headlineContent = { Text(cat.name) },
+            headlineContent = {
+                Text(
+                    cat.name,
+                    style = if (isChild) MaterialTheme.typography.bodyMedium
+                            else MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isChild) FontWeight.Normal else FontWeight.Medium
+                )
+            },
             trailingContent = {
                 if (cat.id == selectedCategoryId)
                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
