@@ -23,8 +23,8 @@ android {
         applicationId = "org.syalosovetskyi.onemoney"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.2.14"
+        versionCode = 20
+        versionName = "1.2.15"
         testInstrumentationRunner = "org.syalosovetskyi.onemoney.HiltTestRunner"
         multiDexKeepProguard = file("multidex-keep.pro")
     }
@@ -89,16 +89,23 @@ android {
 
     val debugMonoflowUrl   = localProps.getProperty("monoflow.url",   "")
     val debugMonoflowToken = localProps.getProperty("monoflow.token", "")
+    // Приёмник падений. В исходнике DSN не живёт: он задаётся в local.properties
+    // (файл не под git) или переменной окружения GLITCHTIP_DSN в CI. Пусто —
+    // отправка падений просто выключена, приложение работает как обычно.
+    val glitchtipDsn = (System.getenv("GLITCHTIP_DSN")
+        ?: localProps.getProperty("glitchtip.dsn", "")).trim()
 
     buildTypes {
         debug {
             enableUnitTestCoverage = true
             buildConfigField("String", "DEBUG_MONOFLOW_URL",   "\"$debugMonoflowUrl\"")
             buildConfigField("String", "DEBUG_MONOFLOW_TOKEN", "\"$debugMonoflowToken\"")
+            buildConfigField("String", "GLITCHTIP_DSN",        "\"$glitchtipDsn\"")
         }
         release {
             buildConfigField("String", "DEBUG_MONOFLOW_URL",   "\"\"")
             buildConfigField("String", "DEBUG_MONOFLOW_TOKEN", "\"\"")
+            buildConfigField("String", "GLITCHTIP_DSN",        "\"$glitchtipDsn\"")
         }
     }
 

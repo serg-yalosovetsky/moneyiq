@@ -1,6 +1,7 @@
 package org.syalosovetskyi.onemoney
 
 import android.app.Application
+import android.util.Log
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.CoroutineScope
@@ -27,17 +28,35 @@ class onemoneyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        SentryAndroid.init(this) { options ->
-            options.dsn = "https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4511470109720576"
-            options.isEnabled = true
-            options.environment = if (BuildConfig.DEBUG) "debug" else "production"
-            options.release = "onemoney@${BuildConfig.VERSION_NAME}"
-            options.sampleRate = 1.0          // 100% ошибок
-            options.tracesSampleRate = 1.0    // 100% performance traces
-            options.isAttachScreenshot = true
-            options.isAttachViewHierarchy = true
-            options.isEnableUserInteractionTracing = true
-            options.isDebug = BuildConfig.DEBUG  // подробные логи только в debug
+        // Падения уезжают в СВОЙ GlitchTip (glitchtip.ibotz.fun, проект mesh/onemoney).
+        // Публичный sentry.io запрещён правилами меша, а здесь он был особенно неуместен:
+        // приложение показывает балансы Сержа.
+        //
+        // DSN в исходнике не живёт — только через BuildConfig (local.properties / CI).
+        // Пустой DSN = отправка выключена: тогда Sentry не инициализируется вообще,
+        // иначе SDK молча копит события в очередь и шлёт их в никуда.
+        val dsn = BuildConfig.GLITCHTIP_DSN
+        if (dsn.isBlank()) {
+            Log.i(TAG, "GLITCHTIP_DSN не задан — звіти про падіння вимкнено")
+        } else {
+            SentryAndroid.init(this) { options ->
+                options.dsn = dsn
+                options.isEnabled = true
+                options.environment = if (BuildConfig.DEBUG) "debug" else "production"
+                options.release = "onemoney@${BuildConfig.VERSION_NAME}"
+                options.sampleRate = 1.0          // 100% ошибок
+                options.tracesSampleRate = 1.0    // 100% performance traces
+                // Скриншот и дерево вьюх УВОЗЯТ БАЛАНСЫ целиком, а не текст ошибки, и
+                // выключены даже для своего приёмника: UI GlitchTip открыт по домену.
+                // Не включать без отдельного решения Сержа.
+                options.isAttachScreenshot = false
+                options.isAttachViewHierarchy = false
+                options.isSendDefaultPii = false
+                // Хлебные крошки по тапам называют экраны и элементы — для отладки
+                // падения этого не нужно, а из имён видно, что человек делал с деньгами.
+                options.isEnableUserInteractionTracing = false
+                options.isDebug = BuildConfig.DEBUG  // подробные логи только в debug
+            }
         }
 
         appScope.launch { seedInitialData() }
@@ -67,5 +86,9 @@ class onemoneyApp : Application() {
                 )
             )
         }
+    }
+
+    private companion object {
+        const val TAG = "MoneyIQApp"
     }
 }
