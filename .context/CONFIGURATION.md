@@ -60,7 +60,7 @@ Convenience scripts at the repo root: `build-apk.bat`, `test.bat` — both set `
 `onemoney/local.properties` is gitignored and holds all local secrets:
 
 ```properties
-sentry.auth.token=<token from sentry.io Settings → Auth Tokens>
+glitchtip.dsn=<DSN проекта mesh/onemoney на glitchtip.ibotz.fun>
 monoflow.url=<MonoFlow sync base URL, e.g. https://mono.example.com>
 monoflow.token=<MonoFlow Bearer token>
 signing.storeFile=<absolute path to .keystore>
@@ -70,22 +70,35 @@ signing.keyPassword=<key password>
 ```
 
 `build.gradle.kts` reads each key and falls back to the corresponding environment variable:
-- `sentry.auth.token` → `SENTRY_AUTH_TOKEN`
+- `glitchtip.dsn` → `GLITCHTIP_DSN`
 - Signing keys → `SIGNING_STORE_FILE`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`
 
 `monoflow.url` and `monoflow.token` become `BuildConfig.DEBUG_MONOFLOW_URL` / `DEBUG_MONOFLOW_TOKEN` (empty string in release builds).
 
-## Sentry Auth Token
+## Приёмник падений (GlitchTip)
 
-The Sentry Gradle plugin uploads ProGuard mappings during release builds and requires an auth token. It is **never committed to VCS**. Set via `sentry.auth.token` in `local.properties` or the `SENTRY_AUTH_TOKEN` env var (see above).
+Падения уезжают в СВОЙ GlitchTip: `https://glitchtip.ibotz.fun`, организация `mesh`,
+проект `onemoney` (id 24). Публичный sentry.io больше не используется — ни приложением,
+ни сборкой (ADR-075, serg/tasks#679).
 
-For CI set the `SENTRY_AUTH_TOKEN` environment variable. The `app/build.gradle.kts` reads `local.properties` first, then falls back to the env var.
+DSN задаётся **только** через `glitchtip.dsn` в `local.properties` или переменную
+`GLITCHTIP_DSN` (в CI — секрет репозитория), попадает в код как `BuildConfig.GLITCHTIP_DSN`.
+В git его нет.
 
-DSN (safe to commit — not a secret):
-```
-https://8f8838dbabb042f825cb7b96f1a8f6d6@o4504272346480640.ingest.us.sentry.io/4511470109720576
-```
-Org: `serg-yalosovetsky`, project: `one_money`.
+**Пустой DSN = отправка выключена целиком**: `MoneyIQApp` не инициализирует Sentry и
+пишет об этом в лог. Сборка при этом успешна, и по самому APK этого не видно — значит,
+секрет `GLITCHTIP_DSN` обязан быть у КАЖДОГО пайплайна, который публикует APK.
+
+**Вложения выключены и включать их нельзя** без отдельного решения Сержа:
+`isAttachScreenshot`, `isAttachViewHierarchy`, `isSendDefaultPii`,
+`isEnableUserInteractionTracing` = `false`. Скриншот увозит не текст ошибки, а балансы,
+а UI GlitchTip открыт по домену без SSO.
+
+**Выгрузка символов на сборке выключена** (`includeSourceContext`,
+`autoUploadProguardMapping`, `uploadNativeSymbols`, `telemetry` = `false`): раньше
+плагин заливал в публичный sentry.io mapping и ИСХОДНИКИ. Цена — обфусцированные
+стектрейсы релиза. Возвращать выгрузку можно только на свой приёмник.
+`SENTRY_AUTH_TOKEN` не нужен и в пайплайнах не передаётся.
 
 **Important:** `AndroidManifest.xml` has `io.sentry.auto-init=false`. Do not remove it — without it the Sentry `SentryInitProvider` ContentProvider crashes on startup when the DSN is not in the manifest. Sentry is initialized manually in `onemoneyApp.onCreate()`.
 
@@ -124,8 +137,8 @@ GitHub Actions secrets required for release:
 | `STORE_PASSWORD` | Keystore password |
 | `KEY_ALIAS` | Key alias in the keystore |
 | `KEY_PASSWORD` | Key password |
-| `SENTRY_AUTH_TOKEN` | ProGuard mapping upload (optional — source context skipped if absent) |
+| `GLITCHTIP_DSN` | Приёмник падений. **Без него опубликованный APK не шлёт падений вообще**, и сборка об этом не сообщает |
 
 **Important:** `gradlew` already has the executable bit in git (`100755`). Each CI job also runs `chmod +x gradlew` as a safety step.
 
-**Sentry on CI:** `build.gradle.kts` sets `includeSourceContext = sentryToken.isNotEmpty()`. Without `SENTRY_AUTH_TOKEN` secret, the upload task is skipped entirely — the build does not fail.
+**Приёмник на CI:** `GLITCHTIP_DSN` передаётся в шаг сборки релиза. Пустой DSN сборку НЕ ломает — APK соберётся и опубликуется молча немым, узнать об этом можно только по строке в логе устройства. Поэтому секрет обязателен для каждого пайплайна, публикующего APK. `SENTRY_AUTH_TOKEN` больше не используется: выгрузка символов выключена в `build.gradle.kts`.

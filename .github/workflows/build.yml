@@ -83,8 +83,16 @@ jobs:
 
       - name: Build release APK
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: ./gradlew :app:assembleRelease --no-daemon
+          # Без DSN приложение НЕ инициализирует Sentry вовсе, и сборка об этом молчит:
+          # опубликованный APK окажется немым, а узнать это можно только по логу
+          # устройства. Поэтому проверяем секрет явно и падаем сразу.
+          GLITCHTIP_DSN: ${{ secrets.GLITCHTIP_DSN }}
+        run: |
+          if [ -z "$GLITCHTIP_DSN" ]; then
+            echo "Missing GLITCHTIP_DSN secret: released APK would not report crashes." >&2
+            exit 1
+          fi
+          ./gradlew :app:assembleRelease --no-daemon
 
       - name: Verify APK signature
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
