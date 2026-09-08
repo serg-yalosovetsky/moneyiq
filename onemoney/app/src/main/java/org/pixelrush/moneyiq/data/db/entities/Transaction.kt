@@ -40,6 +40,10 @@ data class TransactionEntity(
     val amount: Double,
     val accountId: Long,
     val toAccountId: Long? = null,       // только для TRANSFER
+    // Сколько зачислено на счёт-получатель. null = столько же, сколько списано
+    // (счета одной валюты). Хранится, а не пересчитывается: курс меняется, и откат
+    // операции по свежему курсу оставил бы на счетах расхождение.
+    val toAmount: Double? = null,
     val categoryId: Long? = null,
     val note: String = "",
     val date: Long = System.currentTimeMillis(),

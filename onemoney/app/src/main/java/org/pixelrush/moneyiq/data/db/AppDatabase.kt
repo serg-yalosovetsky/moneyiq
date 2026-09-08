@@ -333,6 +333,14 @@ val MIGRATION_32_33 = object : Migration(32, 33) {
     }
 }
 
+// Сумма, зачисленная на счёт-получатель перевода. У старых операций её нет —
+// NULL читается как «столько же, сколько списано», то есть поведение до миграции.
+val MIGRATION_33_34 = object : Migration(33, 34) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE transactions ADD COLUMN toAmount REAL")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
@@ -365,7 +373,8 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_29_30,
     MIGRATION_30_31,
     MIGRATION_31_32,
-    MIGRATION_32_33
+    MIGRATION_32_33,
+    MIGRATION_33_34
 )
 
 @Database(
@@ -375,7 +384,7 @@ val ALL_MIGRATIONS = arrayOf(
         TransactionEntity::class,
         TxOverrideEntity::class
     ],
-    version = 33,
+    version = 34,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

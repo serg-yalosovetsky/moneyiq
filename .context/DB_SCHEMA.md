@@ -2,7 +2,7 @@
 
 Room database: `AppDatabase`
 
-Current version: `32`
+Current version: `34`
 
 Entities:
 
@@ -57,6 +57,7 @@ Entities:
 - `amount: Double`
 - `accountId: Long`
 - `toAccountId: Long?`
+- `toAmount: Double?` (added migration 33→34) — сколько зачислено на счёт-получатель; `null` = столько же, сколько списано (счета одной валюты). Хранится, а не пересчитывается: курс меняется, и откат операции по свежему курсу оставил бы расхождение на счетах
 - `categoryId: Long?`
 - `note: String`
 - `date: Long`
@@ -131,6 +132,9 @@ Indices:
 - `28 -> 29`: data migration — fixes root-level imported categories stuck on `family` icon: `home`/`#546E7A` (LIKE `%комунал%`), `phone`/`#3F51B5` (LIKE `%зв%язок%`, apostrophe-agnostic), `wifi`/`#00BCD4` (= `інтернет`). Unconditional — no icon guard, since `family` is a valid key and prior name-based migrations were bypassed when these categories were imported after migration.
 - `29 -> 30`: data migration — one-time `sortOrder` fix for 9 root expense categories: продукти→1, ресторація→2, дозвілля→3, транспорт→4, здоров'я→5, подарунки→6, сім'я→7, покупки→8, робота→9. Uses LIKE for apostrophe names. After this migration `sortOrder` is user-controlled and never reset on startup.
 
-Any schema change must add a migration and update this file.
 - `30 -> 31`: adds table `tx_overrides` (очередь правок операций для mono-flow)
 - `31 -> 32`: adds `tx_overrides.attempts` and `tx_overrides.lastError`
+- `32 -> 33`: **structural** — adds `tx_overrides.toAccountId INTEGER` (счёт-получатель для правки «расход → перемещение»)
+- `33 -> 34`: **structural** — adds `transactions.toAmount REAL` (nullable). NULL читается как «столько же, сколько списано», то есть поведение до миграции
+
+Any schema change must add a migration and update this file.
