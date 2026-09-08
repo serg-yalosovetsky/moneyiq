@@ -5,7 +5,8 @@
 ```
 CHIP_WIDTH              = 84.dp    // фактическая ширина; реальный размер считает
                                    // BoxWithConstraints в CategoriesGridContent
-CHIP_HEIGHT             = 136.dp   // МИНИМУМ, не фиксированная высота (см. правило ниже)
+CHIP_HEIGHT             = 136.dp   // база для маленького экрана; фактическая высота
+                                   // считается от неё и от fontScale (см. правило ниже)
 CHIP_CIRCLE_SIZE        = 50.dp
 CHIP_WIDTH_COMPACT      = 82.dp
 CHIP_HEIGHT_COMPACT     = 112.dp
@@ -15,21 +16,38 @@ SUBCATEGORY_PANEL_WIDTH  = 150.dp
 SUBCATEGORY_PANEL_HEIGHT = 76.dp
 ```
 
-**Rule (2026-09-08):** чип задаётся как `width(chipW).heightIn(min = chipH)`, а НЕ
-`size(w, h)`. Тексты в чипе измеряются в sp и растут вместе с системным размером шрифта,
-а фиксированная высота не растёт — при увеличенном шрифте нижняя сумма обрезалась
-(жалоба Сержа на релизе 1.2.10). Ряды сетки и обёртки чипов в средних колонках тоже
-НЕ должны фиксировать высоту: они меряются по самому высокому чипу.
+**Rule (2026-09-08, после ДВУХ жалоб Сержа):** высота чипа **фиксированная, но зависит
+от системного шрифта**:
 
-**Rule:** высота секции с бубликом больше не считается формулой `CHIP_HEIGHT * 2 + GAP`.
-Ряд `midLeft | DonutChart | midRight` обёрнут в `Modifier.height(IntrinsicSize.Min)`, а
-сам бублик берёт `fillMaxHeight()` — так он всегда совпадает с фактической высотой чипов
-рядом, при любом fontScale. Константы `DONUT_SECTION_HEIGHT` больше нет.
+```kotlin
+val fontScale  = LocalDensity.current.fontScale
+val chipBase   = when {                       // по высоте экрана
+    maxHeight < 700.dp -> 136.dp
+    maxHeight < 800.dp -> 142.dp
+    else               -> 148.dp
+}
+val chipHeight = chipBase + 45.dp * (fontScale - 1f).coerceIn(0f, 1f)
+```
+
+Ряды сетки и обёртки чипов в средних колонках держат ровно `chipHeight`
+(`CategoriesScreen.kt:657, 686, 721, 728, 792`), секция с бубликом —
+`chipHeight * 2 + CATEGORY_VERTICAL_GAP`.
+
+Почему не «просто минимум»: у обоих крайних вариантов есть свой дефект, оба уже случились.
+
+| вариант | что ломается |
+|---|---|
+| `size(w, h)` — жёстко, без учёта шрифта | при крупном шрифте нижняя сумма обрезается (релиз 1.2.10) |
+| `heightIn(min = chipH)` + `IntrinsicSize.Min` на ряду | внутри чипа стоят `Spacer(weight(1f))` — без ВЕРХНЕЙ границы чип растягивается на всю секцию с бубликом и съедает место второго чипа в средней колонке: вместо двух чипов остаётся один во всю высоту (релиз 1.2.11, «нельзя чтобы ресторация так расползалась») |
+
+**Rule:** `IntrinsicSize.Min` здесь не работает — распорки внутри чипа делают его
+«бесконечно растяжимым», и минимальная внутренняя высота ничего не ограничивает.
+Не возвращать.
 
 **Rule:** у всех сумм в чипе `maxLines = 1` И `overflow = TextOverflow.Ellipsis`. Ширина
 чипа от fontScale не зависит, поэтому длинная сумма без многоточия обрезалась посимвольно.
 
-**CRITICAL spacing rule:** Never use `Modifier.height(N).padding(bottom = K)` on chip rows. Use `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))` — и БЕЗ `Modifier.height(chipHeight)` на рядах: фиксированная высота ряда снова обрежет чип, выросший под крупный шрифт.
+**CRITICAL spacing rule:** Never use `Modifier.height(N).padding(bottom = K)` on chip rows. Промежутки задаёт `LazyColumn(verticalArrangement = Arrangement.spacedBy(CATEGORY_VERTICAL_GAP))`, а высоту ряда — `Modifier.height(chipHeight)`, где `chipHeight` уже учитывает fontScale (см. правило выше). Именно связка «отступ через spacedBy + высота через chipHeight» держит сетку: `padding(bottom)` поверх фиксированной высоты снова обрежет содержимое.
 
 The chip name `Box` uses `heightIn(min=28.dp, max=40.dp)` (compact: `min=22.dp, max=32.dp`), not a fixed height.
 

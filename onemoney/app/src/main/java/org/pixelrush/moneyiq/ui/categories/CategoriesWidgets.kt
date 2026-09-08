@@ -110,6 +110,17 @@ internal fun CategoryChip(
     val iconTint = if (CategoryScreenTokens.byName.containsKey(category.name)) style.iconTint
                    else if (hasSpending || hasBudget) Color.White else fallbackColor
 
+    // Білий доречний ВСЕРЕДИНІ кольорового кружка іконки, але не на світлій картці:
+    // сума під іконкою малювалась білим по білому і не читалась узагалі. Категорії поза
+    // CategoryScreenTokens.byName (усі підкатегорії та все, що приїхало з сервера)
+    // беруть власний колір категорії, і лише в темній темі лишається білий.
+    val amountTint = when {
+        !hasSpending                                           -> colors.secondaryText
+        CategoryScreenTokens.byName.containsKey(category.name) -> style.iconTint
+        isDarkTheme                                            -> Color.White
+        else                                                   -> fallbackColor
+    }
+
     Column(
         modifier = Modifier
             // heightIn(min), а не size: при збільшеному системному шрифті три текстові
@@ -235,7 +246,7 @@ internal fun CategoryChip(
         Text(
             formatMoney(spending) + " ₴",
             style     = typo.categoryBottomAmount,
-            color     = if (spending > 0.0) iconTint else colors.secondaryText,
+            color     = amountTint,
             maxLines  = 1,
             overflow  = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

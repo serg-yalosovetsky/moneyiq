@@ -651,8 +651,9 @@ internal fun CategoriesGridContent(
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
-                            // без фіксованої висоти: ряд міряється по найвищому чипу,
-                            // інакше чип, що виріс під великий шрифт, знову обрізало б
+                            // висота фіксована, але враховує системний шрифт (chipHeight):
+                            // без верхньої межі розпірки всередині чипа розтягують його
+                            // на всю секцію і з'їдають місце сусіда
                             modifier          = Modifier.height(chipHeight)
                         )
                         if (topStripShown) {
@@ -785,8 +786,9 @@ internal fun CategoriesGridContent(
                             onChipClick       = onChipClick,
                             onChipLongClick   = onChipLongClick,
                             onChipDoubleClick = onChipDoubleClick,
-                            // без фіксованої висоти: ряд міряється по найвищому чипу,
-                            // інакше чип, що виріс під великий шрифт, знову обрізало б
+                            // висота фіксована, але враховує системний шрифт (chipHeight):
+                            // без верхньої межі розпірки всередині чипа розтягують його
+                            // на всю секцію і з'їдають місце сусіда
                             modifier          = Modifier.height(chipHeight)
                         )
                         if (rowStripShown) {
