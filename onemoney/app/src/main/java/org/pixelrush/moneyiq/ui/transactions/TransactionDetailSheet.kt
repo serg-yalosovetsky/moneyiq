@@ -97,9 +97,15 @@ internal fun TransactionDetailSheet(
             try { Color(it.toColorInt()) } catch (_: Exception) { null }
         }
     }
+    // Рахунок, на який операцію щойно позначили перемістити (ще не збережено)
+    val movedToAccount = remember(moveToAccountId, accounts) {
+        moveToAccountId?.let { id -> accounts.firstOrNull { it.id == id } }
+    }
     // Категорія на переказі означає, що операцію перекласифіковано у витрату/дохід
-    val isTransfer  = tx.type == TransactionType.TRANSFER && categoryId == null
+    val isTransfer  = movedToAccount != null ||
+        (tx.type == TransactionType.TRANSFER && categoryId == null)
     val effectiveType = when {
+        movedToAccount != null              -> TransactionType.TRANSFER
         tx.type != TransactionType.TRANSFER -> tx.type
         selectedCat != null                 -> selectedCat.type
         categoryId != null                  -> TransactionType.EXPENSE
@@ -179,6 +185,7 @@ internal fun TransactionDetailSheet(
                         )
                         Text(
                             when {
+                                movedToAccount != null  -> movedToAccount.name
                                 isTransfer              -> tx.toAccountName ?: "—"
                                 selectedCat != null     -> selectedCat.name
                                 tx.categoryName != null -> tx.categoryName

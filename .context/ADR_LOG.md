@@ -1465,3 +1465,23 @@ Icon(DoubleChevronRight, tint = if (isCurrentMonth) Color(0xFF111111) else Month
 **Проверено на эмуляторе (Small_Phone_API_33, стенд вместо боевого mono-flow):** при
 сервере, отвечающем 500 на правку, приложение не сделало ни одного GET; как только сервер
 начал принимать — сначала ушёл POST, затем GET.
+
+## ADR-072: HTTP разрешён только debug-сборке и только для локального стенда (2026-09-08)
+
+**Problem:** С targetSdk 36 cleartext-трафик запрещён по умолчанию, поэтому приложение на
+эмуляторе не могло ходить в локальный стенд mono-flow (`http://10.0.2.2:8765`) — синк
+падал с «Cleartext HTTP traffic to 10.0.2.2 not permitted». Проверять двусторонний синк
+оставалось только на БОЕВОМ mono-flow с настоящим `SYNC_TOKEN`, то есть тестовые правки
+уезжали бы в живые данные Сержа.
+
+**Decision:** `app/src/debug/AndroidManifest.xml` подключает
+`app/src/debug/res/xml/network_security_config.xml`, где HTTP разрешён ровно для трёх
+адресов: `10.0.2.2` (хост-машина с точки зрения эмулятора), `localhost`, `127.0.0.1`.
+
+**Rule:** Файл живёт ТОЛЬКО в debug-source-set. Релизная сборка его не видит и по-прежнему
+ходит исключительно по HTTPS — проверяется тем, что в `app/src/main/AndroidManifest.xml`
+нет `networkSecurityConfig`, а `tools:replace` стоит в debug-манифесте.
+
+**Rule:** Стенд (`fake_monoflow.py`) с токеном `test` — единственный допустимый адресат
+проверок синка. Боевой `SYNC_TOKEN` в эмулятор не вводится: однажды это уже привело к
+тому, что тестовая правка осталась в боевой базе mono-flow.
