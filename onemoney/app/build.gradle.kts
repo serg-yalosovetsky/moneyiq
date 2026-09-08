@@ -199,14 +199,17 @@ dependencies {
     androidTestImplementation(libs.hilt.android.testing)
 }
 
-val sentryToken: String = System.getenv("SENTRY_AUTH_TOKEN")
-    ?: localProps.getProperty("sentry.auth.token", "")
-
+// Плагин Sentry на сборке НИЧЕГО НАРУЖУ НЕ ОТДАЁТ. Раньше он заливал в публичный
+// sentry.io (org serg-yalosovetsky, проект one_money) mapping-файл и, при заданном
+// токене, includeSourceContext — то есть ИСХОДНИКИ приложения. Приёмник падений
+// переехал на свой glitchtip.ibotz.fun (ADR-075), и загрузка символов туда не
+// настроена, поэтому она просто выключена: цена — обфусцированные стектрейсы
+// релизной сборки. Включать обратно только на СВОЙ приёмник (serg/tasks#679).
 sentry {
-    includeSourceContext = sentryToken.isNotEmpty()
-    org = "serg-yalosovetsky"
-    projectName = "one_money"
-    authToken = sentryToken
+    includeSourceContext = false
+    autoUploadProguardMapping = false
+    uploadNativeSymbols = false
+    telemetry = false
 
     // Sentry 4.14.1 ASM bytecode transform (transformDebugClassesWithAsm) drops some
     // worker classes (DriveBackupWorker/MonoFlowSyncWorker/NotificationWorker) from the
